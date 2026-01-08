@@ -689,7 +689,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{formatCurrency(quotationStats.total)}</div>
+                    <div className="text-3xl font-bold text-primary">{formatCurrency(quotationStats.total)}</div>
                     <p className="text-xs text-muted-foreground mt-1">Total value</p>
                   </CardContent>
                 </Card>
@@ -705,7 +705,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold text-yellow-600">{quotationStats.draft}</div>
+                    <div className="text-4xl font-bold text-[hsl(38_92%_50%)]">{quotationStats.draft}</div>
                     <p className="text-xs text-muted-foreground mt-1">In progress</p>
                   </CardContent>
                 </Card>
@@ -721,7 +721,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-blue-600">{formatCurrency(quotationStats.pending)}</div>
+                    <div className="text-3xl font-bold text-[hsl(199_89%_48%)]">{formatCurrency(quotationStats.pending)}</div>
                     <p className="text-xs text-muted-foreground mt-1">Awaiting acceptance</p>
                   </CardContent>
                 </Card>
@@ -737,7 +737,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-green-600">{formatCurrency(quotationStats.accepted)}</div>
+                    <div className="text-3xl font-bold text-[hsl(142_76%_36%)]">{formatCurrency(quotationStats.accepted)}</div>
                     <p className="text-xs text-muted-foreground mt-1">Completed</p>
                   </CardContent>
                 </Card>
@@ -753,7 +753,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{formatCurrency(invoiceStats.total)}</div>
+                    <div className="text-3xl font-bold text-primary">{formatCurrency(invoiceStats.total)}</div>
                     <p className="text-xs text-muted-foreground mt-1">Total value</p>
                   </CardContent>
                 </Card>
@@ -769,7 +769,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold text-yellow-600">{invoiceStats.draft}</div>
+                    <div className="text-4xl font-bold text-[hsl(38_92%_50%)]">{invoiceStats.draft}</div>
                     <p className="text-xs text-muted-foreground mt-1">In progress</p>
                   </CardContent>
                 </Card>
@@ -785,7 +785,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-blue-600">{formatCurrency(invoiceStats.pending)}</div>
+                    <div className="text-3xl font-bold text-[hsl(199_89%_48%)]">{formatCurrency(invoiceStats.pending)}</div>
                     <p className="text-xs text-muted-foreground mt-1">Awaiting payment</p>
                   </CardContent>
                 </Card>
@@ -801,7 +801,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-green-600">{formatCurrency(invoiceStats.paid)}</div>
+                    <div className="text-3xl font-bold text-[hsl(142_76%_36%)]">{formatCurrency(invoiceStats.paid)}</div>
                     <p className="text-xs text-muted-foreground mt-1">Completed</p>
                   </CardContent>
                 </Card>
@@ -878,7 +878,7 @@ export default function Home() {
                       {/* Under Budget */}
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-muted-foreground">Under Budget</p>
-                        <p className="text-3xl font-bold text-green-600">
+                        <p className="text-4xl font-bold text-[hsl(142_76%_36%)]">
                           {formatCurrency(expenseStats.totalUnderBudget)}
                         </p>
                         <p className="text-xs text-muted-foreground">Total savings</p>
@@ -887,7 +887,7 @@ export default function Home() {
                       {/* Over Budget */}
                       <div className="space-y-2 border-l border-r px-6">
                         <p className="text-sm font-medium text-muted-foreground">Over Budget</p>
-                        <p className="text-3xl font-bold text-red-600">
+                        <p className="text-4xl font-bold text-red-600">
                           {formatCurrency(expenseStats.totalOverBudget)}
                         </p>
                         <p className="text-xs text-muted-foreground">Total overspend</p>
@@ -896,8 +896,8 @@ export default function Home() {
                       {/* Efficiency */}
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-muted-foreground">Efficiency</p>
-                        <p className={`text-3xl font-bold ${
-                          expenseStats.averageEfficiency >= 0 ? "text-green-600" : "text-red-600"
+                        <p className={`text-4xl font-bold ${
+                          expenseStats.averageEfficiency >= 0 ? "text-[hsl(142_76%_36%)]" : "text-red-600"
                         }`}>
                           {expenseStats.averageEfficiency.toFixed(2)}%
                         </p>
@@ -913,7 +913,7 @@ export default function Home() {
                       {/* Gross Profit */}
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-muted-foreground">Gross Profit</p>
-                        <p className="text-3xl font-bold text-blue-600">
+                        <p className="text-4xl font-bold text-[hsl(199_89%_48%)]">
                           {formatCurrency(expenseStats.grossProfit)}
                         </p>
                         <p className="text-xs text-muted-foreground">Total client paid amount</p>
@@ -922,8 +922,8 @@ export default function Home() {
                       {/* Net Profit */}
                       <div className="space-y-2 border-l border-r px-6">
                         <p className="text-sm font-medium text-muted-foreground">Net Profit</p>
-                        <p className={`text-3xl font-bold ${
-                          expenseStats.netProfit >= 0 ? "text-green-600" : "text-red-600"
+                        <p className={`text-4xl font-bold ${
+                          expenseStats.netProfit >= 0 ? "text-[hsl(142_76%_36%)]" : "text-red-600"
                         }`}>
                           {formatCurrency(expenseStats.netProfit)}
                         </p>
@@ -933,8 +933,8 @@ export default function Home() {
                       {/* Margin Percentage */}
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-muted-foreground">Margin</p>
-                        <p className={`text-3xl font-bold ${
-                          expenseStats.marginPercentage >= 0 ? "text-green-600" : "text-red-600"
+                        <p className={`text-4xl font-bold ${
+                          expenseStats.marginPercentage >= 0 ? "text-[hsl(142_76%_36%)]" : "text-red-600"
                         }`}>
                           {expenseStats.marginPercentage.toFixed(2)}%
                         </p>

@@ -18,12 +18,14 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        success: "bg-[hsl(142_76%_36%)] text-white hover:bg-[hsl(142_76%_30%)]",
+        warning: "bg-[hsl(38_92%_50%)] text-white hover:bg-[hsl(38_92%_45%)]",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
+        default: "h-11 px-4 py-2", // Increased from h-10 to h-11 (44px) for elderly
+        sm: "h-10 rounded-md px-3", // Increased from h-9 (40px) for elderly
+        lg: "h-12 rounded-md px-8", // Increased from h-11 (48px) for elderly
+        icon: "h-11 w-11", // Increased from h-10 w-10 for elderly
       },
     },
     defaultVariants: {
