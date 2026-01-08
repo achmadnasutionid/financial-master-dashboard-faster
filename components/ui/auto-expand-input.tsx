@@ -23,8 +23,8 @@ const AutoExpandInput = React.forwardRef<HTMLTextAreaElement, AutoExpandInputPro
       if (textarea) {
         // Reset height to auto to get the correct scrollHeight
         textarea.style.height = 'auto'
-        // Set height to scrollHeight (with min height of 36px = h-9)
-        textarea.style.height = `${Math.max(36, textarea.scrollHeight)}px`
+        // Set height to scrollHeight (with min height of 44px = h-11)
+        textarea.style.height = `${Math.max(44, textarea.scrollHeight)}px`
       }
     }, [value])
 
@@ -39,7 +39,7 @@ const AutoExpandInput = React.forwardRef<HTMLTextAreaElement, AutoExpandInputPro
           "placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           "disabled:cursor-not-allowed disabled:opacity-50",
           "resize-none overflow-hidden", // Disable manual resize, hide scrollbar
-          "min-h-[36px] leading-5", // Match h-9 input height
+          "min-h-[44px] leading-5", // Match h-11 input height
           error && "border-destructive focus-visible:ring-destructive",
           className
         )}
