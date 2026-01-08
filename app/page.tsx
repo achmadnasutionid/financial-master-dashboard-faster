@@ -855,7 +855,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-4xl font-bold text-primary">{formatCurrency(quotationStats.total)}</div>
+                    <div className="text-2xl sm:text-3xl font-bold text-primary break-words">{formatCurrency(quotationStats.total)}</div>
                     <p className="text-xs text-muted-foreground mt-1">Total value</p>
                   </CardContent>
                 </Card>
@@ -887,7 +887,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-4xl font-bold text-[hsl(199_89%_48%)]">{formatCurrency(quotationStats.pending)}</div>
+                    <div className="text-2xl sm:text-3xl font-bold text-[hsl(199_89%_48%)] break-words">{formatCurrency(quotationStats.pending)}</div>
                     <p className="text-xs text-muted-foreground mt-1">Awaiting acceptance</p>
                   </CardContent>
                 </Card>
@@ -903,7 +903,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-4xl font-bold text-[hsl(142_76%_36%)]">{formatCurrency(quotationStats.accepted)}</div>
+                    <div className="text-2xl sm:text-3xl font-bold text-[hsl(142_76%_36%)] break-words">{formatCurrency(quotationStats.accepted)}</div>
                     <p className="text-xs text-muted-foreground mt-1">Completed</p>
                   </CardContent>
                 </Card>
@@ -919,7 +919,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-4xl font-bold text-primary">{formatCurrency(invoiceStats.total)}</div>
+                    <div className="text-2xl sm:text-3xl font-bold text-primary break-words">{formatCurrency(invoiceStats.total)}</div>
                     <p className="text-xs text-muted-foreground mt-1">Total value</p>
                   </CardContent>
                 </Card>
@@ -951,7 +951,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-4xl font-bold text-[hsl(199_89%_48%)]">{formatCurrency(invoiceStats.pending)}</div>
+                    <div className="text-2xl sm:text-3xl font-bold text-[hsl(199_89%_48%)] break-words">{formatCurrency(invoiceStats.pending)}</div>
                     <p className="text-xs text-muted-foreground mt-1">Awaiting payment</p>
                   </CardContent>
                 </Card>
@@ -967,7 +967,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-4xl font-bold text-[hsl(142_76%_36%)]">{formatCurrency(invoiceStats.paid)}</div>
+                    <div className="text-2xl sm:text-3xl font-bold text-[hsl(142_76%_36%)] break-words">{formatCurrency(invoiceStats.paid)}</div>
                     <p className="text-xs text-muted-foreground mt-1">Completed</p>
                   </CardContent>
                 </Card>
