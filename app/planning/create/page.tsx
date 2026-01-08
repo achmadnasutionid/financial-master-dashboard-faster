@@ -458,7 +458,6 @@ export default function CreatePlanningPage() {
                                     }
                                     placeholder="Type or select product"
                                     list={`products-${item.id}`}
-                                    className="h-9"
                                   />
                                   <datalist id={`products-${item.id}`}>
                                     {products.map((product) => (
@@ -473,7 +472,6 @@ export default function CreatePlanningPage() {
                                       updateItem(item.id, "budget", value)
                                     }
                                     placeholder="Rp 0"
-                                    className="h-9"
                                   />
                                 </div>
                                 <div>
@@ -483,7 +481,6 @@ export default function CreatePlanningPage() {
                                       updateItem(item.id, "expense", value)
                                     }
                                     placeholder="Rp 0"
-                                    className="h-9"
                                   />
                                 </div>
                                 <div>

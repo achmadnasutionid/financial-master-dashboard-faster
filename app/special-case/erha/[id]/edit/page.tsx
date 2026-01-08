@@ -1054,7 +1054,6 @@ export default function EditErhaTicketPage() {
                                           updateDetail(item.id, detail.id, "unitPrice", value)
                                         }
                                         placeholder="Rp 0"
-                                        className="h-9"
                                       />
                                       <Input
                                         type="number"
@@ -1063,9 +1062,8 @@ export default function EditErhaTicketPage() {
                                           updateDetail(item.id, detail.id, "qty", e.target.value)
                                         }
                                         placeholder="0"
-                                        className="h-9"
                                       />
-                                      <div className="flex h-9 items-center rounded-md border px-3 text-sm font-medium bg-muted">
+                                      <div className="flex h-11 items-center rounded-md border px-3 text-sm font-medium bg-muted">
                                         {formatCurrency(detail.amount)}
                                       </div>
                                       <Button

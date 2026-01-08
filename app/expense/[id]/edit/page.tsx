@@ -609,7 +609,6 @@ export default function EditExpensePage() {
                               placeholder="Type or select product"
                               list={`products-${item.id}`}
                               disabled={expenseStatus === "final" || hasInvoice}
-                              className="h-9"
                             />
                             <datalist id={`products-${item.id}`}>
                               {products.map((product) => (
@@ -619,7 +618,7 @@ export default function EditExpensePage() {
                           </div>
                           <div>
                             {hasInvoice ? (
-                              <div className="flex h-9 items-center rounded-md border px-3 text-sm text-muted-foreground">
+                              <div className="flex h-11 items-center rounded-md border px-3 text-sm text-muted-foreground">
                                 {formatCurrency(parseFloat(item.budgeted) || 0)}
                               </div>
                             ) : (
@@ -628,7 +627,6 @@ export default function EditExpensePage() {
                                 onValueChange={(value) => updateItem(item.id, "budgeted", value)}
                                 placeholder="Rp 0"
                                 disabled={expenseStatus === "final"}
-                                className="h-9"
                               />
                             )}
                           </div>
@@ -638,7 +636,6 @@ export default function EditExpensePage() {
                               onValueChange={(value) => updateItem(item.id, "actual", value)}
                               placeholder="Rp 0"
                               disabled={expenseStatus === "final"}
-                              className="h-9"
                             />
                           </div>
                           <div>

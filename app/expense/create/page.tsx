@@ -509,7 +509,6 @@ export default function CreateExpensePage() {
                               onChange={(e) => updateItem(item.id, "productName", e.target.value)}
                               placeholder="Type or select product"
                               list={`products-${item.id}`}
-                              className="h-9"
                             />
                             <datalist id={`products-${item.id}`}>
                               {products.map((product) => (
@@ -522,7 +521,6 @@ export default function CreateExpensePage() {
                               value={item.budgeted}
                               onValueChange={(value) => updateItem(item.id, "budgeted", value)}
                               placeholder="Rp 0"
-                              className="h-9"
                             />
                           </div>
                           <div>
@@ -530,7 +528,6 @@ export default function CreateExpensePage() {
                               value={item.actual}
                               onValueChange={(value) => updateItem(item.id, "actual", value)}
                               placeholder="Rp 0"
-                              className="h-9"
                             />
                           </div>
                           <div>
