@@ -589,7 +589,7 @@ export default function EditErhaTicketPage() {
           setTimeout(() => setAutoSaveStatus("idle"), 3000)
         } else {
           toast.success(`Ticket ${status === "final" ? "finalized" : "saved as draft"} successfully!`)
-          router.push("/special-case/erha?refresh=true")
+          router.push("/special-case/erha")
         }
       } else {
         const errorData = await response.json()

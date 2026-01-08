@@ -122,7 +122,7 @@ export default function EditInvoicePage() {
         toast.error("Cannot edit paid Invoice", {
           description: "This Invoice has been paid and cannot be edited."
         })
-        router.push("/invoice?refresh=true")
+        router.push("/invoice")
         return
       }
 
@@ -594,7 +594,7 @@ export default function EditInvoicePage() {
         if (status === "pending") {
           router.push(`/invoice/${InvoiceId}/view`)
         } else {
-          router.push("/invoice?refresh=true")
+          router.push("/invoice")
         }
       } else {
         const data = await response.json()

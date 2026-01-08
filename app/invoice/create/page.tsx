@@ -477,7 +477,7 @@ export default function CreateInvoicePage() {
           if (status === "pending") {
             router.push(`/invoice/${data.id}/view`)
           } else {
-            router.push("/invoice?refresh=true") // Signal to refresh
+            router.push("/invoice")
           }
         } else {
           setAutoSaveStatus("saved")

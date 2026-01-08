@@ -46,10 +46,8 @@ export function PageHeader({ title, showBackButton = false, backTo = "/" }: Page
     const listPages = ['/quotation', '/invoice', '/planning', '/expense', '/special-case/paragon', '/special-case/erha']
     const isListPage = listPages.some(page => backTo.startsWith(page))
     
-    if (isListPage && !backTo.includes('?')) {
-      router.push(`${backTo}?refresh=true`)
-    } else if (isListPage && backTo.includes('?')) {
-      router.push(`${backTo}&refresh=true`)
+    if (isListPage) {
+      router.push(backTo)
     } else {
       router.push(backTo)
     }

@@ -75,7 +75,7 @@ export default function EditExpensePage() {
           toast.error("Cannot edit finalized expense", {
             description: "This expense has been finalized and cannot be edited."
           })
-          router.push("/expense?refresh=true")
+          router.push("/expense")
           return
         }
 
@@ -375,7 +375,7 @@ export default function EditExpensePage() {
         if (status === "final") {
           router.push(`/expense/${expenseId}/view`)
         } else {
-          router.push("/expense?refresh=true")
+          router.push("/expense")
         }
       } else {
         const data = await response.json()

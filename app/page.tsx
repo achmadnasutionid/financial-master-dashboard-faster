@@ -71,23 +71,11 @@ export default function Home() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [invoicesRes, quotationsRes, expensesRes, productsRes, gearExpensesRes, bigExpensesRes] = await Promise.all([
-          fetch("/api/invoice"),
-          fetch("/api/quotation"),
-          fetch("/api/expense"),
-          fetch("/api/products"),
-          fetch("/api/gear-expenses"),
-          fetch("/api/big-expenses"),
-        ])
-
-        const [invoices, quotations, expenses, products, gearExpenses, bigExpenses] = await Promise.all([
-          invoicesRes.json(),
-          quotationsRes.json(),
-          expensesRes.json(),
-          productsRes.json(),
-          gearExpensesRes.json(),
-          bigExpensesRes.json(),
-        ])
+        // NEW: Single consolidated API call instead of 6 separate calls!
+        const response = await fetch("/api/dashboard-stats", { cache: 'no-store' })
+        const data = await response.json()
+        
+        const { invoices, quotations, expenses, products, gearExpenses, bigExpenses } = data
 
         // Extract unique years from all datasets
         const years = new Set<number>()

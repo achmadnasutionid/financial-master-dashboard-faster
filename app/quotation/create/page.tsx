@@ -477,7 +477,7 @@ export default function CreateQuotationPage() {
           if (status === "pending") {
             router.push(`/quotation/${data.id}/view`)
           } else {
-            router.push("/quotation?refresh=true") // Signal to refresh
+            router.push("/quotation")
           }
         } else {
           setAutoSaveStatus("saved")

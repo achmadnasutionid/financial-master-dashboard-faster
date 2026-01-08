@@ -597,7 +597,7 @@ export default function EditQuotationPage() {
         if (status === "pending") {
           router.push(`/quotation/${quotationId}/view`)
         } else {
-          router.push("/quotation?refresh=true") // Signal to refresh
+          router.push("/quotation")
         }
       } else {
         const data = await response.json()

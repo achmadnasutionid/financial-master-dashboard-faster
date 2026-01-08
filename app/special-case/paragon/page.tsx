@@ -106,21 +106,6 @@ function ParagonTicketPageContent() {
     fetchTickets()
   }, [statusFilter, sortBy])
 
-  // Check for refresh parameter - show loading and refetch
-  useEffect(() => {
-    const refreshParam = searchParams.get("refresh")
-    if (refreshParam === "true") {
-      // Show loading while fetching fresh data
-      setLoading(true)
-      fetchTickets().then(() => {
-        // Remove the refresh param from URL after data is loaded
-        const newUrl = new URL(window.location.href)
-        newUrl.searchParams.delete("refresh")
-        window.history.replaceState({}, '', newUrl.toString())
-      })
-    }
-  }, [searchParams])
-
   const [isDeleting, setIsDeleting] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const ITEMS_PER_PAGE = 12

@@ -109,21 +109,6 @@ function PlanningPageContent() {
     fetchPlannings()
   }, [statusFilter, sortBy])
 
-  // Check for refresh parameter - show loading and refetch
-  useEffect(() => {
-    const refreshParam = searchParams.get("refresh")
-    if (refreshParam === "true") {
-      // Show loading while fetching fresh data
-      setLoading(true)
-      fetchPlannings().then(() => {
-        // Remove the refresh param from URL after data is loaded
-        const newUrl = new URL(window.location.href)
-        newUrl.searchParams.delete("refresh")
-        window.history.replaceState({}, '', newUrl.toString())
-      })
-    }
-  }, [searchParams])
-
   // Fetch master data when dialog opens
   useEffect(() => {
     if (showQuotationDialog) {

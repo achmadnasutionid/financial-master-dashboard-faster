@@ -72,7 +72,7 @@ export default function EditPlanningPage() {
           toast.error("Cannot edit finalized planning", {
             description: "This planning has been finalized and cannot be edited."
           })
-          router.push("/planning?refresh=true")
+          router.push("/planning")
           return
         }
 
@@ -336,7 +336,7 @@ export default function EditPlanningPage() {
         if (status === "final") {
           router.push(`/planning/${planningId}/view`)
         } else {
-          router.push("/planning?refresh=true")
+          router.push("/planning")
         }
       } else {
         const data = await response.json()

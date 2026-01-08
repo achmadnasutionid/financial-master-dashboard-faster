@@ -542,7 +542,7 @@ export default function EditParagonTicketPage() {
           setTimeout(() => setAutoSaveStatus("idle"), 3000)
         } else {
           toast.success(`Ticket ${status === "final" ? "finalized" : "saved as draft"} successfully!`)
-          router.push("/special-case/paragon?refresh=true")
+          router.push("/special-case/paragon")
         }
       } else {
         const errorData = await response.json()

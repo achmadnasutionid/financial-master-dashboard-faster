@@ -70,19 +70,6 @@ function QuotationPageContent() {
     if (statusParam && ["draft", "pending", "accepted"].includes(statusParam)) {
       setStatusFilter(statusParam)
     }
-    
-    // Check for refresh parameter - show loading and refetch
-    const refreshParam = searchParams.get("refresh")
-    if (refreshParam === "true") {
-      // Show loading while fetching fresh data
-      setLoading(true)
-      fetchQuotations().then(() => {
-        // Remove the refresh param from URL after data is loaded
-        const newUrl = new URL(window.location.href)
-        newUrl.searchParams.delete("refresh")
-        window.history.replaceState({}, '', newUrl.toString())
-      })
-    }
   }, [searchParams])
 
   const fetchQuotations = async () => {

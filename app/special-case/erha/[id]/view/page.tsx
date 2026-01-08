@@ -111,7 +111,7 @@ export default function ViewErhaTicketPage() {
           description: `Expense ${data.expense.expenseId} has been created.`
         })
         // Redirect to list page
-        router.push("/special-case/erha?refresh=true")
+        router.push("/special-case/erha")
       } else {
         const errorData = await response.json()
         toast.error("Failed to finalize ticket", {

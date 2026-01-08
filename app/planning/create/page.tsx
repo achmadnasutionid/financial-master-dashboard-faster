@@ -307,7 +307,7 @@ export default function CreatePlanningPage() {
         if (status === "final") {
           router.push(`/planning/${data.id}/view`)
         } else {
-          router.push("/planning?refresh=true")
+          router.push("/planning")
         }
       } else {
         const data = await response.json()
