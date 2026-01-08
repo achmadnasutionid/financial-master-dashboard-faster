@@ -165,7 +165,7 @@ export default function ViewPlanningPage() {
       URL.revokeObjectURL(url)
 
       // Open WhatsApp Web with pre-filled message
-      const message = `Hi! Here's the planning details:\n\n*${planning.planningId}*\nProject: ${planning.projectName}\nClient: ${planning.clientName}\nBudget: ${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(planning.clientBudget)}\n\nI've attached the PDF document for your review.`
+      const message = `Hi! Here's the planning details:\n\n*${planning.planningId}*\nProject: ${planning.projectName}\nClient: ${planning.clientName}\nBudget: ${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(planning.clientBudget)}\n\nI've attached the PDF document for your review.`
 
       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
       

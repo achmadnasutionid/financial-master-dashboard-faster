@@ -115,7 +115,7 @@ export default function ViewParagonTicketPage() {
       URL.revokeObjectURL(url)
 
       // Open WhatsApp Web with pre-filled message
-      const message = `Hi! Here's the Paragon Ticket ${viewType} details:\n\n*${ticket.ticketId}*\nClient: ${ticket.billTo}\nContact: ${ticket.contactPerson} (${ticket.contactPosition})\nTotal Amount: ${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(ticket.totalAmount)}\n\nI've attached the PDF document for your review.`
+      const message = `Hi! Here's the Paragon Ticket ${viewType} details:\n\n*${ticket.ticketId}*\nClient: ${ticket.billTo}\nContact: ${ticket.contactPerson} (${ticket.contactPosition})\nTotal Amount: ${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(ticket.totalAmount)}\n\nI've attached the PDF document for your review.`
 
       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
       

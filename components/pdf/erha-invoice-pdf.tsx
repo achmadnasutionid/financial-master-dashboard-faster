@@ -218,6 +218,7 @@ export const ErhaInvoicePDF: React.FC<ErhaInvoicePDFProps> = ({ data }) => {
   const formatCurrency = (amount: number) => {
     return `Rp${new Intl.NumberFormat("id-ID", {
       minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(amount)}`
   }
 

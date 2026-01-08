@@ -191,13 +191,14 @@ interface ParagonInvoicePDFProps {
 }
 
 export const ParagonInvoicePDF: React.FC<ParagonInvoicePDFProps> = ({ data }) => {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(amount)
-  }
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
 
   // For Paragon, subtotal is the final total amount (PPh already included in prices)
   const calculateSubtotal = () => {

@@ -162,13 +162,14 @@ export const ExpensePDF: React.FC<ExpensePDFProps> = ({ data }) => {
   const totalActual = data.items.reduce((sum, item) => sum + item.actual, 0)
   const totalDifference = totalPaid - totalActual // Paid - Actual
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(amount)
-  }
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
 
   return (
     <Document>

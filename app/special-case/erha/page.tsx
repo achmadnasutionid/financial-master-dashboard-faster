@@ -222,6 +222,7 @@ function ErhaTicketPageContent() {
       style: "currency",
       currency: "IDR",
       minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(amount)
   }
 

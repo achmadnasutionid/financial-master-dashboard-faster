@@ -204,6 +204,7 @@ export const ErhaBASTPDF: React.FC<ErhaBASTPDFProps> = ({ data }) => {
   const formatCurrency = (amount: number) => {
     return `Rp${new Intl.NumberFormat("id-ID", {
       minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(amount)}`
   }
 

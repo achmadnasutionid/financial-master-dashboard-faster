@@ -97,7 +97,7 @@ export default function ViewQuotationPage() {
       URL.revokeObjectURL(url)
 
       // Open WhatsApp Web with pre-filled message
-      const message = `Hi! Here's the quotation details:\n\n*${quotation.quotationId}*\nClient: ${quotation.billTo}\nTotal Amount: ${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(quotation.totalAmount)}\n\nI've attached the PDF document for your review.`
+      const message = `Hi! Here's the quotation details:\n\n*${quotation.quotationId}*\nClient: ${quotation.billTo}\nTotal Amount: ${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(quotation.totalAmount)}\n\nI've attached the PDF document for your review.`
 
       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
       
