@@ -70,6 +70,10 @@ model Planning {
   deletedAt         DateTime?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
+  
+  @@index([status, deletedAt])
+  @@index([planningId])
+  @@index([updatedAt])
 }
 
 model PlanningItem {
@@ -124,6 +128,11 @@ model Quotation {
   deletedAt         DateTime?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
+  
+  @@index([status, deletedAt])
+  @@index([quotationId])
+  @@index([productionDate])
+  @@index([updatedAt])
 }
 
 model QuotationItem {
@@ -204,6 +213,11 @@ model Invoice {
   deletedAt         DateTime?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
+  
+  @@index([status, deletedAt])
+  @@index([invoiceId])
+  @@index([productionDate])
+  @@index([updatedAt])
 }
 
 model InvoiceItem {
@@ -268,6 +282,11 @@ model Expense {
   deletedAt         DateTime?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
+  
+  @@index([status, deletedAt])
+  @@index([expenseId])
+  @@index([productionDate])
+  @@index([updatedAt])
 }
 
 model ExpenseItem {
@@ -327,6 +346,10 @@ model ParagonTicket {
   deletedAt         DateTime?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
+  
+  @@index([status, deletedAt])
+  @@index([ticketId])
+  @@index([updatedAt])
 }
 
 model ParagonTicketItem {
@@ -416,6 +439,10 @@ model ErhaTicket {
   deletedAt         DateTime?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
+  
+  @@index([status, deletedAt])
+  @@index([ticketId])
+  @@index([updatedAt])
 }
 
 model ErhaTicketItem {
@@ -461,6 +488,8 @@ model GearExpense {
   deletedAt   DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  
+  @@index([year, deletedAt])
 }
 
 // Big Expenses - Large expenses outside of projects
@@ -473,5 +502,7 @@ model BigExpense {
   deletedAt   DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  
+  @@index([year, deletedAt])
 }
 

@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
   // Optimize images
   images: {
     formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
   },
   
   // Experimental features for performance
@@ -22,7 +23,20 @@ const nextConfig: NextConfig = {
       'lucide-react',
       '@react-pdf/renderer',
       'recharts',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-select',
+      '@radix-ui/react-alert-dialog',
     ],
+  },
+  
+  // Output standalone for better Railway deployment
+  output: 'standalone',
+  
+  // Compiler optimizations
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
   },
 };
 

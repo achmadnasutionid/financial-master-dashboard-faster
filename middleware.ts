@@ -21,10 +21,10 @@ export function middleware(request: NextRequest) {
     
     if (request.method === "GET") {
       if (isMasterData) {
-        // Cache master data for 60 seconds
+        // Cache master data for 5 minutes
         response.headers.set(
           "Cache-Control",
-          "public, s-maxage=60, stale-while-revalidate=300"
+          "public, s-maxage=300, stale-while-revalidate=600"
         )
       } else {
         // NO CACHE for transaction data (quotations, invoices, expenses, etc)
@@ -43,6 +43,7 @@ export function middleware(request: NextRequest) {
   response.headers.set("X-Content-Type-Options", "nosniff")
   response.headers.set("X-Frame-Options", "DENY")
   response.headers.set("X-XSS-Protection", "1; mode=block")
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin")
 
   return response
 }
