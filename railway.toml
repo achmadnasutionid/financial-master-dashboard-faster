@@ -1,6 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "npm ci && npx prisma generate && npm run build"
+buildCommand = "npm ci --prefer-offline --no-audit && npx prisma generate && npm run build"
 
 [deploy]
 startCommand = "npm start"
@@ -13,7 +13,7 @@ restartPolicyMaxRetries = 3
 nixPkgs = ["nodejs-20_x"]
 
 [phases.install]
-cmds = ["npm ci --production=false"]
+cmds = ["npm install --prefer-offline --no-audit"]
 
 [[services]]
 name = "web"
