@@ -67,6 +67,14 @@ function ExpensePageContent() {
   const [isExporting, setIsExporting] = useState(false)
   const [availableYears, setAvailableYears] = useState<number[]>([])
 
+  // Set initial filter from URL query parameter
+  useEffect(() => {
+    const statusParam = searchParams.get("status")
+    if (statusParam && ["draft", "final"].includes(statusParam)) {
+      setStatusFilter(statusParam)
+    }
+  }, [searchParams])
+
   const fetchExpenses = async () => {
     try {
       const params = new URLSearchParams()

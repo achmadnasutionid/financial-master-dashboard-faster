@@ -6,7 +6,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, FileText, FileSignature, Package, Calendar, FileCheck, Receipt, Wallet, TrendingUp, TrendingDown } from "lucide-react";
+import { Building2, FileText, FileSignature, Package, Calendar, FileCheck, Receipt, Wallet, TrendingUp, TrendingDown, AlertCircle, Clock, FileX } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -53,6 +53,13 @@ export default function Home() {
   const [selectedTrendsYear, setSelectedTrendsYear] = useState<string>(currentYear)
   const [selectedProductsYear, setSelectedProductsYear] = useState<string>(currentYear)
   const [loading, setLoading] = useState(true)
+  
+  // Action Items State
+  const [actionItems, setActionItems] = useState({
+    pendingInvoices: { count: 0, totalAmount: 0, items: [] as any[] },
+    pendingQuotations: { count: 0, items: [] as any[] },
+    draftExpenses: { count: 0 }
+  })
 
   // Fetch statistics
   // Auto weekly backup - runs silently on app startup
@@ -107,6 +114,7 @@ export default function Home() {
         calculateExtraExpenses(gearExpenses, bigExpenses, selectedFinancialYear)
         calculateMonthlyTrends(expenses, selectedTrendsYear)
         calculateProductExpenses(expenses, products, selectedProductsYear)
+        calculateActionItems(invoices, quotations, expenses)
       } catch (error) {
         console.error("Error fetching stats:", error)
       } finally {
@@ -448,6 +456,40 @@ export default function Home() {
     setEtcExpenses(etcArray)
   }
 
+  const calculateActionItems = (invoices: any[], quotations: any[], expenses: any[]) => {
+    // 1. Pending Invoices (status = "pending")
+    const pendingInvoicesList = invoices.filter((inv: any) => inv.status === "pending")
+    const pendingInvoicesTotal = pendingInvoicesList.reduce((sum: number, inv: any) => sum + (inv.totalAmount || 0), 0)
+
+    // 2. Pending Quotations (status = "pending", sorted by days since last update)
+    const now = new Date().getTime()
+    const pendingQuotationsList = quotations
+      .filter((q: any) => q.status === "pending")
+      .map((q: any) => ({
+        ...q,
+        daysSinceUpdate: Math.floor((now - new Date(q.updatedAt).getTime()) / (1000 * 60 * 60 * 24))
+      }))
+      .sort((a: any, b: any) => b.daysSinceUpdate - a.daysSinceUpdate)
+
+    // 3. Draft Expenses (status = "draft")
+    const draftExpensesCount = expenses.filter((exp: any) => exp.status === "draft").length
+
+    setActionItems({
+      pendingInvoices: {
+        count: pendingInvoicesList.length,
+        totalAmount: pendingInvoicesTotal,
+        items: pendingInvoicesList
+      },
+      pendingQuotations: {
+        count: pendingQuotationsList.length,
+        items: pendingQuotationsList
+      },
+      draftExpenses: {
+        count: draftExpensesCount
+      }
+    })
+  }
+
   // Get least expense, excluding PHOTOGRAPHER (since it's profit, not expense)
   const getLeastExpense = () => {
     // Start from the end (least) and find first non-PHOTOGRAPHER product
@@ -466,6 +508,126 @@ export default function Home() {
       
       <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-12">
         <div className="container mx-auto max-w-7xl space-y-12">
+          {/* Action Items Section - What Needs Attention */}
+          {!loading && (actionItems.pendingInvoices.count > 0 || actionItems.pendingQuotations.count > 0 || actionItems.draftExpenses.count > 0) && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-orange-600" />
+                <h2 className="text-xl font-bold tracking-tight">Action Items</h2>
+                <span className="text-sm text-muted-foreground">
+                  ({actionItems.pendingInvoices.count + actionItems.pendingQuotations.count + actionItems.draftExpenses.count} items need attention)
+                </span>
+              </div>
+
+              <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-3">
+                {/* Pending Invoices */}
+                {actionItems.pendingInvoices.count > 0 && (
+                  <Card 
+                    className="group cursor-pointer transition-all hover:shadow-lg border-l-4 border-l-blue-500"
+                    onClick={() => router.push('/invoice?status=pending')}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Receipt className="h-5 w-5 text-blue-600" />
+                          <CardTitle className="text-base">Pending Invoices</CardTitle>
+                        </div>
+                        <span className="text-2xl font-bold text-blue-600">
+                          {actionItems.pendingInvoices.count}
+                        </span>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-sm text-muted-foreground">Total Amount:</span>
+                          <span className="text-lg font-semibold text-blue-700">
+                            {formatCurrency(actionItems.pendingInvoices.totalAmount)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Click to view all pending invoices awaiting payment
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Pending Quotations */}
+                {actionItems.pendingQuotations.count > 0 && (
+                  <Card 
+                    className="group cursor-pointer transition-all hover:shadow-lg border-l-4 border-l-yellow-500"
+                    onClick={() => router.push('/quotation?status=pending')}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-5 w-5 text-yellow-600" />
+                          <CardTitle className="text-base">Pending Quotations</CardTitle>
+                        </div>
+                        <span className="text-2xl font-bold text-yellow-600">
+                          {actionItems.pendingQuotations.count}
+                        </span>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {actionItems.pendingQuotations.items.slice(0, 2).map((q: any) => (
+                          <div key={q.id} className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground truncate flex-1">
+                              {q.quotationId}
+                            </span>
+                            <span className="text-yellow-700 font-medium whitespace-nowrap ml-2">
+                              {q.daysSinceUpdate}d ago
+                            </span>
+                          </div>
+                        ))}
+                        {actionItems.pendingQuotations.count > 2 && (
+                          <p className="text-xs text-muted-foreground pt-1">
+                            +{actionItems.pendingQuotations.count - 2} more
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground pt-1">
+                          Click to view all pending quotations
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Draft Expenses */}
+                {actionItems.draftExpenses.count > 0 && (
+                  <Card 
+                    className="group cursor-pointer transition-all hover:shadow-lg border-l-4 border-l-orange-500"
+                    onClick={() => router.push('/expense?status=draft')}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FileX className="h-5 w-5 text-orange-600" />
+                          <CardTitle className="text-base">Draft Expenses</CardTitle>
+                        </div>
+                        <span className="text-2xl font-bold text-orange-600">
+                          {actionItems.draftExpenses.count}
+                        </span>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <p className="text-sm text-muted-foreground">
+                          {actionItems.draftExpenses.count} {actionItems.draftExpenses.count === 1 ? 'expense' : 'expenses'} not yet finalized
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Click to finalize and track actual costs
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Quick Action Section */}
           <div className="space-y-6">
             <h2 className="text-xl font-bold tracking-tight">Quick Action</h2>
