@@ -465,10 +465,14 @@ export default function Home() {
     const now = new Date().getTime()
     const pendingQuotationsList = quotations
       .filter((q: any) => q.status === "pending")
-      .map((q: any) => ({
-        ...q,
-        daysSinceUpdate: Math.floor((now - new Date(q.updatedAt).getTime()) / (1000 * 60 * 60 * 24))
-      }))
+      .map((q: any) => {
+        const updatedDate = q.updatedAt ? new Date(q.updatedAt).getTime() : new Date(q.createdAt).getTime()
+        const days = Math.floor((now - updatedDate) / (1000 * 60 * 60 * 24))
+        return {
+          ...q,
+          daysSinceUpdate: isNaN(days) ? 0 : days
+        }
+      })
       .sort((a: any, b: any) => b.daysSinceUpdate - a.daysSinceUpdate)
 
     // 3. Draft Expenses (status = "draft")
