@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { logExpenseToSheets } from "@/lib/google-sheets"
 
 // Helper function to generate Expense ID in format EXP-YYYY-NNNN
 async function generateExpenseId() {
@@ -119,14 +118,6 @@ export async function POST(request: Request) {
         items: true
       }
     })
-
-    // Log to Google Sheets if status is final (non-blocking)
-    // TEMPORARILY DISABLED for faster API performance
-    // if (expense.status === 'final') {
-    //   logExpenseToSheets(expense).catch(err =>
-    //     console.error('Failed to log expense to sheets:', err)
-    //   )
-    // }
 
     return NextResponse.json(expense, { status: 201 })
   } catch (error: any) {

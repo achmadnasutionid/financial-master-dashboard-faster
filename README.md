@@ -17,7 +17,7 @@ A comprehensive financial management dashboard for tracking quotations, invoices
 ## Tech Stack
 
 - **Framework:** Next.js 16 (App Router)
-- **Database:** PostgreSQL (Neon)
+- **Database:** PostgreSQL (Railway)
 - **ORM:** Prisma
 - **Styling:** Tailwind CSS v4
 - **UI Components:** shadcn/ui + Radix UI
@@ -31,13 +31,13 @@ A comprehensive financial management dashboard for tracking quotations, invoices
 ### Prerequisites
 
 - Node.js 18+ installed
-- A Neon account (free tier works) - [neon.tech](https://neon.tech)
+- A Railway account (free trial available) - [railway.app](https://railway.app)
 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/master-dashboard.git
-cd master-dashboard
+git clone https://github.com/achmadnasutionid/financial-master-dashboard-faster.git
+cd financial-master-dashboard-faster
 ```
 
 ### 2. Install Dependencies
@@ -46,27 +46,24 @@ cd master-dashboard
 npm install
 ```
 
-### 3. Set Up Database (Neon PostgreSQL)
+### 3. Set Up Database (Railway PostgreSQL)
 
-1. Go to [neon.tech](https://neon.tech) and create a free account
-2. Create a new project (choose region closest to you)
-3. Copy the connection strings from the dashboard
+1. Go to [railway.app](https://railway.app) and create an account
+2. Create a new project
+3. Add PostgreSQL database from the service catalog
+4. Copy the connection strings from the database settings
 
 ### 4. Configure Environment Variables
 
 Create a `.env` file in the root directory:
 
 ```env
-# Neon PostgreSQL Connection (Pooled - for app queries)
-DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
+# Railway PostgreSQL Connection
+DATABASE_URL="postgresql://postgres:PASSWORD@HOST:PORT/railway"
 
-# Neon Direct Connection (for Prisma migrations)
-DIRECT_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
+# Direct connection (for migrations)
+DIRECT_URL="postgresql://postgres:PASSWORD@HOST:PORT/railway"
 ```
-
-> ⚠️ **Important:** 
-> - `DATABASE_URL` should use the **pooled** connection (has `-pooler` in hostname)
-> - `DIRECT_URL` should use the **direct** connection (no `-pooler`)
 
 ### 5. Initialize Database
 
@@ -134,7 +131,7 @@ npx prisma studio      # Open Prisma Studio (database GUI)
 
 ---
 
-## 🌐 Deployment (Vercel)
+## 🌐 Deployment (Railway)
 
 ### 1. Push to GitHub
 
@@ -144,14 +141,18 @@ git commit -m "Initial commit"
 git push origin main
 ```
 
-### 2. Deploy on Vercel
+### 2. Deploy on Railway
 
-1. Go to [vercel.com](https://vercel.com)
-2. Import your GitHub repository
-3. Add environment variables:
-   - `DATABASE_URL` - Neon pooled connection
-   - `DIRECT_URL` - Neon direct connection
-4. Deploy!
+1. Go to [railway.app](https://railway.app)
+2. Create a new project
+3. Add PostgreSQL from service catalog
+4. Add your GitHub repository as a new service
+5. Configure environment variables in Railway dashboard:
+   - `DATABASE_URL` - Use Railway's provided `DATABASE_URL` variable reference: `${{Postgres.DATABASE_URL}}`
+   - `DIRECT_URL` - Same as `DATABASE_URL`
+6. Deploy!
+
+The app will automatically deploy on every push to your GitHub repository.
 
 ---
 
@@ -188,10 +189,10 @@ Planning → Quotation → Invoice → Expense
 
 ## 🛡️ Backup
 
-Neon PostgreSQL automatically handles backups. You can also:
+Railway PostgreSQL automatically handles backups. You can also:
 
 1. Use Prisma Studio to view/export data: `npx prisma studio`
-2. Export data via Neon dashboard
+2. Export data via Railway dashboard
 3. Use `pg_dump` for full database backup
 
 ---

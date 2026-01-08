@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { logQuotationToSheets } from "@/lib/google-sheets"
 
 // GET single quotation
 export async function GET(
@@ -63,14 +62,6 @@ export async function PUT(
           remarks: true
         }
       })
-      
-      // Log status change to Google Sheets (only if pending or accepted)
-      // TEMPORARILY DISABLED for faster API performance
-      // if (quotation.status === 'pending' || quotation.status === 'accepted') {
-      //   logQuotationToSheets(quotation).catch(err =>
-      //     console.error('Failed to log quotation status change to sheets:', err)
-      //   )
-      // }
       
       return NextResponse.json(quotation)
     }
@@ -140,14 +131,6 @@ export async function PUT(
       }
     })
 
-    // Log to Google Sheets if status is pending or accepted (non-blocking)
-    // TEMPORARILY DISABLED for faster API performance
-    // if (quotation.status === 'pending' || quotation.status === 'accepted') {
-    //   logQuotationToSheets(quotation).catch(err =>
-    //     console.error('Failed to log quotation update to sheets:', err)
-    //   )
-    // }
-
     return NextResponse.json(quotation)
   } catch (error) {
     console.error("Error updating quotation:", error)
@@ -166,26 +149,10 @@ export async function DELETE(
   try {
     const { id } = await params
     
-    // Get quotation data before deletion for Google Sheets logging
-    const quotation = await prisma.quotation.findUnique({
-      where: { id },
-      select: {
-        quotationId: true,
-        productionDate: true,
-      }
-    });
-
     // Delete the quotation
     await prisma.quotation.delete({
       where: { id }
     })
-
-    // Delete row from Google Sheets
-    // TEMPORARILY DISABLED for faster API performance
-    // if (quotation) {
-    //   const { deleteQuotationFromSheets } = await import('@/lib/google-sheets');
-    //   await deleteQuotationFromSheets(quotation.quotationId, quotation.productionDate);
-    // }
 
     return NextResponse.json({ success: true })
   } catch (error) {
