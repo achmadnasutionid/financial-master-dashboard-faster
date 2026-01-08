@@ -1066,7 +1066,7 @@ export default function Home() {
                         <p className={`text-4xl font-bold ${
                           expenseStats.averageEfficiency >= 0 ? "text-[hsl(142_76%_36%)]" : "text-red-600"
                         }`}>
-                          {expenseStats.averageEfficiency.toFixed(2)}%
+                          {expenseStats.averageEfficiency.toFixed(0)}%
                         </p>
                         <p className="text-xs text-muted-foreground">Average efficiency</p>
                       </div>
@@ -1103,7 +1103,7 @@ export default function Home() {
                         <p className={`text-4xl font-bold ${
                           expenseStats.marginPercentage >= 0 ? "text-[hsl(142_76%_36%)]" : "text-red-600"
                         }`}>
-                          {expenseStats.marginPercentage.toFixed(2)}%
+                          {expenseStats.marginPercentage.toFixed(0)}%
                         </p>
                         <p className="text-xs text-muted-foreground">Profit margin</p>
                       </div>
@@ -1288,7 +1288,7 @@ export default function Home() {
                         <XAxis dataKey="month" />
                         <YAxis label={{ value: '%', position: 'insideLeft' }} />
                         <Tooltip 
-                          formatter={(value) => `${Number(value).toFixed(2)}%`}
+                          formatter={(value) => `${Number(value).toFixed(0)}%`}
                           contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc' }}
                         />
                         <Legend />
@@ -1471,7 +1471,7 @@ export default function Home() {
                           <YAxis dataKey="name" type="category" width={150} />
                           <Tooltip 
                             formatter={(value, _name, props: any) => [
-                              `Rp ${Number(value).toFixed(2)} Juta (${props.payload.percentage.toFixed(1)}%)`,
+                              `Rp ${Number(value).toFixed(0)} Juta (${props.payload.percentage.toFixed(0)}%)`,
                               'Amount'
                             ]}
                             contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc' }}
@@ -1603,7 +1603,7 @@ export default function Home() {
                           <YAxis dataKey="name" type="category" width={150} />
                           <Tooltip 
                             formatter={(value, _name, props: any) => [
-                              `Rp ${Number(value).toFixed(2)} Juta (${props.payload.percentage.toFixed(1)}%)`,
+                              `Rp ${Number(value).toFixed(0)} Juta (${props.payload.percentage.toFixed(0)}%)`,
                               'Amount'
                             ]}
                             contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc' }}
