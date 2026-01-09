@@ -817,11 +817,11 @@ export default function Home() {
                 {/* Recent Activities Card */}
                 <Card>
                   <CardContent className="pt-6">
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                       {recentActivities.map((activity, index) => (
                         <div 
                           key={`${activity.type}-${activity.id}-${index}`} 
-                          className="flex items-start gap-4 cursor-pointer hover:bg-muted/50 rounded-lg p-3 transition-colors"
+                          className="flex items-start gap-4 cursor-pointer hover:bg-muted/50 rounded-lg p-2 transition-colors"
                           onClick={() => router.push(getActivityLink(activity))}
                         >
                           {/* Icon */}
