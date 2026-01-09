@@ -593,10 +593,10 @@ export default function Home() {
       })
     })
 
-    // Sort by timestamp (newest first) and take top 3
+    // Sort by timestamp (newest first) and take top 4
     const sortedActivities = activities
       .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, 3)
+      .slice(0, 4)
 
     setRecentActivities(sortedActivities)
   }
@@ -840,65 +840,6 @@ export default function Home() {
               </Card>
             </div>
           )}
-
-          {/* Management Section */}
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold tracking-tight">Management</h2>
-
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {/* Companies Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/companies')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Building2 className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Companies</CardTitle>
-                </CardHeader>
-              </Card>
-
-              {/* Billings Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/billings')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <FileText className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Billings</CardTitle>
-                </CardHeader>
-              </Card>
-
-              {/* Signatures Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/signatures')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <FileSignature className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Signatures</CardTitle>
-                </CardHeader>
-              </Card>
-
-              {/* Products Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/products')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Package className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Products</CardTitle>
-                </CardHeader>
-              </Card>
-            </div>
-          </div>
 
           {/* Special Case Section */}
           <div className="space-y-6">
@@ -1780,6 +1721,65 @@ export default function Home() {
             </div>
           </div>
             )}
+          </div>
+
+          {/* Management Section */}
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold tracking-tight">Management</h2>
+
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Companies Card */}
+              <Card 
+                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
+                onClick={() => router.push('/companies')}
+              >
+                <CardHeader>
+                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <Building2 className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle>Companies</CardTitle>
+                </CardHeader>
+              </Card>
+
+              {/* Billings Card */}
+              <Card 
+                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
+                onClick={() => router.push('/billings')}
+              >
+                <CardHeader>
+                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <FileText className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle>Billings</CardTitle>
+                </CardHeader>
+              </Card>
+
+              {/* Signatures Card */}
+              <Card 
+                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
+                onClick={() => router.push('/signatures')}
+              >
+                <CardHeader>
+                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <FileSignature className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle>Signatures</CardTitle>
+                </CardHeader>
+              </Card>
+
+              {/* Products Card */}
+              <Card 
+                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
+                onClick={() => router.push('/products')}
+              >
+                <CardHeader>
+                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <Package className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle>Products</CardTitle>
+                </CardHeader>
+              </Card>
+            </div>
           </div>
         </div>
       </main>
