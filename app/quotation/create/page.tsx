@@ -66,6 +66,7 @@ interface Item {
   productName: string
   details: ItemDetail[]
   total: number
+  isPackageOne?: boolean // Flag to identify Package One generated items
 }
 
 interface Remark {
@@ -201,24 +202,24 @@ export default function CreateQuotationPage() {
   const addPackageOne = () => {
     markInteracted()
     const newItemId = Date.now().toString()
-    const baseDetailId = Date.now()
     
     setItems([...items, {
       id: newItemId,
       productName: "PHOTOGRAPHER",
-      details: Array.from({ length: 10 }, (_, i) => ({
-        id: `${newItemId}-detail-${baseDetailId + i}`,
-        detail: `${i + 1} Frame Photoshot`,
+      details: [{
+        id: `${newItemId}-detail-${Date.now()}`,
+        detail: "10 Frames Photoshoot",
         unitPrice: "400000",
-        qty: "1",
-        amount: 400000
-      })),
-      total: 4000000 // 400,000 x 10
+        qty: "10",
+        amount: 4000000
+      }],
+      total: 4000000, // 400,000 x 10
+      isPackageOne: true // Mark as Package One generated
     }])
   }
 
-  // Check if Package One (PHOTOGRAPHER) already exists
-  const hasPackageOne = items.some(item => item.productName.toUpperCase() === "PHOTOGRAPHER")
+  // Check if Package One exists (only check for Package One generated items)
+  const hasPackageOne = items.some(item => item.isPackageOne === true)
 
   const removeItem = (itemId: string) => {
     markInteracted()
@@ -869,17 +870,18 @@ export default function CreateQuotationPage() {
 
                 {/* Add Product Button - Moved to bottom */}
                 <div className="flex justify-end gap-2">
-                  <Button 
-                    type="button" 
-                    onClick={addPackageOne} 
-                    variant="outline" 
-                    size="sm"
-                    disabled={hasPackageOne}
-                    className="gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Package One
-                  </Button>
+                  {!hasPackageOne && (
+                    <Button 
+                      type="button" 
+                      onClick={addPackageOne} 
+                      variant="outline" 
+                      size="sm"
+                      className="gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Package One
+                    </Button>
+                  )}
                   <Button type="button" onClick={addItem} variant="outline" size="sm">
                     <Plus className="mr-2 h-4 w-4" />
                     Add Product
