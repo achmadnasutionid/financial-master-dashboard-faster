@@ -77,9 +77,11 @@ export default function Home() {
     revenue: 0,
     projectsCompleted: 0,
     netProfit: 0,
+    averageProjectValue: 0,
     revenueChange: 0,
     projectsChange: 0,
-    profitChange: 0
+    profitChange: 0,
+    avgValueChange: 0
   })
 
   // Fetch statistics
@@ -615,18 +617,25 @@ export default function Home() {
     }, 0)
     const lastMonthNetProfit = lastMonthTotalPaid - lastMonthActualExpenses
 
+    // Calculate average project values
+    const thisMonthAvgValue = thisMonthProjectsCompleted > 0 ? thisMonthRevenue / thisMonthProjectsCompleted : 0
+    const lastMonthAvgValue = lastMonthProjectsCompleted > 0 ? lastMonthRevenue / lastMonthProjectsCompleted : 0
+
     // Calculate percentage changes
     const revenueChange = lastMonthRevenue > 0 ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0
     const projectsChange = lastMonthProjectsCompleted > 0 ? ((thisMonthProjectsCompleted - lastMonthProjectsCompleted) / lastMonthProjectsCompleted) * 100 : 0
     const profitChange = lastMonthNetProfit > 0 ? ((thisMonthNetProfit - lastMonthNetProfit) / lastMonthNetProfit) * 100 : 0
+    const avgValueChange = lastMonthAvgValue > 0 ? ((thisMonthAvgValue - lastMonthAvgValue) / lastMonthAvgValue) * 100 : 0
 
     setThisMonthSummary({
       revenue: thisMonthRevenue,
       projectsCompleted: thisMonthProjectsCompleted,
       netProfit: thisMonthNetProfit,
+      averageProjectValue: thisMonthAvgValue,
       revenueChange,
       projectsChange,
-      profitChange
+      profitChange,
+      avgValueChange
     })
   }
 
@@ -914,7 +923,7 @@ export default function Home() {
                       </div>
 
                       {/* Net Profit */}
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between pb-4 border-b">
                         <div>
                           <p className="text-sm text-muted-foreground">Net Profit</p>
                           <p className={`text-2xl font-bold ${
@@ -932,6 +941,24 @@ export default function Home() {
                           {thisMonthSummary.profitChange < 0 && <ArrowDown className="h-4 w-4" />}
                           {thisMonthSummary.profitChange === 0 && <Minus className="h-4 w-4" />}
                           {Math.abs(thisMonthSummary.profitChange).toFixed(0)}%
+                        </div>
+                      </div>
+
+                      {/* Average Project Value */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Avg Project Value</p>
+                          <p className="text-2xl font-bold">{formatCurrency(thisMonthSummary.averageProjectValue)}</p>
+                        </div>
+                        <div className={`flex items-center gap-1 text-sm font-medium ${
+                          thisMonthSummary.avgValueChange > 0 ? 'text-green-600' : 
+                          thisMonthSummary.avgValueChange < 0 ? 'text-red-600' : 
+                          'text-gray-600'
+                        }`}>
+                          {thisMonthSummary.avgValueChange > 0 && <ArrowUp className="h-4 w-4" />}
+                          {thisMonthSummary.avgValueChange < 0 && <ArrowDown className="h-4 w-4" />}
+                          {thisMonthSummary.avgValueChange === 0 && <Minus className="h-4 w-4" />}
+                          {Math.abs(thisMonthSummary.avgValueChange).toFixed(0)}%
                         </div>
                       </div>
 
