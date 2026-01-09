@@ -1360,7 +1360,7 @@ export default function Home() {
                         <XAxis dataKey="month" />
                         <YAxis />
                         <Tooltip 
-                          formatter={(value) => `Rp ${Number(value).toFixed(2)} Juta`}
+                          formatter={(value) => `Rp ${Math.round(Number(value))} Juta`}
                           contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc' }}
                         />
                         <Legend />
@@ -1398,7 +1398,7 @@ export default function Home() {
                         <XAxis dataKey="month" />
                         <YAxis />
                         <Tooltip 
-                          formatter={(value) => `Rp ${Number(value).toFixed(2)} Juta`}
+                          formatter={(value) => `Rp ${Math.round(Number(value))} Juta`}
                           contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc' }}
                         />
                         <Legend />
@@ -1548,7 +1548,7 @@ export default function Home() {
                           {productExpenses[0] ? (
                             <>
                               <div className="text-4xl font-bold text-blue-600">
-                                Rp {productExpenses[0].amount.toFixed(2)} Juta
+                                Rp {Math.round(productExpenses[0].amount)} Juta
                               </div>
                               <p className="text-sm text-muted-foreground mt-1">
                                 {productExpenses[0].name}
@@ -1581,7 +1581,7 @@ export default function Home() {
                               {leastExpense ? (
                                 <>
                                   <div className="text-4xl font-bold text-green-600">
-                                    Rp {leastExpense.amount.toFixed(2)} Juta
+                                    Rp {Math.round(leastExpense.amount)} Juta
                                   </div>
                                   <p className="text-sm text-muted-foreground mt-1">
                                     {leastExpense.name}
@@ -1676,7 +1676,7 @@ export default function Home() {
                       {etcExpenses[0] ? (
                         <>
                           <div className="text-4xl font-bold text-red-600">
-                            Rp {etcExpenses[0].amount.toFixed(2)} Juta
+                            Rp {Math.round(etcExpenses[0].amount)} Juta
                           </div>
                           <p className="text-sm text-muted-foreground mt-1">
                             {etcExpenses[0].name}
@@ -1715,7 +1715,7 @@ export default function Home() {
                       {etcExpenses[1] ? (
                         <>
                           <div className="text-4xl font-bold text-orange-600">
-                            Rp {etcExpenses[1].amount.toFixed(2)} Juta
+                            Rp {Math.round(etcExpenses[1].amount)} Juta
                           </div>
                           <p className="text-sm text-muted-foreground mt-1">
                             {etcExpenses[1].name}
