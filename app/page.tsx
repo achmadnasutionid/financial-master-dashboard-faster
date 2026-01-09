@@ -6,7 +6,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, FileText, FileSignature, Package, Calendar, FileCheck, Receipt, Wallet, TrendingUp, TrendingDown, AlertCircle, Clock, FileX } from "lucide-react";
+import { Building2, FileText, FileSignature, Package, Calendar, FileCheck, Receipt, Wallet, TrendingUp, TrendingDown, AlertCircle, Clock, FileX, Activity } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -60,6 +60,9 @@ export default function Home() {
     pendingQuotations: { count: 0, items: [] as any[] },
     draftExpenses: { count: 0 }
   })
+  
+  // Recent Activities State
+  const [recentActivities, setRecentActivities] = useState<any[]>([])
 
   // Fetch statistics
   // Auto weekly backup - runs silently on app startup
@@ -82,7 +85,7 @@ export default function Home() {
         const response = await fetch("/api/dashboard-stats", { cache: 'no-store' })
         const data = await response.json()
         
-        const { invoices, quotations, expenses, products, gearExpenses, bigExpenses } = data
+        const { invoices, quotations, expenses, products, gearExpenses, bigExpenses, planning } = data
 
         // Extract unique years from all datasets
         const years = new Set<number>()
@@ -115,6 +118,7 @@ export default function Home() {
         calculateMonthlyTrends(expenses, selectedTrendsYear)
         calculateProductExpenses(expenses, products, selectedProductsYear)
         calculateActionItems(invoices, quotations, expenses)
+        calculateRecentActivities(invoices, quotations, expenses, planning)
       } catch (error) {
         console.error("Error fetching stats:", error)
       } finally {
@@ -332,6 +336,26 @@ export default function Home() {
     }).format(amount)
   }
 
+  const getRelativeTime = (date: string) => {
+    const now = new Date().getTime()
+    const activityTime = new Date(date).getTime()
+    const diff = now - activityTime
+
+    const minutes = Math.floor(diff / (1000 * 60))
+    const hours = Math.floor(diff / (1000 * 60 * 60))
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+
+    if (minutes < 60) {
+      return minutes === 0 ? 'Just now' : `${minutes} minute${minutes > 1 ? 's' : ''} ago`
+    } else if (hours < 24) {
+      return `${hours} hour${hours > 1 ? 's' : ''} ago`
+    } else if (days < 7) {
+      return `${days} day${days > 1 ? 's' : ''} ago`
+    } else {
+      return new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+    }
+  }
+
   const calculateMonthlyTrends = (expenses: any[], year: string) => {
     // Filter expenses by year - using expense's own productionDate
     const filteredExpenses = year === "all"
@@ -495,6 +519,73 @@ export default function Home() {
     })
   }
 
+  const calculateRecentActivities = (invoices: any[], quotations: any[], expenses: any[], planning: any[]) => {
+    const activities: any[] = []
+
+    // Add recent invoices
+    invoices.forEach((inv: any) => {
+      activities.push({
+        type: 'invoice',
+        id: inv.id,
+        displayId: inv.invoiceId,
+        action: inv.status === 'paid' ? 'marked as PAID' : inv.status === 'pending' ? 'set to PENDING' : 'created',
+        timestamp: new Date(inv.updatedAt).getTime(),
+        date: inv.updatedAt,
+        icon: 'receipt',
+        color: inv.status === 'paid' ? 'green' : inv.status === 'pending' ? 'blue' : 'yellow'
+      })
+    })
+
+    // Add recent quotations
+    quotations.forEach((q: any) => {
+      activities.push({
+        type: 'quotation',
+        id: q.id,
+        displayId: q.quotationId,
+        action: q.status === 'accepted' ? 'marked as ACCEPTED' : q.status === 'pending' ? 'set to PENDING' : 'created',
+        timestamp: new Date(q.updatedAt).getTime(),
+        date: q.updatedAt,
+        icon: 'file-check',
+        color: q.status === 'accepted' ? 'green' : q.status === 'pending' ? 'yellow' : 'gray'
+      })
+    })
+
+    // Add recent expenses
+    expenses.forEach((exp: any) => {
+      activities.push({
+        type: 'expense',
+        id: exp.id,
+        displayId: exp.expenseId,
+        action: exp.status === 'final' ? 'finalized' : 'created',
+        timestamp: new Date(exp.updatedAt).getTime(),
+        date: exp.updatedAt,
+        icon: 'wallet',
+        color: exp.status === 'final' ? 'green' : 'orange'
+      })
+    })
+
+    // Add recent planning
+    planning.forEach((plan: any) => {
+      activities.push({
+        type: 'planning',
+        id: plan.id,
+        displayId: plan.planningId,
+        action: plan.status === 'final' ? 'finalized' : 'created',
+        timestamp: new Date(plan.updatedAt).getTime(),
+        date: plan.updatedAt,
+        icon: 'calendar',
+        color: plan.status === 'final' ? 'green' : 'gray'
+      })
+    })
+
+    // Sort by timestamp (newest first) and take top 10
+    const sortedActivities = activities
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 10)
+
+    setRecentActivities(sortedActivities)
+  }
+
   // Get least expense, excluding PHOTOGRAPHER (since it's profit, not expense)
   const getLeastExpense = () => {
     // Start from the end (least) and find first non-PHOTOGRAPHER product
@@ -630,6 +721,54 @@ export default function Home() {
                   </Card>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Recent Activity Timeline */}
+          {!loading && recentActivities.length > 0 && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-bold tracking-tight">Recent Activity</h2>
+              </div>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    {recentActivities.map((activity, index) => (
+                      <div key={`${activity.type}-${activity.id}-${index}`} className="flex items-start gap-4 pb-4 last:pb-0 border-b last:border-b-0">
+                        {/* Icon */}
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-full flex-shrink-0 ${
+                          activity.color === 'green' ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-100' :
+                          activity.color === 'blue' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-100' :
+                          activity.color === 'yellow' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-100' :
+                          activity.color === 'orange' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-100' :
+                          'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
+                        }`}>
+                          {activity.icon === 'receipt' && <Receipt className="h-5 w-5" />}
+                          {activity.icon === 'file-check' && <FileCheck className="h-5 w-5" />}
+                          {activity.icon === 'wallet' && <Wallet className="h-5 w-5" />}
+                          {activity.icon === 'calendar' && <Calendar className="h-5 w-5" />}
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm">
+                            <span className="font-semibold">{activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}</span>
+                            {' '}
+                            <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{activity.displayId}</span>
+                            {' '}
+                            <span className="text-muted-foreground">{activity.action}</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {getRelativeTime(activity.date)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
 

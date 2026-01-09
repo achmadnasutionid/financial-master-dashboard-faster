@@ -19,6 +19,7 @@ export async function GET(request: Request) {
       products,
       gearExpenses,
       bigExpenses,
+      planning,
     ] = await Promise.all([
       // Invoices - all active records
       prisma.invoice.findMany({
@@ -29,6 +30,7 @@ export async function GET(request: Request) {
           productionDate: true,
           totalAmount: true,
           status: true,
+          updatedAt: true,
         },
       }),
       
@@ -41,6 +43,7 @@ export async function GET(request: Request) {
           productionDate: true,
           totalAmount: true,
           status: true,
+          updatedAt: true,
         },
       }),
       
@@ -89,6 +92,21 @@ export async function GET(request: Request) {
           year: true,
         },
       }),
+      
+      // Planning - for recent activities
+      prisma.planning.findMany({
+        where: { deletedAt: null },
+        select: {
+          id: true,
+          planningId: true,
+          status: true,
+          updatedAt: true,
+        },
+        orderBy: {
+          updatedAt: 'desc',
+        },
+        take: 50, // Limit to recent 50
+      }),
     ])
 
     // Return all data in one response
@@ -99,6 +117,7 @@ export async function GET(request: Request) {
       products,
       gearExpenses,
       bigExpenses,
+      planning,
       timestamp: new Date().toISOString(), // For cache debugging
     })
   } catch (error) {
