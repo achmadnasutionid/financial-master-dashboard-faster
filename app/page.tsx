@@ -54,6 +54,14 @@ export default function Home() {
   const [selectedProductsYear, setSelectedProductsYear] = useState<string>(currentYear)
   const [loading, setLoading] = useState(true)
   
+  // Store all fetched data for client-side filtering
+  const [allInvoices, setAllInvoices] = useState<any[]>([])
+  const [allQuotations, setAllQuotations] = useState<any[]>([])
+  const [allExpenses, setAllExpenses] = useState<any[]>([])
+  const [allProducts, setAllProducts] = useState<any[]>([])
+  const [allGearExpenses, setAllGearExpenses] = useState<any[]>([])
+  const [allBigExpenses, setAllBigExpenses] = useState<any[]>([])
+  
   // Action Items State
   const [actionItems, setActionItems] = useState({
     pendingInvoices: { count: 0, totalAmount: 0, items: [] as any[] },
@@ -86,6 +94,14 @@ export default function Home() {
         const data = await response.json()
         
         const { invoices, quotations, expenses, products, gearExpenses, bigExpenses, planning } = data
+
+        // Store all data for client-side filtering
+        setAllInvoices(invoices)
+        setAllQuotations(quotations)
+        setAllExpenses(expenses)
+        setAllProducts(products)
+        setAllGearExpenses(gearExpenses)
+        setAllBigExpenses(bigExpenses)
 
         // Extract unique years from all datasets
         const years = new Set<number>()
@@ -129,96 +145,34 @@ export default function Home() {
     fetchStats()
   }, [])
 
-  // Recalculate stats when year filter changes
+  // Recalculate stats when year filter changes (client-side filtering)
   useEffect(() => {
-    const recalculateStats = async () => {
-      try {
-        const [invoicesRes, quotationsRes] = await Promise.all([
-          fetch("/api/invoice"),
-          fetch("/api/quotation"),
-        ])
-
-        const [invoices, quotations] = await Promise.all([
-          invoicesRes.json(),
-          quotationsRes.json(),
-        ])
-
-        calculateStats(invoices, quotations, selectedYear)
-      } catch (error) {
-        console.error("Error recalculating stats:", error)
-      }
+    if (allInvoices.length > 0 && allQuotations.length > 0 && !loading) {
+      calculateStats(allInvoices, allQuotations, selectedYear)
     }
+  }, [selectedYear, allInvoices, allQuotations, loading])
 
-    if (selectedYear && !loading) {
-      recalculateStats()
-    }
-  }, [selectedYear])
-
-  // Recalculate expense stats when financial year filter changes
+  // Recalculate expense stats when financial year filter changes (client-side filtering)
   useEffect(() => {
-    const recalculateExpenseStats = async () => {
-      try {
-        const [expensesRes, gearExpensesRes, bigExpensesRes] = await Promise.all([
-          fetch("/api/expense"),
-          fetch("/api/gear-expenses"),
-          fetch("/api/big-expenses"),
-        ])
-        const [expenses, gearExpenses, bigExpenses] = await Promise.all([
-          expensesRes.json(),
-          gearExpensesRes.json(),
-          bigExpensesRes.json(),
-        ])
-        calculateExpenseStats(expenses, selectedFinancialYear)
-        calculateExtraExpenses(gearExpenses, bigExpenses, selectedFinancialYear)
-      } catch (error) {
-        console.error("Error recalculating expense stats:", error)
-      }
+    if (allExpenses.length > 0 && !loading) {
+      calculateExpenseStats(allExpenses, selectedFinancialYear)
+      calculateExtraExpenses(allGearExpenses, allBigExpenses, selectedFinancialYear)
     }
+  }, [selectedFinancialYear, allExpenses, allGearExpenses, allBigExpenses, loading])
 
-    if (selectedFinancialYear && !loading) {
-      recalculateExpenseStats()
-    }
-  }, [selectedFinancialYear])
-
-  // Recalculate trends when trends year filter changes
+  // Recalculate trends when trends year filter changes (client-side filtering)
   useEffect(() => {
-    const recalculateTrends = async () => {
-      try {
-        const expensesRes = await fetch("/api/expense")
-        const expenses = await expensesRes.json()
-        calculateMonthlyTrends(expenses, selectedTrendsYear)
-      } catch (error) {
-        console.error("Error recalculating trends:", error)
-      }
+    if (allExpenses.length > 0 && !loading) {
+      calculateMonthlyTrends(allExpenses, selectedTrendsYear)
     }
+  }, [selectedTrendsYear, allExpenses, loading])
 
-    if (selectedTrendsYear && !loading) {
-      recalculateTrends()
-    }
-  }, [selectedTrendsYear])
-
-  // Recalculate products when products year filter changes
+  // Recalculate products when products year filter changes (client-side filtering)
   useEffect(() => {
-    const recalculateProducts = async () => {
-      try {
-        const [expensesRes, productsRes] = await Promise.all([
-          fetch("/api/expense"),
-          fetch("/api/products")
-        ])
-        const [expenses, products] = await Promise.all([
-          expensesRes.json(),
-          productsRes.json()
-        ])
-        calculateProductExpenses(expenses, products, selectedProductsYear)
-      } catch (error) {
-        console.error("Error recalculating products:", error)
-      }
+    if (allExpenses.length > 0 && allProducts.length > 0 && !loading) {
+      calculateProductExpenses(allExpenses, allProducts, selectedProductsYear)
     }
-
-    if (selectedProductsYear && !loading) {
-      recalculateProducts()
-    }
-  }, [selectedProductsYear])
+  }, [selectedProductsYear, allExpenses, allProducts, loading])
 
   const calculateStats = (invoices: any[], quotations: any[], year: string) => {
     // Filter by year if not "all" - using productionDate
