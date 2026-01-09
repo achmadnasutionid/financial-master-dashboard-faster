@@ -44,6 +44,7 @@ interface Expense {
   id: string
   expenseId: string
   projectName: string
+  productionDate: string
   clientBudget: number
   paidAmount: number
   notes: string | null

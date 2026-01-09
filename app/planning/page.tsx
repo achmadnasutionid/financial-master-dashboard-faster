@@ -52,6 +52,7 @@ interface Planning {
   id: string
   planningId: string
   projectName: string
+  productionDate: string
   clientName: string
   clientBudget: number
   notes: string | null
