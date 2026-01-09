@@ -634,7 +634,7 @@ export default function Home() {
       <Header />
       
       <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-12">
-        <div className="container mx-auto max-w-7xl space-y-12">
+        <div className="container mx-auto max-w-7xl space-y-8">
           {/* Quick Action Section */}
           <div className="space-y-6">
             <h2 className="text-xl font-bold tracking-tight">Quick Action</h2>
