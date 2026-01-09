@@ -6,7 +6,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, FileText, FileSignature, Package, Calendar, FileCheck, Receipt, Wallet, TrendingUp, TrendingDown, AlertCircle, Clock, FileX, Activity } from "lucide-react";
+import { Building2, FileText, FileSignature, Package, Calendar, FileCheck, Receipt, Wallet, TrendingUp, TrendingDown, AlertCircle, Clock, FileX, Activity, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -71,6 +71,16 @@ export default function Home() {
   
   // Recent Activities State
   const [recentActivities, setRecentActivities] = useState<any[]>([])
+  
+  // This Month Summary State
+  const [thisMonthSummary, setThisMonthSummary] = useState({
+    revenue: 0,
+    projectsCompleted: 0,
+    netProfit: 0,
+    revenueChange: 0,
+    projectsChange: 0,
+    profitChange: 0
+  })
 
   // Fetch statistics
   // Auto weekly backup - runs silently on app startup
@@ -135,6 +145,7 @@ export default function Home() {
         calculateProductExpenses(expenses, products, selectedProductsYear)
         calculateActionItems(invoices, quotations, expenses)
         calculateRecentActivities(invoices, quotations, expenses, planning)
+        calculateThisMonthSummary(invoices, expenses)
       } catch (error) {
         console.error("Error fetching stats:", error)
       } finally {
@@ -555,6 +566,70 @@ export default function Home() {
     setRecentActivities(sortedActivities)
   }
 
+  const calculateThisMonthSummary = (invoices: any[], expenses: any[]) => {
+    const now = new Date()
+    const currentMonth = now.getMonth()
+    const currentYear = now.getFullYear()
+    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1
+    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
+
+    // This month - paid invoices (revenue)
+    const thisMonthPaidInvoices = invoices.filter((inv: any) => {
+      if (inv.status !== 'paid') return false
+      const invDate = new Date(inv.updatedAt)
+      return invDate.getMonth() === currentMonth && invDate.getFullYear() === currentYear
+    })
+    const thisMonthRevenue = thisMonthPaidInvoices.reduce((sum: number, inv: any) => sum + (inv.totalAmount || 0), 0)
+
+    // Last month - paid invoices (revenue)
+    const lastMonthPaidInvoices = invoices.filter((inv: any) => {
+      if (inv.status !== 'paid') return false
+      const invDate = new Date(inv.updatedAt)
+      return invDate.getMonth() === lastMonth && invDate.getFullYear() === lastMonthYear
+    })
+    const lastMonthRevenue = lastMonthPaidInvoices.reduce((sum: number, inv: any) => sum + (inv.totalAmount || 0), 0)
+
+    // This month - finalized expenses (projects completed and net profit)
+    const thisMonthExpenses = expenses.filter((exp: any) => {
+      if (exp.status !== 'final') return false
+      const expDate = new Date(exp.updatedAt)
+      return expDate.getMonth() === currentMonth && expDate.getFullYear() === currentYear
+    })
+    const thisMonthProjectsCompleted = thisMonthExpenses.length
+    const thisMonthTotalPaid = thisMonthExpenses.reduce((sum: number, exp: any) => sum + (exp.paidAmount || 0), 0)
+    const thisMonthActualExpenses = thisMonthExpenses.reduce((sum: number, exp: any) => {
+      return sum + exp.items.reduce((itemSum: number, item: any) => itemSum + item.actual, 0)
+    }, 0)
+    const thisMonthNetProfit = thisMonthTotalPaid - thisMonthActualExpenses
+
+    // Last month - finalized expenses (projects completed and net profit)
+    const lastMonthExpenses = expenses.filter((exp: any) => {
+      if (exp.status !== 'final') return false
+      const expDate = new Date(exp.updatedAt)
+      return expDate.getMonth() === lastMonth && expDate.getFullYear() === lastMonthYear
+    })
+    const lastMonthProjectsCompleted = lastMonthExpenses.length
+    const lastMonthTotalPaid = lastMonthExpenses.reduce((sum: number, exp: any) => sum + (exp.paidAmount || 0), 0)
+    const lastMonthActualExpenses = lastMonthExpenses.reduce((sum: number, exp: any) => {
+      return sum + exp.items.reduce((itemSum: number, item: any) => itemSum + item.actual, 0)
+    }, 0)
+    const lastMonthNetProfit = lastMonthTotalPaid - lastMonthActualExpenses
+
+    // Calculate percentage changes
+    const revenueChange = lastMonthRevenue > 0 ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0
+    const projectsChange = lastMonthProjectsCompleted > 0 ? ((thisMonthProjectsCompleted - lastMonthProjectsCompleted) / lastMonthProjectsCompleted) * 100 : 0
+    const profitChange = lastMonthNetProfit > 0 ? ((thisMonthNetProfit - lastMonthNetProfit) / lastMonthNetProfit) * 100 : 0
+
+    setThisMonthSummary({
+      revenue: thisMonthRevenue,
+      projectsCompleted: thisMonthProjectsCompleted,
+      netProfit: thisMonthNetProfit,
+      revenueChange,
+      projectsChange,
+      profitChange
+    })
+  }
+
   // Get least expense, excluding PHOTOGRAPHER (since it's profit, not expense)
   const getLeastExpense = () => {
     // Start from the end (least) and find first non-PHOTOGRAPHER product
@@ -751,47 +826,122 @@ export default function Home() {
                 <h2 className="text-xl font-bold tracking-tight">Recent Activity</h2>
               </div>
 
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    {recentActivities.map((activity, index) => (
-                      <div 
-                        key={`${activity.type}-${activity.id}-${index}`} 
-                        className="flex items-start gap-4 pb-4 last:pb-0 border-b last:border-b-0 cursor-pointer hover:bg-muted/50 rounded-lg p-2 -m-2 transition-colors"
-                        onClick={() => router.push(getActivityLink(activity))}
-                      >
-                        {/* Icon */}
-                        <div className={`flex h-10 w-10 items-center justify-center rounded-full flex-shrink-0 ${
-                          activity.color === 'green' ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-100' :
-                          activity.color === 'blue' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-100' :
-                          activity.color === 'yellow' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-100' :
-                          activity.color === 'orange' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-100' :
-                          'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
-                        }`}>
-                          {activity.icon === 'receipt' && <Receipt className="h-5 w-5" />}
-                          {activity.icon === 'file-check' && <FileCheck className="h-5 w-5" />}
-                          {activity.icon === 'wallet' && <Wallet className="h-5 w-5" />}
-                          {activity.icon === 'calendar' && <Calendar className="h-5 w-5" />}
-                        </div>
+              <div className="grid gap-6 lg:grid-cols-2">
+                {/* Recent Activities Card */}
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="space-y-4">
+                      {recentActivities.map((activity, index) => (
+                        <div 
+                          key={`${activity.type}-${activity.id}-${index}`} 
+                          className="flex items-start gap-4 pb-4 last:pb-0 border-b last:border-b-0 cursor-pointer hover:bg-muted/50 rounded-lg p-2 -m-2 transition-colors"
+                          onClick={() => router.push(getActivityLink(activity))}
+                        >
+                          {/* Icon */}
+                          <div className={`flex h-10 w-10 items-center justify-center rounded-full flex-shrink-0 ${
+                            activity.color === 'green' ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-100' :
+                            activity.color === 'blue' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-100' :
+                            activity.color === 'yellow' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-100' :
+                            activity.color === 'orange' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-100' :
+                            'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
+                          }`}>
+                            {activity.icon === 'receipt' && <Receipt className="h-5 w-5" />}
+                            {activity.icon === 'file-check' && <FileCheck className="h-5 w-5" />}
+                            {activity.icon === 'wallet' && <Wallet className="h-5 w-5" />}
+                            {activity.icon === 'calendar' && <Calendar className="h-5 w-5" />}
+                          </div>
 
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm">
-                            <span className="font-semibold">{activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}</span>
-                            {' '}
-                            <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{activity.displayId}</span>
-                            {' '}
-                            <span className="text-muted-foreground">{activity.action}</span>
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {getRelativeTime(activity.date)}
-                          </p>
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm">
+                              <span className="font-semibold">{activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}</span>
+                              {' '}
+                              <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{activity.displayId}</span>
+                              {' '}
+                              <span className="text-muted-foreground">{activity.action}</span>
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {getRelativeTime(activity.date)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* This Month Summary Card */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">This Month Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {/* Revenue */}
+                      <div className="flex items-center justify-between pb-4 border-b">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Revenue</p>
+                          <p className="text-2xl font-bold">{formatCurrency(thisMonthSummary.revenue)}</p>
+                        </div>
+                        <div className={`flex items-center gap-1 text-sm font-medium ${
+                          thisMonthSummary.revenueChange > 0 ? 'text-green-600' : 
+                          thisMonthSummary.revenueChange < 0 ? 'text-red-600' : 
+                          'text-gray-600'
+                        }`}>
+                          {thisMonthSummary.revenueChange > 0 && <ArrowUp className="h-4 w-4" />}
+                          {thisMonthSummary.revenueChange < 0 && <ArrowDown className="h-4 w-4" />}
+                          {thisMonthSummary.revenueChange === 0 && <Minus className="h-4 w-4" />}
+                          {Math.abs(thisMonthSummary.revenueChange).toFixed(0)}%
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+
+                      {/* Projects Completed */}
+                      <div className="flex items-center justify-between pb-4 border-b">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Projects Completed</p>
+                          <p className="text-2xl font-bold">{thisMonthSummary.projectsCompleted}</p>
+                        </div>
+                        <div className={`flex items-center gap-1 text-sm font-medium ${
+                          thisMonthSummary.projectsChange > 0 ? 'text-green-600' : 
+                          thisMonthSummary.projectsChange < 0 ? 'text-red-600' : 
+                          'text-gray-600'
+                        }`}>
+                          {thisMonthSummary.projectsChange > 0 && <ArrowUp className="h-4 w-4" />}
+                          {thisMonthSummary.projectsChange < 0 && <ArrowDown className="h-4 w-4" />}
+                          {thisMonthSummary.projectsChange === 0 && <Minus className="h-4 w-4" />}
+                          {Math.abs(thisMonthSummary.projectsChange).toFixed(0)}%
+                        </div>
+                      </div>
+
+                      {/* Net Profit */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Net Profit</p>
+                          <p className={`text-2xl font-bold ${
+                            thisMonthSummary.netProfit >= 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {formatCurrency(thisMonthSummary.netProfit)}
+                          </p>
+                        </div>
+                        <div className={`flex items-center gap-1 text-sm font-medium ${
+                          thisMonthSummary.profitChange > 0 ? 'text-green-600' : 
+                          thisMonthSummary.profitChange < 0 ? 'text-red-600' : 
+                          'text-gray-600'
+                        }`}>
+                          {thisMonthSummary.profitChange > 0 && <ArrowUp className="h-4 w-4" />}
+                          {thisMonthSummary.profitChange < 0 && <ArrowDown className="h-4 w-4" />}
+                          {thisMonthSummary.profitChange === 0 && <Minus className="h-4 w-4" />}
+                          {Math.abs(thisMonthSummary.profitChange).toFixed(0)}%
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-muted-foreground pt-2">
+                        Compared to last month
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           )}
 
