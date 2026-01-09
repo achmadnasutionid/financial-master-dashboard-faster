@@ -881,91 +881,89 @@ export default function Home() {
 
                 {/* This Month Summary Card */}
                 <Card>
-                  <CardHeader>
+                  <CardHeader className="pb-3">
                     <CardTitle className="text-base">This Month Summary</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {/* Revenue */}
-                      <div className="flex items-center justify-between pb-4 border-b">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Revenue</p>
-                          <p className="text-2xl font-bold">{formatCurrency(thisMonthSummary.revenue)}</p>
-                        </div>
-                        <div className={`flex items-center gap-1 text-sm font-medium ${
-                          thisMonthSummary.revenueChange > 0 ? 'text-green-600' : 
-                          thisMonthSummary.revenueChange < 0 ? 'text-red-600' : 
-                          'text-gray-600'
-                        }`}>
-                          {thisMonthSummary.revenueChange > 0 && <ArrowUp className="h-4 w-4" />}
-                          {thisMonthSummary.revenueChange < 0 && <ArrowDown className="h-4 w-4" />}
-                          {thisMonthSummary.revenueChange === 0 && <Minus className="h-4 w-4" />}
-                          {Math.abs(thisMonthSummary.revenueChange).toFixed(0)}%
-                        </div>
+                  <CardContent className="space-y-3">
+                    {/* Revenue */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Revenue</p>
+                        <p className="text-lg font-bold">{formatCurrency(thisMonthSummary.revenue)}</p>
                       </div>
-
-                      {/* Projects Completed */}
-                      <div className="flex items-center justify-between pb-4 border-b">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Projects Completed</p>
-                          <p className="text-2xl font-bold">{thisMonthSummary.projectsCompleted}</p>
-                        </div>
-                        <div className={`flex items-center gap-1 text-sm font-medium ${
-                          thisMonthSummary.projectsChange > 0 ? 'text-green-600' : 
-                          thisMonthSummary.projectsChange < 0 ? 'text-red-600' : 
-                          'text-gray-600'
-                        }`}>
-                          {thisMonthSummary.projectsChange > 0 && <ArrowUp className="h-4 w-4" />}
-                          {thisMonthSummary.projectsChange < 0 && <ArrowDown className="h-4 w-4" />}
-                          {thisMonthSummary.projectsChange === 0 && <Minus className="h-4 w-4" />}
-                          {Math.abs(thisMonthSummary.projectsChange).toFixed(0)}%
-                        </div>
+                      <div className={`flex items-center gap-1 text-xs font-medium ${
+                        thisMonthSummary.revenueChange > 0 ? 'text-green-600' : 
+                        thisMonthSummary.revenueChange < 0 ? 'text-red-600' : 
+                        'text-gray-600'
+                      }`}>
+                        {thisMonthSummary.revenueChange > 0 && <ArrowUp className="h-3 w-3" />}
+                        {thisMonthSummary.revenueChange < 0 && <ArrowDown className="h-3 w-3" />}
+                        {thisMonthSummary.revenueChange === 0 && <Minus className="h-3 w-3" />}
+                        {Math.abs(thisMonthSummary.revenueChange).toFixed(0)}%
                       </div>
-
-                      {/* Net Profit */}
-                      <div className="flex items-center justify-between pb-4 border-b">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Net Profit</p>
-                          <p className={`text-2xl font-bold ${
-                            thisMonthSummary.netProfit >= 0 ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {formatCurrency(thisMonthSummary.netProfit)}
-                          </p>
-                        </div>
-                        <div className={`flex items-center gap-1 text-sm font-medium ${
-                          thisMonthSummary.profitChange > 0 ? 'text-green-600' : 
-                          thisMonthSummary.profitChange < 0 ? 'text-red-600' : 
-                          'text-gray-600'
-                        }`}>
-                          {thisMonthSummary.profitChange > 0 && <ArrowUp className="h-4 w-4" />}
-                          {thisMonthSummary.profitChange < 0 && <ArrowDown className="h-4 w-4" />}
-                          {thisMonthSummary.profitChange === 0 && <Minus className="h-4 w-4" />}
-                          {Math.abs(thisMonthSummary.profitChange).toFixed(0)}%
-                        </div>
-                      </div>
-
-                      {/* Average Project Value */}
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Avg Project Value</p>
-                          <p className="text-2xl font-bold">{formatCurrency(thisMonthSummary.averageProjectValue)}</p>
-                        </div>
-                        <div className={`flex items-center gap-1 text-sm font-medium ${
-                          thisMonthSummary.avgValueChange > 0 ? 'text-green-600' : 
-                          thisMonthSummary.avgValueChange < 0 ? 'text-red-600' : 
-                          'text-gray-600'
-                        }`}>
-                          {thisMonthSummary.avgValueChange > 0 && <ArrowUp className="h-4 w-4" />}
-                          {thisMonthSummary.avgValueChange < 0 && <ArrowDown className="h-4 w-4" />}
-                          {thisMonthSummary.avgValueChange === 0 && <Minus className="h-4 w-4" />}
-                          {Math.abs(thisMonthSummary.avgValueChange).toFixed(0)}%
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-muted-foreground pt-2">
-                        Compared to last month
-                      </p>
                     </div>
+
+                    {/* Projects Completed */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Projects Completed</p>
+                        <p className="text-lg font-bold">{thisMonthSummary.projectsCompleted}</p>
+                      </div>
+                      <div className={`flex items-center gap-1 text-xs font-medium ${
+                        thisMonthSummary.projectsChange > 0 ? 'text-green-600' : 
+                        thisMonthSummary.projectsChange < 0 ? 'text-red-600' : 
+                        'text-gray-600'
+                      }`}>
+                        {thisMonthSummary.projectsChange > 0 && <ArrowUp className="h-3 w-3" />}
+                        {thisMonthSummary.projectsChange < 0 && <ArrowDown className="h-3 w-3" />}
+                        {thisMonthSummary.projectsChange === 0 && <Minus className="h-3 w-3" />}
+                        {Math.abs(thisMonthSummary.projectsChange).toFixed(0)}%
+                      </div>
+                    </div>
+
+                    {/* Net Profit */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Net Profit</p>
+                        <p className={`text-lg font-bold ${
+                          thisMonthSummary.netProfit >= 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {formatCurrency(thisMonthSummary.netProfit)}
+                        </p>
+                      </div>
+                      <div className={`flex items-center gap-1 text-xs font-medium ${
+                        thisMonthSummary.profitChange > 0 ? 'text-green-600' : 
+                        thisMonthSummary.profitChange < 0 ? 'text-red-600' : 
+                        'text-gray-600'
+                      }`}>
+                        {thisMonthSummary.profitChange > 0 && <ArrowUp className="h-3 w-3" />}
+                        {thisMonthSummary.profitChange < 0 && <ArrowDown className="h-3 w-3" />}
+                        {thisMonthSummary.profitChange === 0 && <Minus className="h-3 w-3" />}
+                        {Math.abs(thisMonthSummary.profitChange).toFixed(0)}%
+                      </div>
+                    </div>
+
+                    {/* Average Project Value */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Avg Project Value</p>
+                        <p className="text-lg font-bold">{formatCurrency(thisMonthSummary.averageProjectValue)}</p>
+                      </div>
+                      <div className={`flex items-center gap-1 text-xs font-medium ${
+                        thisMonthSummary.avgValueChange > 0 ? 'text-green-600' : 
+                        thisMonthSummary.avgValueChange < 0 ? 'text-red-600' : 
+                        'text-gray-600'
+                      }`}>
+                        {thisMonthSummary.avgValueChange > 0 && <ArrowUp className="h-3 w-3" />}
+                        {thisMonthSummary.avgValueChange < 0 && <ArrowDown className="h-3 w-3" />}
+                        {thisMonthSummary.avgValueChange === 0 && <Minus className="h-3 w-3" />}
+                        {Math.abs(thisMonthSummary.avgValueChange).toFixed(0)}%
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground pt-1">
+                      Compared to last month
+                    </p>
                   </CardContent>
                 </Card>
               </div>
