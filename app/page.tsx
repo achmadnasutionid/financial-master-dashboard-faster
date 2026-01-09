@@ -182,8 +182,10 @@ export default function Home() {
       ? quotations
       : quotations.filter((q: any) => q.productionDate && new Date(q.productionDate).getFullYear().toString() === year)
 
-    // Calculate invoice totals (sum of totalAmount for each status)
-    const invoiceTotal = filteredInvoices.reduce((sum: number, inv: any) => sum + (inv.totalAmount || 0), 0)
+    // Calculate invoice totals (sum of totalAmount for each status, excluding drafts)
+    const invoiceTotal = filteredInvoices
+      .filter((inv: any) => inv.status !== "draft")
+      .reduce((sum: number, inv: any) => sum + (inv.totalAmount || 0), 0)
     const invoicePending = filteredInvoices.filter((inv: any) => inv.status === "pending").reduce((sum: number, inv: any) => sum + (inv.totalAmount || 0), 0)
     const invoicePaid = filteredInvoices.filter((inv: any) => inv.status === "paid").reduce((sum: number, inv: any) => sum + (inv.totalAmount || 0), 0)
     const invoiceDraftCount = filteredInvoices.filter((inv: any) => inv.status === "draft").length
@@ -195,8 +197,10 @@ export default function Home() {
       paid: invoicePaid,
     })
 
-    // Calculate quotation totals (sum of totalAmount for each status)
-    const quotationTotal = filteredQuotations.reduce((sum: number, q: any) => sum + (q.totalAmount || 0), 0)
+    // Calculate quotation totals (sum of totalAmount for each status, excluding drafts)
+    const quotationTotal = filteredQuotations
+      .filter((q: any) => q.status !== "draft")
+      .reduce((sum: number, q: any) => sum + (q.totalAmount || 0), 0)
     const quotationPending = filteredQuotations.filter((q: any) => q.status === "pending").reduce((sum: number, q: any) => sum + (q.totalAmount || 0), 0)
     const quotationAccepted = filteredQuotations.filter((q: any) => q.status === "accepted").reduce((sum: number, q: any) => sum + (q.totalAmount || 0), 0)
     const quotationDraftCount = filteredQuotations.filter((q: any) => q.status === "draft").length
@@ -1012,8 +1016,8 @@ export default function Home() {
             </div>
 
             {loading ? (
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
                   <Card key={i} className="animate-pulse">
                     <CardHeader>
                       <div className="h-4 w-24 bg-muted rounded" />
@@ -1023,7 +1027,7 @@ export default function Home() {
                 ))}
               </div>
             ) : (
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {/* Total Quotations Card */}
                 <Card 
                   className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
@@ -1036,23 +1040,7 @@ export default function Home() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl sm:text-3xl font-bold text-primary break-words">{formatCurrency(quotationStats.total)}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Total value</p>
-                  </CardContent>
-                </Card>
-
-                {/* Draft Quotations Card */}
-                <Card 
-                  className="group cursor-pointer transition-all hover:shadow-lg hover:border-yellow-500/50"
-                  onClick={() => router.push('/quotation?status=draft')}
-                >
-                  <CardHeader>
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Draft Quotations
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-4xl font-bold text-[hsl(38_92%_50%)]">{quotationStats.draft}</div>
-                    <p className="text-xs text-muted-foreground mt-1">In progress</p>
+                    <p className="text-xs text-muted-foreground mt-1">Total value (excl. drafts)</p>
                   </CardContent>
                 </Card>
 
@@ -1100,23 +1088,7 @@ export default function Home() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl sm:text-3xl font-bold text-primary break-words">{formatCurrency(invoiceStats.total)}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Total value</p>
-                  </CardContent>
-                </Card>
-
-                {/* Draft Invoices Card */}
-                <Card 
-                  className="group cursor-pointer transition-all hover:shadow-lg hover:border-yellow-500/50"
-                  onClick={() => router.push('/invoice?status=draft')}
-                >
-                  <CardHeader>
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Draft Invoices
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-4xl font-bold text-[hsl(38_92%_50%)]">{invoiceStats.draft}</div>
-                    <p className="text-xs text-muted-foreground mt-1">In progress</p>
+                    <p className="text-xs text-muted-foreground mt-1">Total value (excl. drafts)</p>
                   </CardContent>
                 </Card>
 
