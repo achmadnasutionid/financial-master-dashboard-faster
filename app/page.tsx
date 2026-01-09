@@ -83,19 +83,6 @@ export default function Home() {
   })
 
   // Fetch statistics
-  // Auto weekly backup - runs silently on app startup
-  useEffect(() => {
-    const runBackup = async () => {
-      try {
-        await fetch("/api/backup")
-      } catch (error) {
-        // Silent fail - backup is not critical for app function
-        console.error("Auto backup check failed:", error)
-      }
-    }
-    runBackup()
-  }, [])
-
   useEffect(() => {
     const fetchStats = async () => {
       try {

@@ -189,11 +189,17 @@ Planning → Quotation → Invoice → Expense
 
 ## 🛡️ Backup
 
-Railway PostgreSQL automatically handles backups. You can also:
+Railway PostgreSQL automatically handles backups for you:
+
+- **Automatic Backups**: Railway takes daily snapshots of your database
+- **Point-in-time Recovery**: Restore your database to any point in time
+- **Backup Retention**: Backups are retained according to your Railway plan
+
+You can also manually export data:
 
 1. Use Prisma Studio to view/export data: `npx prisma studio`
 2. Export data via Railway dashboard
-3. Use `pg_dump` for full database backup
+3. Use `pg_dump` for full database backup if needed
 
 ---
 

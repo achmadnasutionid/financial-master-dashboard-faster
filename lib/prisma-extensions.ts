@@ -55,16 +55,3 @@ export const minimalExpenseSelect = {
   updatedAt: true,
 } satisfies Prisma.ExpenseSelect
 
-// Batch size for bulk operations
-export const BATCH_SIZE = 100
-
-/**
- * Helper function to batch array operations
- */
-export function batchArray<T>(array: T[], batchSize: number = BATCH_SIZE): T[][] {
-  const batches: T[][] = []
-  for (let i = 0; i < array.length; i += batchSize) {
-    batches.push(array.slice(i, i + batchSize))
-  }
-  return batches
-}
