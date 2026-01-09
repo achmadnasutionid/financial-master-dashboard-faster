@@ -391,137 +391,107 @@ function PlanningPageContent() {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
-              {paginatedPlannings.map((planning) => {
-                const { totalBudget, totalExpense, totalProfit, margin } =
-                  calculateTotals(planning.items)
+            <div className="space-y-2">
+              {/* Header Row */}
+              <div className="hidden lg:flex items-center justify-between gap-4 px-4 py-2 bg-muted/50 rounded-lg">
+                <div className="flex-1 text-xs font-semibold text-muted-foreground uppercase">
+                  Planning
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-xs font-semibold text-muted-foreground uppercase" style={{ width: '100px' }}>
+                    Status
+                  </div>
+                  <div className="text-xs font-semibold text-muted-foreground uppercase" style={{ width: '90px' }}>
+                    Date
+                  </div>
+                  <div className="text-xs font-semibold text-muted-foreground uppercase text-right" style={{ width: '125px' }}>
+                    Total Budget
+                  </div>
+                  <div className="text-xs font-semibold text-muted-foreground uppercase text-right" style={{ width: '125px' }}>
+                    Total Expense
+                  </div>
+                </div>
+                <div style={{ width: '152px' }} className="text-xs font-semibold text-muted-foreground uppercase text-center">
+                  Actions
+                </div>
+              </div>
 
+              {/* Data Rows */}
+              {paginatedPlannings.map((planning) => {
+                const { totalBudget, totalExpense } = calculateTotals(planning.items)
                 return (
-                  <Card key={planning.id} className="transition-all hover:shadow-lg">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <CardTitle className="text-lg">
-                            {planning.planningId} - {planning.projectName}
-                          </CardTitle>
-                          <div className="flex items-center gap-2">
+                  <Card key={planning.id} className="transition-all hover:shadow-md">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between gap-4">
+                        {/* Left: ID - Project Name */}
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className="font-semibold text-sm whitespace-nowrap">
+                            {planning.planningId}
+                          </span>
+                          <span className="text-muted-foreground">-</span>
+                          <span className="font-medium text-sm truncate">
+                            {planning.projectName}
+                          </span>
+                        </div>
+
+                        {/* Middle: Status, Production Date, Total Budget, Total Expense */}
+                        <div className="hidden lg:flex items-center gap-4">
+                          <div style={{ width: '100px' }}>
                             <span
-                              className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
+                              className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap ${
                                 planning.status === "final"
-                                  ? "bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-slate-100"
-                                  : "bg-slate-300 text-slate-900 dark:bg-slate-600 dark:text-slate-100"
+                                  ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100"
+                                  : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-100"
                               }`}
                             >
                               {planning.status.toUpperCase()}
                             </span>
                           </div>
+                          <div className="text-sm font-medium" style={{ width: '90px' }}>
+                            {new Date(planning.productionDate).toLocaleDateString('en-GB')}
+                          </div>
+                          <div className="text-sm font-semibold text-right" style={{ width: '125px' }}>
+                            {formatCurrency(totalBudget)}
+                          </div>
+                          <div className="text-sm font-medium text-right" style={{ width: '125px' }}>
+                            {formatCurrency(totalExpense)}
+                          </div>
                         </div>
-                        <div className="flex gap-2">
+
+                        {/* Right: Action Buttons */}
+                        <div className="flex items-center gap-1 justify-end" style={{ width: '152px' }}>
+                          {planning.status === "final" && planning.generatedQuotationId && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              onClick={() => handleViewQuotation(planning.generatedQuotationId!)}
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Link href={`/planning/${planning.id}/view`}>
-                            <Button variant="outline" size="sm">
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
                               <Eye className="h-4 w-4" />
                             </Button>
                           </Link>
                           {planning.status !== "final" && (
                             <Link href={`/planning/${planning.id}/edit`}>
-                              <Button variant="outline" size="sm">
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             </Link>
                           )}
                           <Button
-                            variant="outline"
-                            size="sm"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
                             onClick={() => setDeleteId(planning.id)}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
                       </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        <div>
-                          <p className="text-xs text-muted-foreground">Client</p>
-                          <p className="font-medium">{planning.clientName}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Client Budget</p>
-                          <p className="font-medium">
-                            {formatCurrency(planning.clientBudget)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Total Budget</p>
-                          <p className="font-medium">{formatCurrency(totalBudget)}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Total Expense</p>
-                          <p className="font-medium">{formatCurrency(totalExpense)}</p>
-                        </div>
-                      </div>
-                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        <div>
-                          <p className="text-xs text-muted-foreground">Profit</p>
-                          <p
-                            className={`font-medium ${
-                              totalProfit >= 0 ? "text-green-600" : "text-red-600"
-                            }`}
-                          >
-                            {formatCurrency(totalProfit)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Margin</p>
-                          <p
-                            className={`font-medium ${
-                              margin >= 0 ? "text-green-600" : "text-red-600"
-                            }`}
-                          >
-                            {margin.toFixed(2)}%
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Items</p>
-                          <p className="font-medium">{planning.items.length} products</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Last Updated</p>
-                          <p className="font-medium">
-                            {new Date(planning.updatedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="min-h-[3rem]">
-                        <p className="text-xs text-muted-foreground">Notes</p>
-                        <p className="text-sm">{planning.notes || "-"}</p>
-                      </div>
-                      {planning.status === "final" && (
-                        <div className="flex justify-end pt-2">
-                          {planning.generatedQuotationId ? (
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleViewQuotation(planning.generatedQuotationId!)}
-                            >
-                              <FileText className="mr-2 h-4 w-4" />
-                              View Quotation
-                            </Button>
-                          ) : (
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => {
-                                setSelectedPlanningId(planning.id)
-                                setShowQuotationDialog(true)
-                              }}
-                            >
-                              <FileText className="mr-2 h-4 w-4" />
-                              Generate Quotation
-                            </Button>
-                          )}
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 )

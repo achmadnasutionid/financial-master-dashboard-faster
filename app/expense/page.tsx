@@ -336,133 +336,99 @@ function ExpensePageContent() {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-2">
+              {/* Header Row */}
+              <div className="hidden lg:flex items-center justify-between gap-4 px-4 py-2 bg-muted/50 rounded-lg">
+                <div className="flex-1 text-xs font-semibold text-muted-foreground uppercase">
+                  Expense
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-xs font-semibold text-muted-foreground uppercase" style={{ width: '100px' }}>
+                    Status
+                  </div>
+                  <div className="text-xs font-semibold text-muted-foreground uppercase" style={{ width: '90px' }}>
+                    Date
+                  </div>
+                  <div className="text-xs font-semibold text-muted-foreground uppercase text-right" style={{ width: '125px' }}>
+                    Paid Amount
+                  </div>
+                  <div className="text-xs font-semibold text-muted-foreground uppercase text-right" style={{ width: '125px' }}>
+                    Difference
+                  </div>
+                </div>
+                <div style={{ width: '152px' }} className="text-xs font-semibold text-muted-foreground uppercase text-center">
+                  Actions
+                </div>
+              </div>
+
+              {/* Data Rows */}
               {paginatedExpenses.map((expense) => {
-                const totalBudget = expense.clientBudget // From client budget field
-                const totalPaid = expense.paidAmount // From paid amount field
+                const totalPaid = expense.paidAmount
                 const totalActual = expense.items.reduce((sum, item) => sum + item.actual, 0)
-                const totalDifference = totalPaid - totalActual // Paid - Actual
+                const totalDifference = totalPaid - totalActual
 
                 return (
-                  <Card key={expense.id} className="transition-all hover:shadow-lg">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <CardTitle className="text-lg">
-                            {expense.expenseId} - {expense.projectName}
-                          </CardTitle>
-                          <div className="flex items-center gap-2">
+                  <Card key={expense.id} className="transition-all hover:shadow-md">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between gap-4">
+                        {/* Left: ID - Project Name */}
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className="font-semibold text-sm whitespace-nowrap">
+                            {expense.expenseId}
+                          </span>
+                          <span className="text-muted-foreground">-</span>
+                          <span className="font-medium text-sm truncate">
+                            {expense.projectName}
+                          </span>
+                        </div>
+
+                        {/* Middle: Status, Production Date, Paid Amount, Difference */}
+                        <div className="hidden lg:flex items-center gap-4">
+                          <div style={{ width: '100px' }}>
                             <span
-                              className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
+                              className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap ${
                                 expense.status === "final"
-                                  ? "bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-slate-100"
-                                  : "bg-slate-300 text-slate-900 dark:bg-slate-600 dark:text-slate-100"
+                                  ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100"
+                                  : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-100"
                               }`}
                             >
                               {expense.status.toUpperCase()}
                             </span>
                           </div>
+                          <div className="text-sm font-medium" style={{ width: '90px' }}>
+                            {new Date(expense.productionDate).toLocaleDateString('en-GB')}
+                          </div>
+                          <div className="text-sm font-semibold text-right" style={{ width: '125px' }}>
+                            {formatCurrency(totalPaid)}
+                          </div>
+                          <div className={`text-sm font-medium text-right ${totalDifference >= 0 ? 'text-green-600' : 'text-red-600'}`} style={{ width: '125px' }}>
+                            {formatCurrency(totalDifference)}
+                          </div>
                         </div>
-                        <div className="flex gap-2">
+
+                        {/* Right: Action Buttons */}
+                        <div className="flex items-center gap-1 justify-end" style={{ width: '152px' }}>
                           <Link href={`/expense/${expense.id}/view`}>
-                            <Button variant="outline" size="sm">
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
                               <Eye className="h-4 w-4" />
                             </Button>
                           </Link>
                           {expense.status !== "final" && (
                             <Link href={`/expense/${expense.id}/edit`}>
-                              <Button variant="outline" size="sm">
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             </Link>
                           )}
                           <Button
-                            variant="outline"
-                            size="sm"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
                             onClick={() => setDeleteId(expense.id)}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                        <div>
-                          <p className="text-xs text-muted-foreground">Client Budget</p>
-                          <p className="font-medium">
-                            {formatCurrency(expense.clientBudget)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Paid Amount</p>
-                          <p className="font-medium">
-                            {formatCurrency(expense.paidAmount)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Total Actual</p>
-                          <p className="font-medium">
-                            {formatCurrency(totalActual)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Difference</p>
-                          <p
-                            className={`font-medium ${
-                              totalDifference >= 0 ? "text-green-600" : "text-red-600"
-                            }`}
-                          >
-                            {formatCurrency(totalDifference)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Items</p>
-                          <p className="font-medium">{expense.items.length} products</p>
-                        </div>
-                      </div>
-                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                        <div>
-                          <p className="text-xs text-muted-foreground">Saved Under Budget</p>
-                          <p
-                            className={`font-medium ${
-                              totalDifference >= 0 ? "text-green-600" : "text-muted-foreground"
-                            }`}
-                          >
-                            {totalDifference >= 0 ? formatCurrency(totalDifference) : "-"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Over Budget</p>
-                          <p
-                            className={`font-medium ${
-                              totalDifference < 0 ? "text-red-600" : "text-muted-foreground"
-                            }`}
-                          >
-                            {totalDifference < 0 ? formatCurrency(Math.abs(totalDifference)) : "-"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Efficiency</p>
-                          <p
-                            className={`font-medium ${
-                              totalPaid > 0 ? (totalDifference >= 0 ? "text-green-600" : "text-red-600") : ""
-                            }`}
-                          >
-                            {totalPaid > 0 ? `${((totalDifference / totalPaid) * 100).toFixed(2)}%` : "-"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Last Updated</p>
-                          <p className="font-medium">
-                            {new Date(expense.updatedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div></div>
-                      </div>
-                      <div className="min-h-[3rem]">
-                        <p className="text-xs text-muted-foreground">Notes</p>
-                        <p className="text-sm">{expense.notes || "-"}</p>
                       </div>
                     </CardContent>
                   </Card>
