@@ -77,11 +77,9 @@ export default function Home() {
     revenue: 0,
     projectsCompleted: 0,
     netProfit: 0,
-    averageProjectValue: 0,
     revenueChange: 0,
     projectsChange: 0,
-    profitChange: 0,
-    avgValueChange: 0
+    profitChange: 0
   })
 
   // Fetch statistics
@@ -617,25 +615,18 @@ export default function Home() {
     }, 0)
     const lastMonthNetProfit = lastMonthTotalPaid - lastMonthActualExpenses
 
-    // Calculate average project values
-    const thisMonthAvgValue = thisMonthProjectsCompleted > 0 ? thisMonthRevenue / thisMonthProjectsCompleted : 0
-    const lastMonthAvgValue = lastMonthProjectsCompleted > 0 ? lastMonthRevenue / lastMonthProjectsCompleted : 0
-
     // Calculate percentage changes
     const revenueChange = lastMonthRevenue > 0 ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0
     const projectsChange = lastMonthProjectsCompleted > 0 ? ((thisMonthProjectsCompleted - lastMonthProjectsCompleted) / lastMonthProjectsCompleted) * 100 : 0
     const profitChange = lastMonthNetProfit > 0 ? ((thisMonthNetProfit - lastMonthNetProfit) / lastMonthNetProfit) * 100 : 0
-    const avgValueChange = lastMonthAvgValue > 0 ? ((thisMonthAvgValue - lastMonthAvgValue) / lastMonthAvgValue) * 100 : 0
 
     setThisMonthSummary({
       revenue: thisMonthRevenue,
       projectsCompleted: thisMonthProjectsCompleted,
       netProfit: thisMonthNetProfit,
-      averageProjectValue: thisMonthAvgValue,
       revenueChange,
       projectsChange,
-      profitChange,
-      avgValueChange
+      profitChange
     })
   }
 
@@ -940,24 +931,6 @@ export default function Home() {
                         {thisMonthSummary.profitChange < 0 && <ArrowDown className="h-3 w-3" />}
                         {thisMonthSummary.profitChange === 0 && <Minus className="h-3 w-3" />}
                         {Math.abs(thisMonthSummary.profitChange).toFixed(0)}%
-                      </div>
-                    </div>
-
-                    {/* Average Project Value */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Avg Project Value</p>
-                        <p className="text-lg font-bold">{formatCurrency(thisMonthSummary.averageProjectValue)}</p>
-                      </div>
-                      <div className={`flex items-center gap-1 text-xs font-medium ${
-                        thisMonthSummary.avgValueChange > 0 ? 'text-green-600' : 
-                        thisMonthSummary.avgValueChange < 0 ? 'text-red-600' : 
-                        'text-gray-600'
-                      }`}>
-                        {thisMonthSummary.avgValueChange > 0 && <ArrowUp className="h-3 w-3" />}
-                        {thisMonthSummary.avgValueChange < 0 && <ArrowDown className="h-3 w-3" />}
-                        {thisMonthSummary.avgValueChange === 0 && <Minus className="h-3 w-3" />}
-                        {Math.abs(thisMonthSummary.avgValueChange).toFixed(0)}%
                       </div>
                     </div>
 
