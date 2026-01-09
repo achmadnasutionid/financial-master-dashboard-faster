@@ -52,7 +52,6 @@ interface Planning {
   id: string
   planningId: string
   projectName: string
-  productionDate: string
   clientName: string
   clientBudget: number
   notes: string | null
@@ -449,7 +448,7 @@ function PlanningPageContent() {
                             </span>
                           </div>
                           <div className="text-sm font-medium" style={{ width: '90px' }}>
-                            {new Date(planning.productionDate).toLocaleDateString('en-GB')}
+                            {new Date(planning.updatedAt).toLocaleDateString('en-GB')}
                           </div>
                           <div className="text-sm font-semibold text-right" style={{ width: '125px' }}>
                             {formatCurrency(totalBudget)}
