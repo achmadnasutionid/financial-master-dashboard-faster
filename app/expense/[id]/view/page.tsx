@@ -38,6 +38,7 @@ export default function ViewExpensePage() {
   const router = useRouter()
   const expenseId = params?.id as string
   const [mounted, setMounted] = useState(false)
+  const [copying, setCopying] = useState(false)
 
   // Use SWR for cached data fetching
   const { data: expense, isLoading: loading } = useFetch<Expense>(
@@ -125,7 +126,6 @@ export default function ViewExpensePage() {
   }
 
   // Handle copy expense
-  const [copying, setCopying] = useState(false)
   const handleCopy = async () => {
     if (!expense || copying) return
 
