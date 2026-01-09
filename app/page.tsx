@@ -528,7 +528,7 @@ export default function Home() {
                 {/* Pending Invoices */}
                 {actionItems.pendingInvoices.count > 0 && (
                   <Card 
-                    className="group cursor-pointer transition-all hover:shadow-lg border-l-4 border-l-blue-500"
+                    className="group cursor-pointer transition-all hover:shadow-lg hover:border-blue-500/50"
                     onClick={() => router.push('/invoice?status=pending')}
                   >
                     <CardHeader className="pb-3">
@@ -561,7 +561,7 @@ export default function Home() {
                 {/* Pending Quotations */}
                 {actionItems.pendingQuotations.count > 0 && (
                   <Card 
-                    className="group cursor-pointer transition-all hover:shadow-lg border-l-4 border-l-yellow-500"
+                    className="group cursor-pointer transition-all hover:shadow-lg hover:border-yellow-500/50"
                     onClick={() => router.push('/quotation?status=pending')}
                   >
                     <CardHeader className="pb-3">
@@ -603,7 +603,7 @@ export default function Home() {
                 {/* Draft Expenses */}
                 {actionItems.draftExpenses.count > 0 && (
                   <Card 
-                    className="group cursor-pointer transition-all hover:shadow-lg border-l-4 border-l-orange-500"
+                    className="group cursor-pointer transition-all hover:shadow-lg hover:border-orange-500/50"
                     onClick={() => router.push('/expense?status=draft')}
                   >
                     <CardHeader className="pb-3">
