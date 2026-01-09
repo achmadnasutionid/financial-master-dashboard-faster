@@ -715,9 +715,6 @@ export default function Home() {
                             {formatCurrency(actionItems.pendingInvoices.totalAmount)}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          Click to view all pending invoices awaiting payment
-                        </p>
                       </div>
                     </CardContent>
                   </Card>
@@ -757,9 +754,6 @@ export default function Home() {
                             +{actionItems.pendingQuotations.count - 2} more
                           </p>
                         )}
-                        <p className="text-xs text-muted-foreground pt-1">
-                          Click to view all pending quotations
-                        </p>
                       </div>
                     </CardContent>
                   </Card>
@@ -786,9 +780,6 @@ export default function Home() {
                       <div className="space-y-2">
                         <p className="text-sm text-muted-foreground">
                           {actionItems.draftExpenses.count} {actionItems.draftExpenses.count === 1 ? 'expense' : 'expenses'} not yet finalized
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Click to finalize and track actual costs
                         </p>
                       </div>
                     </CardContent>
