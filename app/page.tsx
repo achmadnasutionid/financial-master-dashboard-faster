@@ -336,6 +336,21 @@ export default function Home() {
     }).format(amount)
   }
 
+  const getActivityLink = (activity: any) => {
+    switch (activity.type) {
+      case 'invoice':
+        return `/invoice/${activity.id}/view`
+      case 'quotation':
+        return `/quotation/${activity.id}/view`
+      case 'expense':
+        return activity.action === 'finalized' ? `/expense/${activity.id}/view` : `/expense/${activity.id}/edit`
+      case 'planning':
+        return `/planning/${activity.id}/view`
+      default:
+        return '#'
+    }
+  }
+
   const getRelativeTime = (date: string) => {
     const now = new Date().getTime()
     const activityTime = new Date(date).getTime()
@@ -578,10 +593,10 @@ export default function Home() {
       })
     })
 
-    // Sort by timestamp (newest first) and take top 10
+    // Sort by timestamp (newest first) and take top 3
     const sortedActivities = activities
       .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, 10)
+      .slice(0, 3)
 
     setRecentActivities(sortedActivities)
   }
@@ -604,6 +619,65 @@ export default function Home() {
       
       <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-12">
         <div className="container mx-auto max-w-7xl space-y-12">
+          {/* Quick Action Section */}
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold tracking-tight">Quick Action</h2>
+
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Planning Card */}
+              <Card 
+                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
+                onClick={() => router.push('/planning')}
+              >
+                <CardHeader>
+                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <Calendar className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle>Planning</CardTitle>
+                </CardHeader>
+              </Card>
+
+              {/* Quotation Card */}
+              <Card 
+                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
+                onClick={() => router.push('/quotation')}
+              >
+                <CardHeader>
+                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <FileCheck className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle>Quotation</CardTitle>
+                </CardHeader>
+              </Card>
+
+              {/* Invoice Card */}
+              <Card 
+                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
+                onClick={() => router.push('/invoice')}
+              >
+                <CardHeader>
+                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <Receipt className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle>Invoice</CardTitle>
+                </CardHeader>
+              </Card>
+
+              {/* Expenses Card */}
+              <Card 
+                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
+                onClick={() => router.push('/expense')}
+              >
+                <CardHeader>
+                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <Wallet className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle>Expenses</CardTitle>
+                </CardHeader>
+              </Card>
+            </div>
+          </div>
+
           {/* Action Items Section - What Needs Attention */}
           {!loading && (actionItems.pendingInvoices.count > 0 || actionItems.pendingQuotations.count > 0 || actionItems.draftExpenses.count > 0) && (
             <div className="space-y-6">
@@ -736,7 +810,11 @@ export default function Home() {
                 <CardContent className="pt-6">
                   <div className="space-y-4">
                     {recentActivities.map((activity, index) => (
-                      <div key={`${activity.type}-${activity.id}-${index}`} className="flex items-start gap-4 pb-4 last:pb-0 border-b last:border-b-0">
+                      <div 
+                        key={`${activity.type}-${activity.id}-${index}`} 
+                        className="flex items-start gap-4 pb-4 last:pb-0 border-b last:border-b-0 cursor-pointer hover:bg-muted/50 rounded-lg p-2 -m-2 transition-colors"
+                        onClick={() => router.push(getActivityLink(activity))}
+                      >
                         {/* Icon */}
                         <div className={`flex h-10 w-10 items-center justify-center rounded-full flex-shrink-0 ${
                           activity.color === 'green' ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-100' :
@@ -771,65 +849,6 @@ export default function Home() {
               </Card>
             </div>
           )}
-
-          {/* Quick Action Section */}
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold tracking-tight">Quick Action</h2>
-
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {/* Planning Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/planning')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Calendar className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Planning</CardTitle>
-                </CardHeader>
-              </Card>
-
-              {/* Quotation Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/quotation')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <FileCheck className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Quotation</CardTitle>
-                </CardHeader>
-              </Card>
-
-              {/* Invoice Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/invoice')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Receipt className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Invoice</CardTitle>
-                </CardHeader>
-              </Card>
-
-              {/* Expenses Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/expense')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Wallet className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Expenses</CardTitle>
-                </CardHeader>
-              </Card>
-            </div>
-          </div>
 
           {/* Management Section */}
           <div className="space-y-6">
