@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import { PageHeader } from "@/components/layout/page-header"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
@@ -231,7 +231,7 @@ export default function EditQuotationPage() {
   }
 
   // Auto-save function
-  const autoSave = async () => {
+  const autoSave = useCallback(async () => {
     if (!hasInteracted || !selectedCompanyId || !productionDate || !billTo || !selectedBillingId || !selectedSignatureId) {
       return
     }
@@ -298,7 +298,7 @@ export default function EditQuotationPage() {
       console.error("Auto-save error:", error)
       setAutoSaveStatus("error")
     }
-  }
+  }, [hasInteracted, selectedCompanyId, productionDate, billTo, selectedBillingId, selectedSignatureId, companies, billings, signatures, notes, pph, quotationStatus, remarks, items, quotationId])
 
   // Auto-save timer
   useEffect(() => {
@@ -319,7 +319,7 @@ export default function EditQuotationPage() {
         clearTimeout(autoSaveTimerRef.current)
       }
     }
-  }, [selectedCompanyId, productionDate, billTo, notes, remarks, selectedBillingId, selectedSignatureId, pph, items, hasInteracted])
+  }, [selectedCompanyId, productionDate, billTo, notes, remarks, selectedBillingId, selectedSignatureId, pph, items, hasInteracted, autoSave])
 
   // Item management functions (same as create page)
   const addItem = () => {
