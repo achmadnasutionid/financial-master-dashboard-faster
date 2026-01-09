@@ -256,7 +256,7 @@ const formatCurrency = (amount: number) => {
         </View>
 
         {/* Item Totals (For Reference) */}
-        <View style={styles.itemTotalsBox} break>
+        <View style={styles.itemTotalsBox} wrap={false}>
           <Text style={styles.itemTotalsTitle}>Item Totals (For Reference)</Text>
           <View style={styles.itemTotalsRow}>
             <Text>Sum of Item Budgeted:</Text>
@@ -273,7 +273,7 @@ const formatCurrency = (amount: number) => {
         </View>
 
         {/* Summary */}
-        <View style={styles.summary}>
+        <View style={styles.summary} wrap={false}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total Budget:</Text>
             <Text style={styles.summaryValue}>{formatCurrency(totalBudget)}</Text>
