@@ -377,7 +377,11 @@ export const QuotationPDF: React.FC<QuotationPDFProps> = ({ data }) => {
               <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 5 }}>
                 {new Date(data.updatedAt).toLocaleDateString("id-ID")}
               </Text>
-              <Image src={data.signatureImageData} style={styles.signatureImage} />
+              {data.signatureImageData ? (
+                <Image src={data.signatureImageData} style={styles.signatureImage} />
+              ) : (
+                <View style={{ height: 60, borderBottom: "1px solid #999", marginTop: 20, marginBottom: 5 }} />
+              )}
               <Text style={{ fontSize: 8, marginTop: 4, textAlign: "center" }}>
                 {data.signatureName}
               </Text>

@@ -224,11 +224,13 @@ export const ParagonBASTPDF: React.FC<ParagonBASTPDFProps> = ({ data }) => {
           <View style={styles.footerLeft}>
             <Text style={styles.footerLabel}>Hormat Saya,</Text>
             <Text style={{ fontSize: 10, marginBottom: 5, color: "white" }}>{data.billTo}</Text>
-            {data.signatureImageData && (
+            {data.signatureImageData ? (
               <Image
                 src={data.signatureImageData}
                 style={styles.signatureImage}
               />
+            ) : (
+              <View style={{ height: 60, borderBottom: "1px solid #999", marginTop: 10, marginBottom: 5, width: 150 }} />
             )}
             <Text style={styles.footerName}>{data.signatureName}</Text>
             <Text style={styles.footerRole}>{data.signatureRole}</Text>

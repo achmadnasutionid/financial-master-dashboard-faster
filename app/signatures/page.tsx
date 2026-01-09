@@ -126,9 +126,7 @@ export default function SignaturesPage() {
       errors.name = "Name is required"
     }
     
-    if (signatureRef.current?.isEmpty()) {
-      errors.signature = "Signature is required"
-    }
+    // Signature drawing is now optional (for offline signing)
     
     setFormErrors(errors)
     return Object.keys(errors).length === 0
@@ -137,14 +135,13 @@ export default function SignaturesPage() {
   const handleCreate = async () => {
     if (!validateForm()) return
     
+    // Get signature image data if provided, otherwise null
+    let imageData = null
     const canvas = signatureRef.current?.getCanvas()
-    if (!canvas) {
-      setFormErrors({ signature: "Failed to capture signature" })
-      return
+    if (canvas && !signatureRef.current?.isEmpty()) {
+      const trimmedCanvas = trimCanvas(canvas)
+      imageData = trimmedCanvas.toDataURL()
     }
-    
-    const trimmedCanvas = trimCanvas(canvas)
-    const imageData = trimmedCanvas.toDataURL()
     
     setIsSubmitting(true)
     try {
@@ -222,14 +219,13 @@ export default function SignaturesPage() {
   const handleUpdate = async () => {
     if (!validateForm() || !selectedSignature) return
     
+    // Get signature image data if provided, otherwise keep existing or set null
+    let imageData = selectedSignature.imageData // Keep existing by default
     const canvas = signatureRef.current?.getCanvas()
-    if (!canvas) {
-      setFormErrors({ signature: "Failed to capture signature" })
-      return
+    if (canvas && !signatureRef.current?.isEmpty()) {
+      const trimmedCanvas = trimCanvas(canvas)
+      imageData = trimmedCanvas.toDataURL()
     }
-    
-    const trimmedCanvas = trimCanvas(canvas)
-    const imageData = trimmedCanvas.toDataURL()
     
     setIsSubmitting(true)
     try {
@@ -451,11 +447,17 @@ export default function SignaturesPage() {
                   <CardContent className="flex flex-1 flex-col space-y-3">
                     <div className="flex-1">
                       <div className="rounded-lg border border-border bg-background p-4">
-                        <img 
-                          src={signature.imageData} 
-                          alt={signature.name}
-                          className="mx-auto h-24 w-full object-contain"
-                        />
+                        {signature.imageData ? (
+                          <img 
+                            src={signature.imageData} 
+                            alt={signature.name}
+                            className="mx-auto h-24 w-full object-contain"
+                          />
+                        ) : (
+                          <div className="flex h-24 items-center justify-center text-muted-foreground text-sm">
+                            (Offline Signature)
+                          </div>
+                        )}
                       </div>
                     </div>
                     
@@ -553,7 +555,7 @@ export default function SignaturesPage() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Draw Signature *</Label>
+                <Label>Draw Signature (Optional)</Label>
                 <Button
                   type="button"
                   variant="outline"
@@ -579,7 +581,7 @@ export default function SignaturesPage() {
                 <p className="text-sm text-destructive">{formErrors.signature}</p>
               )}
               <p className="text-xs text-muted-foreground">
-                Draw your signature above using your mouse or touch screen
+                Leave blank if document will be signed offline. Draw signature using mouse or touch screen.
               </p>
             </div>
           </div>
@@ -631,7 +633,7 @@ export default function SignaturesPage() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Draw Signature *</Label>
+                <Label>Draw Signature (Optional)</Label>
                 <Button
                   type="button"
                   variant="outline"
@@ -657,7 +659,7 @@ export default function SignaturesPage() {
                 <p className="text-sm text-destructive">{formErrors.signature}</p>
               )}
               <p className="text-xs text-muted-foreground">
-                Draw your signature above using your mouse or touch screen
+                Leave blank if document will be signed offline. Draw signature using mouse or touch screen.
               </p>
             </div>
           </div>

@@ -34,10 +34,10 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { name, role, imageData } = body
 
-    // Validate required fields
-    if (!name || !imageData) {
+    // Validate required fields (imageData is now optional for offline signing)
+    if (!name) {
       return NextResponse.json(
-        { error: "Name and signature image are required" },
+        { error: "Name is required" },
         { status: 400 }
       )
     }
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
       data: {
         name,
         role,
-        imageData
+        imageData: imageData || "" // Store empty string if no image provided
       }
     })
 

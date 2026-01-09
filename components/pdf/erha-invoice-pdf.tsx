@@ -355,8 +355,10 @@ export const ErhaInvoicePDF: React.FC<ErhaInvoicePDFProps> = ({ data }) => {
           {/* Right: Company Signature */}
           <View style={styles.footerRight}>
             <Text style={{ fontSize: 10, marginBottom: 5 }}>Best Regards,</Text>
-            {data.signatureImageData && (
+            {data.signatureImageData ? (
               <Image src={data.signatureImageData} style={styles.signatureImage} />
+            ) : (
+              <View style={{ height: 60, borderBottom: "1px solid #999", marginTop: 10, marginBottom: 5, width: 150 }} />
             )}
             <Text style={styles.footerName}>{data.signatureName}</Text>
             {data.signatureRole && (
