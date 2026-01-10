@@ -29,6 +29,7 @@ export type EmptyStateType =
   | "expenses" 
   | "paragon-tickets"
   | "erha-tickets"
+  | "templates"
   | "search"
   | "generic"
 
@@ -142,6 +143,15 @@ const emptyStateConfig: Record<EmptyStateType, {
     searchDescription: "Try adjusting your search or filter criteria.",
     gradient: "from-cyan-500/10 to-teal-500/10",
     iconColor: "text-cyan-500"
+  },
+  templates: {
+    icon: FileText,
+    defaultTitle: "No templates yet",
+    defaultDescription: "Create your first quotation template to speed up your workflow.",
+    searchTitle: "No templates found",
+    searchDescription: "Try adjusting your search terms.",
+    gradient: "from-purple-500/10 to-pink-500/10",
+    iconColor: "text-purple-500"
   },
   search: {
     icon: Search,

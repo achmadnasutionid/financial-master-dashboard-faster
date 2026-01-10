@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Header } from "@/components/layout/header"
-import { Footer } from "@/components/layout/footer"
 import { PageHeader } from "@/components/layout/page-header"
+import { Footer } from "@/components/layout/footer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -19,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Package, Plus, Pencil, Trash2, FileText } from "lucide-react"
+import { Plus, Pencil, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
 
@@ -107,15 +106,16 @@ export default function TemplatesPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Header />
+      <PageHeader
+        title="Quotation Templates"
+        showBackButton={true}
+        backTo="/"
+      />
       
       <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-8">
         <div className="container mx-auto max-w-7xl space-y-8">
-          <PageHeader
-            title="Quotation Templates"
-            description="Manage reusable quotation packages"
-            icon={Package}
-          />
+          {/* Page description */}
+          <p className="text-muted-foreground">Manage reusable quotation packages</p>
 
           {/* Create Button */}
           <div className="flex justify-end">
@@ -142,13 +142,9 @@ export default function TemplatesPage() {
             </div>
           ) : templates.length === 0 ? (
             <EmptyState
-              icon={FileText}
-              title="No templates yet"
-              description="Create your first quotation template to speed up your workflow"
-              action={{
-                label: "Create Template",
-                onClick: () => router.push("/templates/create")
-              }}
+              type="templates"
+              actionLabel="Create Template"
+              onAction={() => router.push("/templates/create")}
             />
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
