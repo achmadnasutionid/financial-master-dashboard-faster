@@ -112,15 +112,12 @@ export default function TemplatesPage() {
         backTo="/"
       />
       
-      <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-8">
-        <div className="container mx-auto max-w-7xl space-y-8">
-          {/* Page description */}
-          <p className="text-muted-foreground">Manage reusable quotation packages</p>
-
-          {/* Create Button */}
-          <div className="flex justify-end">
-            <Button onClick={() => router.push("/templates/create")}>
-              <Plus className="mr-2 h-4 w-4" />
+      <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-12">
+        <div className="container mx-auto max-w-7xl space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold tracking-tight">Template List</h2>
+            <Button onClick={() => router.push("/templates/create")} className="gap-2">
+              <Plus className="h-4 w-4" />
               Create Template
             </Button>
           </div>
