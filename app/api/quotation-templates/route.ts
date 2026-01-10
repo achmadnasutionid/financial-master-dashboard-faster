@@ -13,8 +13,7 @@ export async function GET() {
           include: {
             details: true
           }
-        },
-        remarks: true
+        }
       },
       orderBy: {
         updatedAt: "desc"
@@ -41,7 +40,6 @@ export async function POST(request: Request) {
       data: {
         name: body.name,
         description: body.description || null,
-        pph: body.pph,
         items: {
           create: body.items?.map((item: any) => ({
             productName: item.productName,
@@ -53,11 +51,6 @@ export async function POST(request: Request) {
               })) || []
             }
           })) || []
-        },
-        remarks: {
-          create: body.remarks?.map((remark: any) => ({
-            text: remark.text
-          })) || []
         }
       },
       include: {
@@ -65,8 +58,7 @@ export async function POST(request: Request) {
           include: {
             details: true
           }
-        },
-        remarks: true
+        }
       }
     })
 

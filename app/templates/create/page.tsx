@@ -12,10 +12,8 @@ import { AutoExpandInput } from "@/components/ui/auto-expand-input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { CurrencyInput } from "@/components/ui/currency-input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Save, Plus, Trash2, Package } from "lucide-react"
 import { toast } from "sonner"
-import { PPH_OPTIONS } from "@/lib/constants"
 
 interface ItemDetail {
   id: string
@@ -32,11 +30,6 @@ interface Item {
   total: number
 }
 
-interface Remark {
-  id: string
-  text: string
-}
-
 interface Product {
   id: string
   name: string
@@ -47,20 +40,7 @@ export default function CreateTemplatePage() {
   
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
-  const [pph, setPph] = useState("2") // Default PPH 23 2%
   const [items, setItems] = useState<Item[]>([])
-  const [remarks, setRemarks] = useState<Remark[]>([
-    { id: "1", text: "Terms & Conditions :" },
-    { id: "2", text: "* Overtime Production Shooting Day 10 % dari Fee invoice" },
-    { id: "3", text: "* Quotation is valid for 7 days from the issue date." },
-    { id: "4", text: "* 50% down payment must be paid at least 1 day before the first project meeting. The remaining 50% is paid after the project is finished." },
-    { id: "5", text: "* More than 3 revisions per frame will be charged extra." },
-    { id: "6", text: "Penalty will be applied if client use our Photo & Videshoot without our consent for printed media placement outside the initial agreement :" },
-    { id: "7", text: "* Small Ussage ( Flyer, Katalog, Brosur, Kupon, Kotak Gift, Booklet PR Package, Kartu Ucapan ) 15% dari invoice awal" },
-    { id: "8", text: "* Medium Ussage (POP, TV Store, TV Led Instore, both, bazaar, Backwall, Wobler, add 20%" },
-    { id: "9", text: "* Big Print (Billboard, OOH Outdoor, LED Screen Outdoor, Megatron, Umbull, dll) 50% + tnc berlanjut" },
-    { id: "10", text: "* Additional overseas media placement (digital and printed) will be charged .(bisa di edit) % of total" },
-  ])
   const [products, setProducts] = useState<Product[]>([])
   const [isSaving, setIsSaving] = useState(false)
 
@@ -210,7 +190,6 @@ export default function CreateTemplatePage() {
         body: JSON.stringify({
           name,
           description: description || null,
-          pph,
           items: items.map(item => ({
             productName: item.productName,
             details: item.details.map(detail => ({
@@ -218,9 +197,6 @@ export default function CreateTemplatePage() {
               unitPrice: detail.unitPrice,
               qty: detail.qty
             }))
-          })),
-          remarks: remarks.filter(r => r.text.trim()).map(r => ({
-            text: r.text
           }))
         })
       })
@@ -272,22 +248,6 @@ export default function CreateTemplatePage() {
                     onChange={(e) => setDescription(e.target.value)}
                     rows={2}
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="pph">Default PPh</Label>
-                  <Select value={pph} onValueChange={setPph}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PPH_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
               </CardContent>
             </Card>
@@ -422,39 +382,6 @@ export default function CreateTemplatePage() {
                     Add Product
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Remarks */}
-            <Card>
-              <CardContent className="pt-6 space-y-4">
-                <Label className="text-lg">Remarks (Optional)</Label>
-                
-                {remarks.map((remark) => (
-                  <div key={remark.id} className="flex items-start gap-2">
-                    <Textarea
-                      value={remark.text}
-                      onChange={(e) => updateRemark(remark.id, e.target.value)}
-                      placeholder="Add a remark"
-                      rows={1}
-                      className="flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeRemark(remark.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-
-                <Button type="button" onClick={addRemark} variant="outline" size="sm">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Remark
-                </Button>
               </CardContent>
             </Card>
 

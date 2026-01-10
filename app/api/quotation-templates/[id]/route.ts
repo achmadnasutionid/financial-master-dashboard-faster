@@ -17,8 +17,7 @@ export async function GET(
           include: {
             details: true
           }
-        },
-        remarks: true
+        }
       }
     })
 
@@ -53,9 +52,6 @@ export async function PUT(
       data: {
         items: {
           deleteMany: {}
-        },
-        remarks: {
-          deleteMany: {}
         }
       }
     })
@@ -66,7 +62,6 @@ export async function PUT(
       data: {
         name: body.name,
         description: body.description || null,
-        pph: body.pph,
         items: {
           create: body.items?.map((item: any) => ({
             productName: item.productName,
@@ -78,11 +73,6 @@ export async function PUT(
               })) || []
             }
           })) || []
-        },
-        remarks: {
-          create: body.remarks?.map((remark: any) => ({
-            text: remark.text
-          })) || []
         }
       },
       include: {
@@ -90,8 +80,7 @@ export async function PUT(
           include: {
             details: true
           }
-        },
-        remarks: true
+        }
       }
     })
 

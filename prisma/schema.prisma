@@ -511,9 +511,7 @@ model QuotationTemplate {
   id          String                   @id @default(cuid())
   name        String                   @unique
   description String?
-  pph         String                   // Default PPh percentage/type
   items       QuotationTemplateItem[]
-  remarks     QuotationTemplateRemark[]
   deletedAt   DateTime?
   createdAt   DateTime                 @default(now())
   updatedAt   DateTime                 @updatedAt
@@ -541,14 +539,5 @@ model QuotationTemplateItemDetail {
   qty       Float
   createdAt DateTime               @default(now())
   updatedAt DateTime               @updatedAt
-}
-
-model QuotationTemplateRemark {
-  id         String            @id @default(cuid())
-  templateId String
-  template   QuotationTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  text       String
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
 }
 

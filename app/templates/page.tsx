@@ -34,18 +34,11 @@ interface TemplateItem {
   details: TemplateDetail[]
 }
 
-interface TemplateRemark {
-  id: string
-  text: string
-}
-
 interface QuotationTemplate {
   id: string
   name: string
   description: string | null
-  pph: string
   items: TemplateItem[]
-  remarks: TemplateRemark[]
   createdAt: string
   updatedAt: string
 }
@@ -177,16 +170,6 @@ export default function TemplatesPage() {
                             <span className="text-muted-foreground">Est. Value:</span>
                             <span className="font-medium">{formatCurrency(estimatedTotal)}</span>
                           </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">PPh:</span>
-                            <span className="font-medium">{template.pph}%</span>
-                          </div>
-                          {template.remarks.length > 0 && (
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-muted-foreground">Remarks:</span>
-                              <span className="font-medium">{template.remarks.length}</span>
-                            </div>
-                          )}
                         </div>
 
                         {/* Actions */}
