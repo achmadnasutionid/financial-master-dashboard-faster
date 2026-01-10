@@ -1,31 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-
-// Helper function to generate Planning ID in format PLN-YYYY-NNNN
-async function generatePlanningId() {
-  const year = new Date().getFullYear()
-  const prefix = `PLN-${year}-`
-  
-  // Find the highest number for this year
-  const lastPlanning = await prisma.planning.findFirst({
-    where: {
-      planningId: {
-        startsWith: prefix
-      }
-    },
-    orderBy: {
-      planningId: "desc"
-    }
-  })
-
-  let nextNumber = 1
-  if (lastPlanning) {
-    const lastNumber = parseInt(lastPlanning.planningId.split("-")[2])
-    nextNumber = lastNumber + 1
-  }
-
-  return `${prefix}${nextNumber.toString().padStart(4, "0")}`
-}
+import { generateId } from "@/lib/id-generator"
 
 // GET all plannings with optional filters
 export async function GET(request: Request) {
@@ -78,8 +53,8 @@ export async function POST(request: Request) {
       )
     }
 
-    // Generate unique planning ID
-    const planningId = await generatePlanningId()
+    // Generate unique planning ID (optimized with cache)
+    const planningId = await generateId('PLN', 'planning')
 
     // Create planning with items
     const planning = await prisma.planning.create({

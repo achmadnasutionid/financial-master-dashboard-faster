@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useMemo } from "react"
 import { PageHeader } from "@/components/layout/page-header"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,7 @@ import { useRouter, useParams } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { AutoSaveIndicator, AutoSaveStatus } from "@/components/ui/auto-save-indicator"
+import { useDebouncedCallback } from "@/hooks/use-debounce"
 import {
   Select,
   SelectContent,

@@ -1,30 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-
-// Helper function to generate Invoice ID in format INV-YYYY-NNNN
-async function generateInvoiceId() {
-  const year = new Date().getFullYear()
-  const prefix = `INV-${year}-`
-  
-  const lastInvoice = await prisma.invoice.findFirst({
-    where: {
-      invoiceId: {
-        startsWith: prefix
-      }
-    },
-    orderBy: {
-      invoiceId: "desc"
-    }
-  })
-
-  let nextNumber = 1
-  if (lastInvoice) {
-    const lastNumber = parseInt(lastInvoice.invoiceId.split("-")[2])
-    nextNumber = lastNumber + 1
-  }
-
-  return `${prefix}${nextNumber.toString().padStart(4, "0")}`
-}
+import { generateId } from "@/lib/id-generator"
 
 // GET all invoices
 export async function GET(request: Request) {
@@ -73,8 +49,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    // Generate unique invoice ID
-    const invoiceId = await generateInvoiceId()
+    // Generate unique invoice ID (optimized with cache)
+    const invoiceId = await generateId('INV', 'invoice')
 
     // Create invoice with items and details
     const invoice = await prisma.invoice.create({

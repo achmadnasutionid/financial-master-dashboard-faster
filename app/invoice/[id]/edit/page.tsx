@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { PageHeader } from "@/components/layout/page-header"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { PPH_OPTIONS } from "@/lib/constants"
+import { useDebouncedCallback } from "@/hooks/use-debounce"
 
 interface Company {
   id: string
@@ -104,7 +105,6 @@ export default function EditInvoicePage() {
   const [InvoiceStatus, setInvoiceStatus] = useState<string>("")
   const [hasInteracted, setHasInteracted] = useState(false)
   const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>("idle")
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Fetch Invoice data
   useEffect(() => {
@@ -227,96 +227,91 @@ export default function EditInvoicePage() {
     ))
   }
 
-  // Auto-save function
-  const autoSave = async () => {
-    if (!hasInteracted || !selectedCompanyId || !productionDate || !billTo || !selectedBillingId || !selectedSignatureId) {
-      return
-    }
-
-    try {
-      setAutoSaveStatus("saving")
-      
-      const company = companies.find(c => c.id === selectedCompanyId)!
-      const billing = billings.find(b => b.id === selectedBillingId)!
-      const signature = signatures.find(s => s.id === selectedSignatureId)!
-
-      const payload = {
-        companyName: company.name,
-        companyAddress: company.address,
-        companyCity: company.city,
-        companyProvince: company.province,
-        companyPostalCode: company.postalCode,
-        companyTelp: company.telp,
-        companyEmail: company.email,
-        productionDate: productionDate!.toISOString(),
-        billTo: billTo.trim(),
-        notes: notes.trim() || null,
-        billingName: billing.name,
-        billingBankName: billing.bankName,
-        billingBankAccount: billing.bankAccount,
-        billingBankAccountName: billing.bankAccountName,
-        billingKtp: billing.ktp,
-        billingNpwp: billing.npwp,
-        signatureName: signature.name,
-        signatureRole: signature.role,
-        signatureImageData: signature.imageData,
-        pph,
-        totalAmount: calculateTotalAmount(),
-        status: InvoiceStatus || "draft", // Keep current status
-        remarks: remarks.map(remark => ({
-          text: remark.text,
-          isCompleted: remark.isCompleted
-        })),
-        items: items.map(item => ({
-          productName: item.productName,
-          total: item.total,
-          details: item.details
-            .filter(detail => detail.detail.trim() || parseFloat(detail.unitPrice) || parseFloat(detail.qty))
-            .map(detail => ({
-              detail: detail.detail,
-              unitPrice: parseFloat(detail.unitPrice) || 0,
-              qty: parseFloat(detail.qty) || 0,
-              amount: detail.amount
-            }))
-        }))
+  // Debounced auto-save (2 seconds after last change)
+  const debouncedAutoSave = useDebouncedCallback(
+    async () => {
+      if (!hasInteracted || !selectedCompanyId || !productionDate || !billTo || !selectedBillingId || !selectedSignatureId) {
+        return
       }
 
-      const response = await fetch(`/api/invoice/${InvoiceId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
+      try {
+        setAutoSaveStatus("saving")
+        
+        const company = companies.find(c => c.id === selectedCompanyId)!
+        const billing = billings.find(b => b.id === selectedBillingId)!
+        const signature = signatures.find(s => s.id === selectedSignatureId)!
 
-      if (response.ok) {
-        setAutoSaveStatus("saved")
-        setTimeout(() => setAutoSaveStatus("idle"), 3000)
+        const payload = {
+          companyName: company.name,
+          companyAddress: company.address,
+          companyCity: company.city,
+          companyProvince: company.province,
+          companyPostalCode: company.postalCode,
+          companyTelp: company.telp,
+          companyEmail: company.email,
+          productionDate: productionDate!.toISOString(),
+          billTo: billTo.trim(),
+          notes: notes.trim() || null,
+          billingName: billing.name,
+          billingBankName: billing.bankName,
+          billingBankAccount: billing.bankAccount,
+          billingBankAccountName: billing.bankAccountName,
+          billingKtp: billing.ktp,
+          billingNpwp: billing.npwp,
+          signatureName: signature.name,
+          signatureRole: signature.role,
+          signatureImageData: signature.imageData,
+          pph,
+          totalAmount: calculateTotalAmount(),
+          status: InvoiceStatus || "draft",
+          remarks: remarks.map(remark => ({
+            id: remark.id,
+            text: remark.text,
+            isCompleted: remark.isCompleted
+          })),
+          items: items.map(item => ({
+            id: item.id,
+            productName: item.productName,
+            total: item.total,
+            details: item.details
+              .filter(detail => detail.detail.trim() || parseFloat(detail.unitPrice) || parseFloat(detail.qty))
+              .map(detail => ({
+                id: detail.id,
+                detail: detail.detail,
+                unitPrice: parseFloat(detail.unitPrice) || 0,
+                qty: parseFloat(detail.qty) || 0,
+                amount: detail.amount
+              }))
+          }))
+        }
+
+        const response = await fetch(`/api/invoice/${InvoiceId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+
+        if (response.ok) {
+          setAutoSaveStatus("saved")
+          setTimeout(() => setAutoSaveStatus("idle"), 3000)
+        } else {
+          setAutoSaveStatus("error")
+        }
+      } catch (error) {
+        console.error("Auto-save error:", error)
+        setAutoSaveStatus("error")
       }
-    } catch (error) {
-      console.error("Auto-save error:", error)
-      setAutoSaveStatus("error")
-    }
-  }
+    },
+    2000, // Debounce for 2 seconds
+    [hasInteracted, selectedCompanyId, productionDate, billTo, selectedBillingId, selectedSignatureId, companies, billings, signatures, notes, pph, InvoiceStatus, remarks, items, InvoiceId]
+  )
 
-  // Auto-save timer
+  // Trigger debounced auto-save on any field change
   useEffect(() => {
     if (hasInteracted) {
-      // Clear existing timer
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-      }
-
-      // Set new timer
-      autoSaveTimerRef.current = setTimeout(() => {
-        autoSave()
-      }, 30000) // 30 seconds
+      debouncedAutoSave()
     }
-
-    return () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-      }
-    }
-  }, [selectedCompanyId, productionDate, billTo, notes, remarks, selectedBillingId, selectedSignatureId, pph, items, hasInteracted])
+  }, [selectedCompanyId, productionDate, billTo, notes, remarks, selectedBillingId, selectedSignatureId, pph, items, hasInteracted, debouncedAutoSave])
 
   // Item management functions (same as create page)
   const addItem = () => {

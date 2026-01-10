@@ -22,18 +22,11 @@ interface TemplateItem {
   details: TemplateDetail[]
 }
 
-interface TemplateRemark {
-  id: string
-  text: string
-}
-
 interface QuotationTemplate {
   id: string
   name: string
   description: string | null
-  pph: string
   items: TemplateItem[]
-  remarks: TemplateRemark[]
 }
 
 interface TemplateSelectionModalProps {
@@ -174,10 +167,6 @@ export function TemplateSelectionModal({ open, onClose, onSelect }: TemplateSele
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">Est. Value:</span>
                             <span className="font-medium">{formatCurrency(estimatedTotal)}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">PPh:</span>
-                            <span className="font-medium">{template.pph}%</span>
                           </div>
                         </div>
                       </CardContent>

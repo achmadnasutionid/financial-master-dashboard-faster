@@ -57,11 +57,25 @@ export default function TemplatesPage() {
   const fetchTemplates = async () => {
     try {
       const response = await fetch("/api/quotation-templates")
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch templates: ${response.status}`)
+      }
+      
       const data = await response.json()
-      setTemplates(data)
+      
+      // Ensure data is an array before setting it
+      if (Array.isArray(data)) {
+        setTemplates(data)
+      } else {
+        console.error("Invalid data format received:", data)
+        toast.error("Invalid data format received from server")
+        setTemplates([])
+      }
     } catch (error) {
       console.error("Error fetching templates:", error)
       toast.error("Failed to load templates")
+      setTemplates([])
     } finally {
       setLoading(false)
     }

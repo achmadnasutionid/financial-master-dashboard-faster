@@ -117,6 +117,7 @@ export default function CreateQuotationPage() {
   const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>("idle")
   const [createdQuotationId, setCreatedQuotationId] = useState<string | null>(null)
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+
   // Fetch master data
   useEffect(() => {
     Promise.all([
@@ -160,9 +161,6 @@ export default function CreateQuotationPage() {
     setTemplateSelected(true)
     
     if (template) {
-      // Pre-fill form from template
-      setPph(template.pph)
-      
       // Convert template items to form items
       const formItems = template.items.map((item: any) => ({
         id: Date.now().toString() + Math.random(),
@@ -178,16 +176,6 @@ export default function CreateQuotationPage() {
       }))
       
       setItems(formItems)
-      
-      // Convert template remarks if any
-      if (template.remarks && template.remarks.length > 0) {
-        const formRemarks = template.remarks.map((remark: any) => ({
-          id: `remark-${Date.now()}-${Math.random()}`,
-          text: remark.text,
-          isCompleted: false
-        }))
-        setRemarks(formRemarks)
-      }
       
       toast.success(`Template "${template.name}" loaded`)
     }

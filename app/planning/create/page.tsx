@@ -51,8 +51,8 @@ export default function CreatePlanningPage() {
   const [errors, setErrors] = useState<any>({})
   const [hasInteracted, setHasInteracted] = useState(false)
   const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>("idle")
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [createdPlanningId, setCreatedPlanningId] = useState<string | null>(null)
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [showFinalizeDialog, setShowFinalizeDialog] = useState(false)
 
   // Fetch products for dropdown

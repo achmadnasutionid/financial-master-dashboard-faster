@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -143,12 +143,58 @@ export default function Home() {
     fetchStats()
   }, [])
 
-  // Recalculate stats when year filter changes (client-side filtering)
-  useEffect(() => {
-    if (allInvoices.length > 0 && allQuotations.length > 0 && !loading) {
-      calculateStats(allInvoices, allQuotations, selectedYear)
+  // Recalculate stats when year filter changes (client-side filtering) - MEMOIZED
+  const memoizedStats = useMemo(() => {
+    if (allInvoices.length === 0 || allQuotations.length === 0 || loading) return null
+    
+    // Filter by year if not "all" - using productionDate
+    const filteredInvoices = selectedYear === "all" 
+      ? allInvoices 
+      : allInvoices.filter((inv: any) => inv.productionDate && new Date(inv.productionDate).getFullYear().toString() === selectedYear)
+    
+    const filteredQuotations = selectedYear === "all"
+      ? allQuotations
+      : allQuotations.filter((q: any) => q.productionDate && new Date(q.productionDate).getFullYear().toString() === selectedYear)
+
+    // Calculate invoice totals
+    const invoiceTotal = filteredInvoices
+      .filter((inv: any) => inv.status !== "draft")
+      .reduce((sum: number, inv: any) => sum + (inv.totalAmount || 0), 0)
+    const invoicePending = filteredInvoices.filter((inv: any) => inv.status === "pending").reduce((sum: number, inv: any) => sum + (inv.totalAmount || 0), 0)
+    const invoicePaid = filteredInvoices.filter((inv: any) => inv.status === "paid").reduce((sum: number, inv: any) => sum + (inv.totalAmount || 0), 0)
+    const invoiceDraftCount = filteredInvoices.filter((inv: any) => inv.status === "draft").length
+
+    // Calculate quotation totals
+    const quotationTotal = filteredQuotations
+      .filter((q: any) => q.status !== "draft")
+      .reduce((sum: number, q: any) => sum + (q.totalAmount || 0), 0)
+    const quotationPending = filteredQuotations.filter((q: any) => q.status === "pending").reduce((sum: number, q: any) => sum + (q.totalAmount || 0), 0)
+    const quotationAccepted = filteredQuotations.filter((q: any) => q.status === "accepted").reduce((sum: number, q: any) => sum + (q.totalAmount || 0), 0)
+    const quotationDraftCount = filteredQuotations.filter((q: any) => q.status === "draft").length
+
+    return {
+      invoice: {
+        total: invoiceTotal,
+        draft: invoiceDraftCount,
+        pending: invoicePending,
+        paid: invoicePaid,
+      },
+      quotation: {
+        total: quotationTotal,
+        draft: quotationDraftCount,
+        pending: quotationPending,
+        accepted: quotationAccepted,
+      }
     }
   }, [selectedYear, allInvoices, allQuotations, loading])
+
+  // Update state when memoized value changes
+  useEffect(() => {
+    if (memoizedStats) {
+      setInvoiceStats(memoizedStats.invoice)
+      setQuotationStats(memoizedStats.quotation)
+    }
+  }, [memoizedStats])
 
   // Recalculate expense stats when financial year filter changes (client-side filtering)
   useEffect(() => {

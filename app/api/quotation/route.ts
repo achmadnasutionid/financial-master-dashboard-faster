@@ -1,30 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-
-// Helper function to generate Quotation ID in format QTN-YYYY-NNNN
-async function generateQuotationId() {
-  const year = new Date().getFullYear()
-  const prefix = `QTN-${year}-`
-  
-  const lastQuotation = await prisma.quotation.findFirst({
-    where: {
-      quotationId: {
-        startsWith: prefix
-      }
-    },
-    orderBy: {
-      quotationId: "desc"
-    }
-  })
-
-  let nextNumber = 1
-  if (lastQuotation) {
-    const lastNumber = parseInt(lastQuotation.quotationId.split("-")[2])
-    nextNumber = lastNumber + 1
-  }
-
-  return `${prefix}${nextNumber.toString().padStart(4, "0")}`
-}
+import { generateId } from "@/lib/id-generator"
 
 // GET all quotations
 export async function GET(request: Request) {
@@ -73,8 +49,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    // Generate unique quotation ID
-    const quotationId = await generateQuotationId()
+    // Generate unique quotation ID (optimized with cache)
+    const quotationId = await generateId('QTN', 'quotation')
 
     // Create quotation with items and details
     const quotation = await prisma.quotation.create({

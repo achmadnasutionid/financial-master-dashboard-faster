@@ -37,7 +37,7 @@ export async function GET(
   }
 }
 
-// PUT update invoice
+// PUT update invoice (Optimized with UPSERT pattern)
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -65,70 +65,145 @@ export async function PUT(
       return NextResponse.json(invoice)
     }
 
-    // Delete existing items and details
-    await prisma.invoiceItem.deleteMany({
-      where: { invoiceId: id }
-    })
+    // Use transaction for atomic updates with UPSERT pattern
+    const invoice = await prisma.$transaction(async (tx) => {
+      // Update main invoice data
+      const updated = await tx.invoice.update({
+        where: { id },
+        data: {
+          companyName: body.companyName,
+          companyAddress: body.companyAddress,
+          companyCity: body.companyCity,
+          companyProvince: body.companyProvince,
+          companyPostalCode: body.companyPostalCode || null,
+          companyTelp: body.companyTelp || null,
+          companyEmail: body.companyEmail || null,
+          productionDate: new Date(body.productionDate),
+          billTo: body.billTo,
+          notes: body.notes || null,
+          billingName: body.billingName,
+          billingBankName: body.billingBankName,
+          billingBankAccount: body.billingBankAccount,
+          billingBankAccountName: body.billingBankAccountName,
+          billingKtp: body.billingKtp || null,
+          billingNpwp: body.billingNpwp || null,
+          signatureName: body.signatureName,
+          signatureRole: body.signatureRole || null,
+          signatureImageData: body.signatureImageData,
+          pph: body.pph,
+          totalAmount: parseFloat(body.totalAmount),
+          status: body.status || "draft",
+        }
+      })
 
-    // Delete existing remarks
-    await prisma.invoiceRemark.deleteMany({
-      where: { invoiceId: id }
-    })
+      // Collect IDs from incoming data
+      const incomingItemIds = new Set(
+        body.items?.map((item: any) => item.id).filter(Boolean) || []
+      )
+      const incomingRemarkIds = new Set(
+        body.remarks?.map((remark: any) => remark.id).filter(Boolean) || []
+      )
 
-    const invoice = await prisma.invoice.update({
-      where: { id },
-      data: {
-        companyName: body.companyName,
-        companyAddress: body.companyAddress,
-        companyCity: body.companyCity,
-        companyProvince: body.companyProvince,
-        companyPostalCode: body.companyPostalCode || null,
-        companyTelp: body.companyTelp || null,
-        companyEmail: body.companyEmail || null,
-        productionDate: new Date(body.productionDate),
-        billTo: body.billTo,
-        notes: body.notes || null,
-        billingName: body.billingName,
-        billingBankName: body.billingBankName,
-        billingBankAccount: body.billingBankAccount,
-        billingBankAccountName: body.billingBankAccountName,
-        billingKtp: body.billingKtp || null,
-        billingNpwp: body.billingNpwp || null,
-        signatureName: body.signatureName,
-        signatureRole: body.signatureRole || null,
-        signatureImageData: body.signatureImageData,
-        pph: body.pph,
-        totalAmount: parseFloat(body.totalAmount),
-        status: body.status || "draft",
-        items: {
-          create: body.items?.map((item: any) => ({
-            productName: item.productName,
-            total: parseFloat(item.total),
-            details: {
-              create: item.details?.map((detail: any) => ({
+      // UPSERT items and details
+      for (const item of body.items || []) {
+        if (item.id && !item.id.startsWith('temp-')) {
+          // Update existing item
+          await tx.invoiceItem.update({
+            where: { id: item.id },
+            data: {
+              productName: item.productName,
+              total: parseFloat(item.total),
+            }
+          })
+
+          // Delete all existing details for this item
+          await tx.invoiceItemDetail.deleteMany({
+            where: { invoiceItemId: item.id }
+          })
+
+          // Create new details
+          for (const detail of item.details || []) {
+            await tx.invoiceItemDetail.create({
+              data: {
+                invoiceItemId: item.id,
                 detail: detail.detail,
                 unitPrice: parseFloat(detail.unitPrice),
                 qty: parseFloat(detail.qty),
                 amount: parseFloat(detail.amount)
-              })) || []
-            }
-          })) || []
-        },
-        remarks: {
-          create: body.remarks?.map((remark: any) => ({
-            text: remark.text,
-            isCompleted: remark.isCompleted || false
-          })) || []
-        }
-      },
-      include: {
-        items: {
-          include: {
-            details: true
+              }
+            })
           }
-        },
-        remarks: true
+        } else {
+          // Create new item with details
+          await tx.invoiceItem.create({
+            data: {
+              invoiceId: id,
+              productName: item.productName,
+              total: parseFloat(item.total),
+              details: {
+                create: item.details?.map((detail: any) => ({
+                  detail: detail.detail,
+                  unitPrice: parseFloat(detail.unitPrice),
+                  qty: parseFloat(detail.qty),
+                  amount: parseFloat(detail.amount)
+                })) || []
+              }
+            }
+          })
+        }
       }
+
+      // Delete removed items
+      await tx.invoiceItem.deleteMany({
+        where: {
+          invoiceId: id,
+          id: { notIn: Array.from(incomingItemIds).filter((id): id is string => typeof id === 'string') }
+        }
+      })
+
+      // UPSERT remarks
+      for (const remark of body.remarks || []) {
+        if (remark.id && !remark.id.startsWith('temp-')) {
+          // Update existing remark
+          await tx.invoiceRemark.update({
+            where: { id: remark.id },
+            data: {
+              text: remark.text,
+              isCompleted: remark.isCompleted || false
+            }
+          })
+        } else {
+          // Create new remark
+          await tx.invoiceRemark.create({
+            data: {
+              invoiceId: id,
+              text: remark.text,
+              isCompleted: remark.isCompleted || false
+            }
+          })
+        }
+      }
+
+      // Delete removed remarks
+      await tx.invoiceRemark.deleteMany({
+        where: {
+          invoiceId: id,
+          id: { notIn: Array.from(incomingRemarkIds).filter((id): id is string => typeof id === 'string') }
+        }
+      })
+
+      // Return updated invoice with relations
+      return tx.invoice.findUnique({
+        where: { id },
+        include: {
+          items: {
+            include: {
+              details: true
+            }
+          },
+          remarks: true
+        }
+      })
     })
 
     return NextResponse.json(invoice)

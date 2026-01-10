@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Header } from "@/components/layout/header"
-import { Footer } from "@/components/layout/footer"
 import { PageHeader } from "@/components/layout/page-header"
+import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -12,7 +11,7 @@ import { AutoExpandInput } from "@/components/ui/auto-expand-input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { CurrencyInput } from "@/components/ui/currency-input"
-import { Save, Plus, Trash2, Package } from "lucide-react"
+import { Save, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 interface ItemDetail {
@@ -67,8 +66,8 @@ export default function CreateTemplatePage() {
       details: [{
         id: `${newItemId}-detail-${Date.now()}`,
         detail: "",
-        unitPrice: "0",
-        qty: "1",
+        unitPrice: "",
+        qty: "",
         amount: 0
       }],
       total: 0
@@ -80,8 +79,11 @@ export default function CreateTemplatePage() {
   }
 
   const updateItemName = (itemId: string, productName: string) => {
+    // Auto-capitalize if not from master data
+    const isFromMasterData = products.some(p => p.name === productName)
+    const finalName = isFromMasterData ? productName : productName.toUpperCase()
     setItems(items.map(item =>
-      item.id === itemId ? { ...item, productName } : item
+      item.id === itemId ? { ...item, productName: finalName } : item
     ))
   }
 
@@ -95,8 +97,8 @@ export default function CreateTemplatePage() {
             {
               id: `${itemId}-detail-${Date.now()}`,
               detail: "",
-              unitPrice: "0",
-              qty: "1",
+              unitPrice: "",
+              qty: "",
               amount: 0
             }
           ]
@@ -135,22 +137,6 @@ export default function CreateTemplatePage() {
       }
       return item
     }))
-  }
-
-  // Remarks management
-  const addRemark = () => {
-    setRemarks([...remarks, {
-      id: Date.now().toString(),
-      text: ""
-    }])
-  }
-
-  const updateRemark = (id: string, text: string) => {
-    setRemarks(remarks.map(r => r.id === id ? { ...r, text } : r))
-  }
-
-  const removeRemark = (id: string) => {
-    setRemarks(remarks.filter(r => r.id !== id))
   }
 
   const handleSave = async () => {
@@ -215,19 +201,17 @@ export default function CreateTemplatePage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Header />
+      <PageHeader
+        title="Create Quotation Template"
+        description="Create a reusable quotation package"
+        showBackButton={true}
+        backTo="/templates"
+      />
       
       <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-8">
-        <div className="container mx-auto max-w-5xl space-y-8">
-          <PageHeader
-            title="Create Quotation Template"
-            description="Create a reusable quotation package"
-            icon={Package}
-          />
-
-          <div className="space-y-6">
-            {/* Basic Information */}
-            <Card>
+        <div className="container mx-auto max-w-5xl space-y-6">
+          {/* Basic Information */}
+          <Card>
               <CardContent className="pt-6 space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Template Name *</Label>
@@ -256,118 +240,138 @@ export default function CreateTemplatePage() {
             <Card>
               <CardContent className="pt-6 space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-lg">Product Items *</Label>
-                  {items.length > 0 && (
-                    <span className="text-sm text-muted-foreground">
-                      {items.length} item{items.length > 1 ? 's' : ''}
-                    </span>
-                  )}
+                  <h3 className="text-lg font-semibold">Product Items *</h3>
                 </div>
 
                 {items.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No items added yet. Click "Add Product" to start.
+                  <div className="rounded-md bg-muted p-8 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      No items added yet. Click "Add Product" to start.
+                    </p>
                   </div>
                 ) : (
-                  <div className="space-y-6">
-                    {items.map((item, itemIndex) => (
+                  <div className="space-y-4">
+                    {items.map((item) => (
                       <Card key={item.id} className="border-2">
-                        <CardContent className="pt-6 space-y-4">
-                          {/* Product Name */}
-                          <div className="flex items-start gap-2">
+                        <CardContent className="space-y-4 pt-4">
+                          {/* Product Header */}
+                          <div className="flex items-start gap-3">
                             <div className="flex-1 space-y-2">
                               <Label>Product Name</Label>
-                              <AutoExpandInput
+                              <Input
                                 value={item.productName}
-                                onChange={(value) => updateItemName(item.id, value)}
-                                options={products.map(p => p.name)}
-                                placeholder="Type or select a product"
+                                onChange={(e) => updateItemName(item.id, e.target.value)}
+                                placeholder="Type or select product"
+                                list={`products-${item.id}`}
                               />
+                              <datalist id={`products-${item.id}`}>
+                                {products.map((product) => (
+                                  <option key={product.id} value={product.name} />
+                                ))}
+                              </datalist>
                             </div>
                             <Button
                               type="button"
                               variant="ghost"
-                              size="icon"
-                              onClick={() => removeItem(item.id)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 mt-7"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-
-                          {/* Details */}
-                          <div className="space-y-3">
-                            <Label>Details</Label>
-                            {item.details.map((detail, detailIndex) => (
-                              <div key={detail.id} className="flex items-start gap-2">
-                                <div className="flex-1 grid grid-cols-12 gap-2">
-                                  <div className="col-span-6">
-                                    <Input
-                                      placeholder="Detail description"
-                                      value={detail.detail}
-                                      onChange={(e) => updateDetail(item.id, detail.id, 'detail', e.target.value)}
-                                    />
-                                  </div>
-                                  <div className="col-span-2">
-                                    <CurrencyInput
-                                      placeholder="Price"
-                                      value={detail.unitPrice}
-                                      onChange={(value) => updateDetail(item.id, detail.id, 'unitPrice', value)}
-                                    />
-                                  </div>
-                                  <div className="col-span-2">
-                                    <Input
-                                      type="number"
-                                      placeholder="Qty"
-                                      value={detail.qty}
-                                      onChange={(e) => updateDetail(item.id, detail.id, 'qty', e.target.value)}
-                                      min="0"
-                                      step="1"
-                                    />
-                                  </div>
-                                  <div className="col-span-2">
-                                    <Input
-                                      value={new Intl.NumberFormat('id-ID').format(detail.amount)}
-                                      disabled
-                                      className="bg-muted"
-                                    />
-                                  </div>
-                                </div>
-                                {item.details.length > 1 && (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => removeDetail(item.id, detail.id)}
-                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                )}
-                              </div>
-                            ))}
-                            <Button
-                              type="button"
-                              variant="outline"
                               size="sm"
-                              onClick={() => addDetail(item.id)}
+                              onClick={() => removeItem(item.id)}
+                              className="mt-8"
                             >
-                              <Plus className="mr-2 h-3 w-3" />
-                              Add Detail
+                              <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
 
-                          {/* Item Total */}
-                          <div className="flex justify-end pt-2 border-t">
-                            <div className="text-right">
-                              <p className="text-sm text-muted-foreground">Item Total</p>
-                              <p className="text-lg font-semibold">
-                                {new Intl.NumberFormat('id-ID', {
-                                  style: 'currency',
-                                  currency: 'IDR',
-                                  minimumFractionDigits: 0
-                                }).format(item.total)}
+                          {/* Details Section */}
+                          <div className="space-y-2">
+                            <Label className="text-sm font-semibold">Details</Label>
+
+                            {item.details.length === 0 ? (
+                              <p className="text-xs text-muted-foreground py-2">
+                                No details added yet. Click "Add Detail" to start.
                               </p>
+                            ) : (
+                              <>
+                                {/* Details Table Header */}
+                                <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-2 px-3 py-2 bg-muted rounded-md text-xs font-bold">
+                                  <div>Detail</div>
+                                  <div>Unit Price</div>
+                                  <div>Qty</div>
+                                  <div>Amount</div>
+                                  <div className="w-8"></div>
+                                </div>
+
+                                {/* Details Rows */}
+                                <div className="space-y-2">
+                                  {item.details.map((detail) => (
+                                    <div key={detail.id} className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-2 items-center">
+                                      <AutoExpandInput
+                                        value={detail.detail}
+                                        onChange={(e) =>
+                                          updateDetail(item.id, detail.id, "detail", e.target.value)
+                                        }
+                                        placeholder="Enter detail"
+                                      />
+                                      <CurrencyInput
+                                        value={detail.unitPrice}
+                                        onValueChange={(value) =>
+                                          updateDetail(item.id, detail.id, "unitPrice", value)
+                                        }
+                                        placeholder="Rp 0"
+                                      />
+                                      <Input
+                                        type="number"
+                                        value={detail.qty}
+                                        onChange={(e) =>
+                                          updateDetail(item.id, detail.id, "qty", e.target.value)
+                                        }
+                                        placeholder="0"
+                                      />
+                                      <div className="flex h-11 items-center rounded-md border px-3 text-sm font-medium bg-muted">
+                                        {new Intl.NumberFormat('id-ID', {
+                                          style: 'currency',
+                                          currency: 'IDR',
+                                          minimumFractionDigits: 0
+                                        }).format(detail.amount)}
+                                      </div>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => removeDetail(item.id, detail.id)}
+                                        disabled={item.details.length === 1}
+                                        className="h-9 w-8 p-0"
+                                        title={item.details.length === 1 ? "Cannot remove the last detail" : "Remove detail"}
+                                      >
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+
+                            {/* Add Detail Button */}
+                            <div className="flex justify-end pt-2">
+                              <Button
+                                type="button"
+                                onClick={() => addDetail(item.id)}
+                                variant="outline"
+                                size="sm"
+                              >
+                                <Plus className="mr-2 h-3 w-3" />
+                                Add Detail
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Product Total */}
+                          <div className="flex justify-end border-t pt-3">
+                            <div className="text-sm font-semibold">
+                              Product Total: <span className="text-primary">{new Intl.NumberFormat('id-ID', {
+                                style: 'currency',
+                                currency: 'IDR',
+                                minimumFractionDigits: 0
+                              }).format(item.total)}</span>
                             </div>
                           </div>
                         </CardContent>
@@ -376,7 +380,8 @@ export default function CreateTemplatePage() {
                   </div>
                 )}
 
-                <div className="flex justify-end">
+                {/* Add Product Button */}
+                <div className="flex justify-end pt-2">
                   <Button type="button" onClick={addItem} variant="outline" size="sm">
                     <Plus className="mr-2 h-4 w-4" />
                     Add Product
@@ -385,20 +390,19 @@ export default function CreateTemplatePage() {
               </CardContent>
             </Card>
 
-            {/* Actions */}
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => router.push("/templates")}
-                disabled={isSaving}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleSave} disabled={isSaving}>
-                <Save className="mr-2 h-4 w-4" />
-                {isSaving ? "Saving..." : "Save Template"}
-              </Button>
-            </div>
+          {/* Actions */}
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => router.push("/templates")}
+              disabled={isSaving}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={isSaving}>
+              <Save className="mr-2 h-4 w-4" />
+              {isSaving ? "Saving..." : "Save Template"}
+            </Button>
           </div>
         </div>
       </main>

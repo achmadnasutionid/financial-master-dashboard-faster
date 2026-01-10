@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useMemo } from "react"
 import { PageHeader } from "@/components/layout/page-header"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
@@ -31,6 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { useDebouncedCallback } from "@/hooks/use-debounce"
 
 interface PlanningItem {
   id: string
@@ -55,7 +56,6 @@ export default function EditPlanningPage() {
   const [errors, setErrors] = useState<any>({})
   const [hasInteracted, setHasInteracted] = useState(false)
   const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>("idle")
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [planningNumber, setPlanningNumber] = useState<string>("")
   const [planningStatus, setPlanningStatus] = useState<string>("")
   const [showFinalizeDialog, setShowFinalizeDialog] = useState(false)
@@ -154,28 +154,7 @@ export default function EditPlanningPage() {
     }
   }
 
-  // Set up auto-save timer
-  useEffect(() => {
-    if (hasInteracted) {
-      // Clear existing timer
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-      }
-
-      // Set new timer
-      autoSaveTimerRef.current = setTimeout(() => {
-        autoSave()
-      }, 30000) // 30 seconds
-    }
-
-    return () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-      }
-    }
-  }, [projectName, clientName, clientBudget, notes, items, hasInteracted])
-
-  const addItem = () => {
+  // addItem function
     markInteracted()
     setItems([
       ...items,

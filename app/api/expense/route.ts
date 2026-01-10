@@ -1,30 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-
-// Helper function to generate Expense ID in format EXP-YYYY-NNNN
-async function generateExpenseId() {
-  const year = new Date().getFullYear()
-  const prefix = `EXP-${year}-`
-  
-  const lastExpense = await prisma.expense.findFirst({
-    where: {
-      expenseId: {
-        startsWith: prefix
-      }
-    },
-    orderBy: {
-      expenseId: "desc"
-    }
-  })
-
-  let nextNumber = 1
-  if (lastExpense) {
-    const lastNumber = parseInt(lastExpense.expenseId.split("-")[2])
-    nextNumber = lastNumber + 1
-  }
-
-  return `${prefix}${nextNumber.toString().padStart(4, "0")}`
-}
+import { generateId } from "@/lib/id-generator"
 
 // GET all expenses
 export async function GET(request: Request) {
@@ -88,8 +64,8 @@ export async function POST(request: Request) {
       )
     }
 
-    // Generate unique expense ID
-    const expenseId = await generateExpenseId()
+    // Generate unique expense ID (optimized with cache)
+    const expenseId = await generateId('EXP', 'expense')
 
     // Create expense with items
     const expense = await prisma.expense.create({

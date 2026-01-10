@@ -112,6 +112,7 @@ export default function CreateInvoicePage() {
   const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>("idle")
   const [createdInvoiceId, setCreatedInvoiceId] = useState<string | null>(null)
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+
   // Fetch master data
   useEffect(() => {
     Promise.all([

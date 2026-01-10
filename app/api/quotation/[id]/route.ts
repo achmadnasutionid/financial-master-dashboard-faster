@@ -37,7 +37,7 @@ export async function GET(
   }
 }
 
-// PUT update quotation
+// PUT update quotation (Optimized with UPSERT pattern)
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -66,69 +66,144 @@ export async function PUT(
       return NextResponse.json(quotation)
     }
 
-    // Delete existing items and details
-    await prisma.quotationItem.deleteMany({
-      where: { quotationId: id }
-    })
+    // Use transaction for atomic updates with UPSERT pattern
+    const quotation = await prisma.$transaction(async (tx) => {
+      // Update main quotation data
+      const updated = await tx.quotation.update({
+        where: { id },
+        data: {
+          companyName: body.companyName,
+          companyAddress: body.companyAddress,
+          companyCity: body.companyCity,
+          companyProvince: body.companyProvince,
+          companyTelp: body.companyTelp || null,
+          companyEmail: body.companyEmail || null,
+          productionDate: new Date(body.productionDate),
+          billTo: body.billTo,
+          notes: body.notes || null,
+          billingName: body.billingName,
+          billingBankName: body.billingBankName,
+          billingBankAccount: body.billingBankAccount,
+          billingBankAccountName: body.billingBankAccountName,
+          billingKtp: body.billingKtp || null,
+          billingNpwp: body.billingNpwp || null,
+          signatureName: body.signatureName,
+          signatureRole: body.signatureRole || null,
+          signatureImageData: body.signatureImageData,
+          pph: body.pph,
+          totalAmount: parseFloat(body.totalAmount),
+          status: body.status || "draft",
+        }
+      })
 
-    // Delete existing remarks
-    await prisma.quotationRemark.deleteMany({
-      where: { quotationId: id }
-    })
+      // Collect IDs from incoming data
+      const incomingItemIds = new Set(
+        body.items?.map((item: any) => item.id).filter(Boolean) || []
+      )
+      const incomingRemarkIds = new Set(
+        body.remarks?.map((remark: any) => remark.id).filter(Boolean) || []
+      )
 
-    const quotation = await prisma.quotation.update({
-      where: { id },
-      data: {
-        companyName: body.companyName,
-        companyAddress: body.companyAddress,
-        companyCity: body.companyCity,
-        companyProvince: body.companyProvince,
-        companyTelp: body.companyTelp || null,
-        companyEmail: body.companyEmail || null,
-        productionDate: new Date(body.productionDate),
-        billTo: body.billTo,
-        notes: body.notes || null,
-        billingName: body.billingName,
-        billingBankName: body.billingBankName,
-        billingBankAccount: body.billingBankAccount,
-        billingBankAccountName: body.billingBankAccountName,
-        billingKtp: body.billingKtp || null,
-        billingNpwp: body.billingNpwp || null,
-        signatureName: body.signatureName,
-        signatureRole: body.signatureRole || null,
-        signatureImageData: body.signatureImageData,
-        pph: body.pph,
-        totalAmount: parseFloat(body.totalAmount),
-        status: body.status || "draft",
-        items: {
-          create: body.items?.map((item: any) => ({
-            productName: item.productName,
-            total: parseFloat(item.total),
-            details: {
-              create: item.details?.map((detail: any) => ({
+      // UPSERT items and details
+      for (const item of body.items || []) {
+        if (item.id && !item.id.startsWith('temp-')) {
+          // Update existing item
+          await tx.quotationItem.update({
+            where: { id: item.id },
+            data: {
+              productName: item.productName,
+              total: parseFloat(item.total),
+            }
+          })
+
+          // Delete all existing details for this item
+          await tx.quotationItemDetail.deleteMany({
+            where: { quotationItemId: item.id }
+          })
+
+          // Create new details
+          for (const detail of item.details || []) {
+            await tx.quotationItemDetail.create({
+              data: {
+                quotationItemId: item.id,
                 detail: detail.detail,
                 unitPrice: parseFloat(detail.unitPrice),
                 qty: parseFloat(detail.qty),
                 amount: parseFloat(detail.amount)
-              })) || []
-            }
-          })) || []
-        },
-        remarks: {
-          create: body.remarks?.map((remark: any) => ({
-            text: remark.text,
-            isCompleted: remark.isCompleted || false
-          })) || []
-        }
-      },
-      include: {
-        items: {
-          include: {
-            details: true
+              }
+            })
           }
-        },
-        remarks: true
+        } else {
+          // Create new item with details
+          await tx.quotationItem.create({
+            data: {
+              quotationId: id,
+              productName: item.productName,
+              total: parseFloat(item.total),
+              details: {
+                create: item.details?.map((detail: any) => ({
+                  detail: detail.detail,
+                  unitPrice: parseFloat(detail.unitPrice),
+                  qty: parseFloat(detail.qty),
+                  amount: parseFloat(detail.amount)
+                })) || []
+              }
+            }
+          })
+        }
       }
+
+      // Delete removed items (items not in incoming data)
+      await tx.quotationItem.deleteMany({
+        where: {
+          quotationId: id,
+          id: { notIn: Array.from(incomingItemIds).filter((id): id is string => typeof id === 'string') }
+        }
+      })
+
+      // UPSERT remarks
+      for (const remark of body.remarks || []) {
+        if (remark.id && !remark.id.startsWith('temp-')) {
+          // Update existing remark
+          await tx.quotationRemark.update({
+            where: { id: remark.id },
+            data: {
+              text: remark.text,
+              isCompleted: remark.isCompleted || false
+            }
+          })
+        } else {
+          // Create new remark
+          await tx.quotationRemark.create({
+            data: {
+              quotationId: id,
+              text: remark.text,
+              isCompleted: remark.isCompleted || false
+            }
+          })
+        }
+      }
+
+      // Delete removed remarks
+      await tx.quotationRemark.deleteMany({
+        where: {
+          quotationId: id,
+          id: { notIn: Array.from(incomingRemarkIds).filter((id): id is string => typeof id === 'string') }
+        }
+      })
+
+      // Return updated quotation with relations
+      return tx.quotation.findUnique({
+        where: { id },
+        include: {
+          items: {
+            include: {
+              details: true
+            }
+          },
+          remarks: true
+        }
+      })
     })
 
     return NextResponse.json(quotation)

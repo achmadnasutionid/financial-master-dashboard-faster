@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useMemo } from "react"
 import { PageHeader } from "@/components/layout/page-header"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,7 @@ import { useRouter, useParams } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { AutoSaveIndicator, AutoSaveStatus } from "@/components/ui/auto-save-indicator"
+import { useDebouncedCallback } from "@/hooks/use-debounce"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,7 +58,6 @@ export default function EditExpensePage() {
   const [saving, setSaving] = useState(false)
   const [hasInteracted, setHasInteracted] = useState(false)
   const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>("idle")
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [errors, setErrors] = useState<any>({})
   const [showFinalizeDialog, setShowFinalizeDialog] = useState(false)
 
@@ -125,6 +125,63 @@ export default function EditExpensePage() {
       setHasInteracted(true)
     }
   }
+
+  // Debounced auto-save (2 seconds after last change)
+  const debouncedAutoSave = useDebouncedCallback(
+    async () => {
+      if (!hasInteracted || !projectName.trim()) {
+        return
+      }
+
+      const validItems = items.filter(item => item.productName.trim() !== '')
+      if (validItems.length === 0) {
+        return
+      }
+
+      try {
+        setAutoSaveStatus("saving")
+        
+        const payload = {
+          projectName: projectName.trim(),
+          productionDate: productionDate ? productionDate.toISOString() : new Date().toISOString(),
+          clientBudget: parseFloat(clientBudget) || 0,
+          paidAmount: parseFloat(paidAmount) || 0,
+          notes: notes.trim() || null,
+          status: expenseStatus || "draft",
+          items: validItems.map(item => ({
+            productName: item.productName,
+            budgeted: parseFloat(item.budgeted) || 0,
+            actual: parseFloat(item.actual) || 0
+          }))
+        }
+
+        const response = await fetch(`/api/expense/${expenseId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+
+        if (response.ok) {
+          setAutoSaveStatus("saved")
+          setTimeout(() => setAutoSaveStatus("idle"), 3000)
+        } else {
+          setAutoSaveStatus("error")
+        }
+      } catch (error) {
+        console.error("Auto-save error:", error)
+        setAutoSaveStatus("error")
+      }
+    },
+    2000,
+    [hasInteracted, projectName, productionDate, clientBudget, paidAmount, notes, expenseStatus, items, expenseId]
+  )
+
+  // Trigger debounced auto-save on any field change
+  useEffect(() => {
+    if (hasInteracted) {
+      debouncedAutoSave()
+    }
+  }, [projectName, productionDate, clientBudget, paidAmount, notes, items, hasInteracted, debouncedAutoSave])
 
   // Parse DD/MM/YYYY format to Date
   const parseDateInput = (input: string): Date | null => {
@@ -209,27 +266,6 @@ export default function EditExpensePage() {
       setAutoSaveStatus("error")
     }
   }
-
-  // Auto-save timer
-  useEffect(() => {
-    if (hasInteracted) {
-      // Clear existing timer
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-      }
-
-      // Set new timer
-      autoSaveTimerRef.current = setTimeout(() => {
-        autoSave()
-      }, 30000) // 30 seconds
-    }
-
-    return () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-      }
-    }
-  }, [projectName, clientBudget, notes, items, hasInteracted])
 
   const updateItem = (itemId: string, field: string, value: string) => {
     markInteracted()

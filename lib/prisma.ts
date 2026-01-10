@@ -12,6 +12,15 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
       url: process.env.DATABASE_URL,
     },
   },
+  // Connection pool configuration
+  ...(process.env.NODE_ENV === 'production' && {
+    // @ts-ignore - Prisma pool configuration
+    pool: {
+      timeout: 20, // Wait max 20 seconds for a connection
+      max: 20,     // Maximum 20 connections in pool
+      min: 2,      // Minimum 2 connections always active
+    },
+  }),
 })
 
 // Prevent multiple instances in development (hot reload)

@@ -4,9 +4,10 @@ import { prisma } from "@/lib/prisma"
 // GET single template
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params
     const template = await prisma.quotationTemplate.findUnique({
       where: {
         id: params.id,
@@ -41,9 +42,10 @@ export async function GET(
 // PUT update template
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params
     const body = await request.json()
 
     // Delete existing items and remarks, then recreate
@@ -97,9 +99,10 @@ export async function PUT(
 // DELETE soft delete template
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params
     await prisma.quotationTemplate.update({
       where: { id: params.id },
       data: {
