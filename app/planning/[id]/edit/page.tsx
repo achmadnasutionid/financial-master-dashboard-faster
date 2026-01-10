@@ -154,7 +154,7 @@ export default function EditPlanningPage() {
     }
   }
 
-  // addItem function
+  const addItem = () => {
     markInteracted()
     setItems([
       ...items,

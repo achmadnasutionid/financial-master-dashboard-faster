@@ -203,7 +203,6 @@ export default function CreateTemplatePage() {
     <div className="flex min-h-screen flex-col">
       <PageHeader
         title="Create Quotation Template"
-        description="Create a reusable quotation package"
         showBackButton={true}
         backTo="/templates"
       />

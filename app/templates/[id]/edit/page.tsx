@@ -259,7 +259,6 @@ export default function EditTemplatePage() {
     <div className="flex min-h-screen flex-col">
       <PageHeader
         title="Edit Quotation Template"
-        description="Update your reusable quotation package"
         showBackButton={true}
         backTo="/templates"
       />
