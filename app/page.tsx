@@ -6,7 +6,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, FileText, FileSignature, Package, Calendar, FileCheck, Receipt, Wallet, TrendingUp, TrendingDown, AlertCircle, Clock, FileX, Activity, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { Building2, FileText, FileSignature, Package, Calendar, FileCheck, Receipt, Wallet, TrendingUp, TrendingDown, AlertCircle, Clock, FileX, Activity, ArrowUp, ArrowDown, Minus, PackageOpen } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -1838,6 +1838,19 @@ export default function Home() {
                     <Package className="h-6 w-6 text-primary" />
                   </div>
                   <CardTitle>Products</CardTitle>
+                </CardHeader>
+              </Card>
+
+              {/* Templates Card */}
+              <Card 
+                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
+                onClick={() => router.push('/templates')}
+              >
+                <CardHeader>
+                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <PackageOpen className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle>Templates</CardTitle>
                 </CardHeader>
               </Card>
             </div>

@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { AutoSaveIndicator, AutoSaveStatus } from "@/components/ui/auto-save-indicator"
+import { TemplateSelectionModal } from "@/components/ui/template-selection-modal"
 import {
   Select,
   SelectContent,
@@ -76,6 +77,10 @@ interface Remark {
 
 export default function CreateQuotationPage() {
   const router = useRouter()
+  
+  // Template selection
+  const [showTemplateModal, setShowTemplateModal] = useState(true)
+  const [templateSelected, setTemplateSelected] = useState(false)
   
   // Form fields
   const [selectedCompanyId, setSelectedCompanyId] = useState("")
@@ -147,6 +152,44 @@ export default function CreateQuotationPage() {
   const markInteracted = () => {
     if (!hasInteracted) {
       setHasInteracted(true)
+    }
+  }
+
+  // Handle template selection
+  const handleTemplateSelect = (template: any) => {
+    setTemplateSelected(true)
+    
+    if (template) {
+      // Pre-fill form from template
+      setPph(template.pph)
+      
+      // Convert template items to form items
+      const formItems = template.items.map((item: any) => ({
+        id: Date.now().toString() + Math.random(),
+        productName: item.productName,
+        details: item.details.map((detail: any) => ({
+          id: `detail-${Date.now()}-${Math.random()}`,
+          detail: detail.detail,
+          unitPrice: detail.unitPrice.toString(),
+          qty: detail.qty.toString(),
+          amount: detail.unitPrice * detail.qty
+        })),
+        total: item.details.reduce((sum: number, d: any) => sum + (d.unitPrice * d.qty), 0)
+      }))
+      
+      setItems(formItems)
+      
+      // Convert template remarks if any
+      if (template.remarks && template.remarks.length > 0) {
+        const formRemarks = template.remarks.map((remark: any) => ({
+          id: `remark-${Date.now()}-${Math.random()}`,
+          text: remark.text,
+          isCompleted: false
+        }))
+        setRemarks(formRemarks)
+      }
+      
+      toast.success(`Template "${template.name}" loaded`)
     }
   }
 
@@ -905,6 +948,13 @@ export default function CreateQuotationPage() {
         </div>
       </main>
       <Footer />
+
+      {/* Template Selection Modal */}
+      <TemplateSelectionModal
+        open={showTemplateModal && !templateSelected}
+        onClose={() => setShowTemplateModal(false)}
+        onSelect={handleTemplateSelect}
+      />
     </div>
   )
 }
