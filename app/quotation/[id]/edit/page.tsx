@@ -66,7 +66,6 @@ interface Item {
   productName: string
   details: ItemDetail[]
   total: number
-  isPackageOne?: boolean // Flag to identify Package One generated items
 }
 
 interface Remark {
@@ -339,29 +338,6 @@ export default function EditQuotationPage() {
       total: 0
     }])
   }
-
-  // Add Package One (PHOTOGRAPHER with 10 frame photoshot)
-  const addPackageOne = () => {
-    markInteracted()
-    const newItemId = Date.now().toString()
-    
-    setItems([...items, {
-      id: newItemId,
-      productName: "PHOTOGRAPHER",
-      details: [{
-        id: `${newItemId}-detail-${Date.now()}`,
-        detail: "10 Frames Photoshoot",
-        unitPrice: "400000",
-        qty: "10",
-        amount: 4000000
-      }],
-      total: 4000000, // 400,000 x 10
-      isPackageOne: true // Mark as Package One generated
-    }])
-  }
-
-  // Check if Package One exists (only check for Package One generated items)
-  const hasPackageOne = items.some(item => item.isPackageOne === true)
 
   const removeItem = (itemId: string) => {
     markInteracted()
@@ -1006,18 +982,6 @@ export default function EditQuotationPage() {
 
                 {/* Add Product Button - Moved to bottom */}
                 <div className="flex justify-end gap-2">
-                  {!hasPackageOne && (
-                    <Button 
-                      type="button" 
-                      onClick={addPackageOne} 
-                      variant="outline" 
-                      size="sm"
-                      className="gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Package One
-                    </Button>
-                  )}
                   <Button type="button" onClick={addItem} variant="outline" size="sm">
                     <Plus className="mr-2 h-4 w-4" />
                     Add Product
