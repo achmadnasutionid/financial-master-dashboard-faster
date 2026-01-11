@@ -6,7 +6,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, FileText, FileSignature, Package, Calendar, FileCheck, Receipt, Wallet, TrendingUp, TrendingDown, AlertCircle, Clock, FileX, Activity, ArrowUp, ArrowDown, Minus, PackageOpen } from "lucide-react";
+import { Building2, FileText, FileSignature, Package, Calendar, FileCheck, Receipt, Wallet, TrendingUp, TrendingDown, AlertCircle, Clock, FileX, Activity, ArrowUp, ArrowDown, Minus, PackageOpen, Search } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Bar, BarChart, Cell } from 'recharts'
+import { Input } from "@/components/ui/input"
 
 export default function Home() {
   const router = useRouter()
@@ -53,6 +54,7 @@ export default function Home() {
   const [selectedTrendsYear, setSelectedTrendsYear] = useState<string>(currentYear)
   const [selectedProductsYear, setSelectedProductsYear] = useState<string>(currentYear)
   const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState("")
   
   // Store all fetched data for client-side filtering
   const [allInvoices, setAllInvoices] = useState<any[]>([])
@@ -679,73 +681,139 @@ export default function Home() {
     return null
   }
 
+  // Define all cards with searchable metadata
+  const allCards = [
+    // Quick Action
+    { id: 'planning', section: 'Quick Action', title: 'Planning', keywords: 'planning project plan', route: '/planning', icon: 'calendar' },
+    { id: 'quotation', section: 'Quick Action', title: 'Quotation', keywords: 'quotation quote qtn', route: '/quotation', icon: 'file-check' },
+    { id: 'invoice', section: 'Quick Action', title: 'Invoice', keywords: 'invoice inv payment bill', route: '/invoice', icon: 'receipt' },
+    { id: 'expenses', section: 'Quick Action', title: 'Expenses', keywords: 'expenses expense exp cost', route: '/expense', icon: 'wallet' },
+    
+    // Special Case
+    { id: 'paragon', section: 'Special Case', title: 'Paragon', keywords: 'paragon special', route: '/special-case/paragon', icon: 'building' },
+    { id: 'erha', section: 'Special Case', title: 'Erha', keywords: 'erha special', route: '/special-case/erha', icon: 'building' },
+    { id: 'gear-expenses', section: 'Special Case', title: 'Gear Expenses', keywords: 'gear expenses equipment', route: '/special-case/gear-expenses', icon: 'wallet' },
+    { id: 'big-expenses', section: 'Special Case', title: 'Big Expenses', keywords: 'big expenses large', route: '/special-case/big-expenses', icon: 'wallet' },
+    
+    // Management
+    { id: 'companies', section: 'Management', title: 'Companies', keywords: 'companies company client master', route: '/companies', icon: 'building' },
+    { id: 'billings', section: 'Management', title: 'Billings', keywords: 'billings billing bank account master', route: '/billings', icon: 'file-text' },
+    { id: 'signatures', section: 'Management', title: 'Signatures', keywords: 'signatures signature sign master', route: '/signatures', icon: 'file-signature' },
+    { id: 'products', section: 'Management', title: 'Products', keywords: 'products product master', route: '/products', icon: 'package' },
+    { id: 'templates', section: 'Management', title: 'Templates', keywords: 'templates template quotation master', route: '/templates', icon: 'package-open' },
+  ]
+
+  // Filter cards based on search query
+  const filteredCards = useMemo(() => {
+    if (!searchQuery.trim()) return allCards
+    
+    const query = searchQuery.toLowerCase()
+    return allCards.filter(card => 
+      card.title.toLowerCase().includes(query) ||
+      card.keywords.toLowerCase().includes(query) ||
+      card.section.toLowerCase().includes(query)
+    )
+  }, [searchQuery])
+
+  // Group filtered cards by section
+  const cardsBySection = useMemo(() => {
+    const sections: { [key: string]: typeof allCards } = {
+      'Quick Action': [],
+      'Special Case': [],
+      'Management': []
+    }
+    
+    filteredCards.forEach(card => {
+      sections[card.section].push(card)
+    })
+    
+    return sections
+  }, [filteredCards])
+
+  // Icon component helper
+  const getIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'calendar': return <Calendar className="h-6 w-6 text-primary" />
+      case 'file-check': return <FileCheck className="h-6 w-6 text-primary" />
+      case 'receipt': return <Receipt className="h-6 w-6 text-primary" />
+      case 'wallet': return <Wallet className="h-6 w-6 text-primary" />
+      case 'building': return <Building2 className="h-6 w-6 text-primary" />
+      case 'file-text': return <FileText className="h-6 w-6 text-primary" />
+      case 'file-signature': return <FileSignature className="h-6 w-6 text-primary" />
+      case 'package': return <Package className="h-6 w-6 text-primary" />
+      case 'package-open': return <PackageOpen className="h-6 w-6 text-primary" />
+      default: return <Package className="h-6 w-6 text-primary" />
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
       
       <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-12">
         <div className="container mx-auto max-w-7xl space-y-8">
-          {/* Quick Action Section */}
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold tracking-tight">Quick Action</h2>
-
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {/* Planning Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/planning')}
+          {/* Search Bar */}
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search pages... (e.g., invoice, planning, products)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2"
+                onClick={() => setSearchQuery("")}
               >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Calendar className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Planning</CardTitle>
-                </CardHeader>
-              </Card>
-
-              {/* Quotation Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/quotation')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <FileCheck className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Quotation</CardTitle>
-                </CardHeader>
-              </Card>
-
-              {/* Invoice Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/invoice')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Receipt className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Invoice</CardTitle>
-                </CardHeader>
-              </Card>
-
-              {/* Expenses Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/expense')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Wallet className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Expenses</CardTitle>
-                </CardHeader>
-              </Card>
-            </div>
+                ✕
+              </Button>
+            )}
           </div>
 
+          {/* Show message if search has no results */}
+          {searchQuery && filteredCards.length === 0 && (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">No pages found matching "{searchQuery}"</p>
+              <Button
+                variant="link"
+                onClick={() => setSearchQuery("")}
+                className="mt-2"
+              >
+                Clear search
+              </Button>
+            </Card>
+          )}
+
+          {/* Quick Action Section */}
+          {cardsBySection['Quick Action'].length > 0 && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-bold tracking-tight">Quick Action</h2>
+
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {cardsBySection['Quick Action'].map(card => (
+                  <Card 
+                    key={card.id}
+                    className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
+                    onClick={() => router.push(card.route)}
+                  >
+                    <CardHeader>
+                      <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                        {getIcon(card.icon)}
+                      </div>
+                      <CardTitle>{card.title}</CardTitle>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Action Items Section - What Needs Attention */}
-          {!loading && (actionItems.pendingInvoices.count > 0 || actionItems.pendingQuotations.count > 0 || actionItems.draftExpenses.count > 0) && (
+          {!searchQuery && !loading && (actionItems.pendingInvoices.count > 0 || actionItems.pendingQuotations.count > 0 || actionItems.draftExpenses.count > 0) && (
             <div className="space-y-6">
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-5 w-5 text-orange-600" />
@@ -856,7 +924,7 @@ export default function Home() {
           )}
 
           {/* Recent Activity Timeline */}
-          {!loading && recentActivities.length > 0 && (
+          {!searchQuery && !loading && recentActivities.length > 0 && (
             <div className="space-y-6">
               <div className="flex items-center gap-2">
                 <Activity className="h-5 w-5 text-primary" />
@@ -981,66 +1049,32 @@ export default function Home() {
           )}
 
           {/* Special Case Section */}
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold tracking-tight">Special Case</h2>
+          {cardsBySection['Special Case'].length > 0 && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-bold tracking-tight">Special Case</h2>
 
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {/* Paragon Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/special-case/paragon')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Building2 className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Paragon</CardTitle>
-                </CardHeader>
-              </Card>
-
-              {/* Erha Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/special-case/erha')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Building2 className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Erha</CardTitle>
-                </CardHeader>
-              </Card>
-
-              {/* Gear Expenses Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/special-case/gear-expenses')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Wallet className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Gear Expenses</CardTitle>
-                </CardHeader>
-              </Card>
-
-              {/* Big Expenses Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/special-case/big-expenses')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Wallet className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Big Expenses</CardTitle>
-                </CardHeader>
-              </Card>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {cardsBySection['Special Case'].map(card => (
+                  <Card 
+                    key={card.id}
+                    className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
+                    onClick={() => router.push(card.route)}
+                  >
+                    <CardHeader>
+                      <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                        {getIcon(card.icon)}
+                      </div>
+                      <CardTitle>{card.title}</CardTitle>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Quotations & Invoices Analytics Section */}
-          <div className="space-y-6">
+          {!searchQuery && (
+            <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-primary" />
@@ -1172,9 +1206,11 @@ export default function Home() {
               </div>
             )}
           </div>
+          )}
 
           {/* Financial Health Section */}
-          <div className="space-y-6">
+          {!searchQuery && (
+            <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Wallet className="h-5 w-5 text-primary" />
@@ -1348,9 +1384,11 @@ export default function Home() {
               </>
             )}
           </div>
+          )}
 
           {/* Financial Trends Section */}
-          <div className="space-y-6">
+          {!searchQuery && (
+            <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TrendingDown className="h-5 w-5 text-primary" />
@@ -1535,9 +1573,11 @@ export default function Home() {
               </>
             )}
           </div>
+          )}
 
           {/* Products Overview Section */}
-          <div className="space-y-6">
+          {!searchQuery && (
+            <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Package className="h-5 w-5 text-primary" />
@@ -1829,78 +1869,31 @@ export default function Home() {
           </div>
             )}
           </div>
+          )}
 
           {/* Management Section */}
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold tracking-tight">Management</h2>
+          {cardsBySection['Management'].length > 0 && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-bold tracking-tight">Management</h2>
 
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {/* Companies Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/companies')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Building2 className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Companies</CardTitle>
-                </CardHeader>
-              </Card>
-
-              {/* Billings Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/billings')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <FileText className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Billings</CardTitle>
-                </CardHeader>
-              </Card>
-
-              {/* Signatures Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/signatures')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <FileSignature className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Signatures</CardTitle>
-                </CardHeader>
-              </Card>
-
-              {/* Products Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/products')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Package className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Products</CardTitle>
-                </CardHeader>
-              </Card>
-
-              {/* Templates Card */}
-              <Card 
-                className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => router.push('/templates')}
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <PackageOpen className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Templates</CardTitle>
-                </CardHeader>
-              </Card>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {cardsBySection['Management'].map(card => (
+                  <Card 
+                    key={card.id}
+                    className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
+                    onClick={() => router.push(card.route)}
+                  >
+                    <CardHeader>
+                      <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                        {getIcon(card.icon)}
+                      </div>
+                      <CardTitle>{card.title}</CardTitle>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
       
