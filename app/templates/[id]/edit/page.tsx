@@ -224,13 +224,16 @@ export default function EditTemplatePage() {
         })
       })
 
-      if (!response.ok) throw new Error("Failed to update template")
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to update template")
+      }
 
       toast.success("Template updated successfully")
       router.push("/templates")
     } catch (error) {
       console.error("Error updating template:", error)
-      toast.error("Failed to update template")
+      toast.error(error instanceof Error ? error.message : "Failed to update template")
     } finally {
       setIsSaving(false)
     }

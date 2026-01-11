@@ -48,6 +48,37 @@ export async function PUT(
     const params = await context.params
     const body = await request.json()
 
+    // Validation
+    if (!body.name || !body.name.trim()) {
+      return NextResponse.json(
+        { error: "Template name is required" },
+        { status: 400 }
+      )
+    }
+
+    if (!body.items || body.items.length === 0) {
+      return NextResponse.json(
+        { error: "At least one product item is required" },
+        { status: 400 }
+      )
+    }
+
+    // Check for duplicate name (excluding current template)
+    const existing = await prisma.quotationTemplate.findFirst({
+      where: { 
+        name: body.name.trim(),
+        deletedAt: null,
+        NOT: { id: params.id }
+      }
+    })
+
+    if (existing) {
+      return NextResponse.json(
+        { error: "Template name already exists" },
+        { status: 400 }
+      )
+    }
+
     // Delete existing items and remarks, then recreate
     await prisma.quotationTemplate.update({
       where: { id: params.id },
@@ -62,7 +93,7 @@ export async function PUT(
     const template = await prisma.quotationTemplate.update({
       where: { id: params.id },
       data: {
-        name: body.name,
+        name: body.name.trim(),
         description: body.description || null,
         items: {
           create: body.items?.map((item: any) => ({
@@ -70,8 +101,8 @@ export async function PUT(
             details: {
               create: item.details?.map((detail: any) => ({
                 detail: detail.detail,
-                unitPrice: parseFloat(detail.unitPrice),
-                qty: parseFloat(detail.qty)
+                unitPrice: parseFloat(detail.unitPrice) || 0,
+                qty: parseFloat(detail.qty) || 0
               })) || []
             }
           })) || []
@@ -90,7 +121,7 @@ export async function PUT(
   } catch (error) {
     console.error("Error updating template:", error)
     return NextResponse.json(
-      { error: "Failed to update template" },
+      { error: error instanceof Error ? error.message : "Failed to update template" },
       { status: 500 }
     )
   }
