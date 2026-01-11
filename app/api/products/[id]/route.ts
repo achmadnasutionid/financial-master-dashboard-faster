@@ -9,7 +9,14 @@ export async function GET(
   try {
     const { id } = await params
     const product = await prisma.product.findFirst({
-      where: { id, deletedAt: null }
+      where: { id, deletedAt: null },
+      include: {
+        details: {
+          orderBy: {
+            createdAt: "asc"
+          }
+        }
+      }
     })
 
     if (!product) {
@@ -37,7 +44,7 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { name } = body
+    const { name, details } = body
 
     // Validate required fields
     if (!name) {
@@ -63,10 +70,29 @@ export async function PUT(
       )
     }
 
+    // Delete existing details and create new ones
+    await prisma.productDetail.deleteMany({
+      where: { productId: id }
+    })
+
     const product = await prisma.product.update({
       where: { id },
       data: {
-        name: name.trim()
+        name: name.trim(),
+        details: details && Array.isArray(details) ? {
+          create: details.map((detail: any) => ({
+            detail: detail.detail,
+            unitPrice: detail.unitPrice,
+            qty: detail.qty
+          }))
+        } : undefined
+      },
+      include: {
+        details: {
+          orderBy: {
+            createdAt: "asc"
+          }
+        }
       }
     })
 

@@ -46,6 +46,13 @@ export async function GET(request: Request) {
     
     const products = await prisma.product.findMany({
       where: includeDeleted ? {} : { deletedAt: null },
+      include: {
+        details: {
+          orderBy: {
+            createdAt: "asc"
+          }
+        }
+      },
       orderBy: {
         createdAt: "asc" // Keep default order
       }
@@ -70,7 +77,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { name } = body
+    const { name, details } = body
 
     // Validate required fields
     if (!name) {
@@ -94,7 +101,17 @@ export async function POST(request: Request) {
 
     const product = await prisma.product.create({
       data: {
-        name: name.trim()
+        name: name.trim(),
+        details: details && Array.isArray(details) ? {
+          create: details.map((detail: any) => ({
+            detail: detail.detail,
+            unitPrice: detail.unitPrice,
+            qty: detail.qty
+          }))
+        } : undefined
+      },
+      include: {
+        details: true
       }
     })
 

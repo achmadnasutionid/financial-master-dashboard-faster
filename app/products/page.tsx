@@ -10,14 +10,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Package, Edit, Trash2, Plus, Loader2, RotateCcw, Archive } from "lucide-react"
+import { Package, Edit, Trash2, Plus, Loader2, RotateCcw, Archive, X } from "lucide-react"
 import { SimpleCardSkeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
 import { toast } from "sonner"
 
+interface ProductDetail {
+  id?: string
+  detail: string
+  unitPrice: number
+  qty: number
+}
+
 interface Product {
   id: string
   name: string
+  details: ProductDetail[]
   deletedAt: string | null
   createdAt: string
   updatedAt: string
@@ -34,7 +42,8 @@ function ProductsPageContent() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [formData, setFormData] = useState({
-    name: ""
+    name: "",
+    details: [] as ProductDetail[]
   })
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -50,7 +59,7 @@ function ProductsPageContent() {
     if (action === 'create') {
       const productName = sessionStorage.getItem('newProductName')
       if (productName) {
-        setFormData({ name: productName })
+        setFormData({ name: productName, details: [] })
         setIsCreateDialogOpen(true)
         // Clear sessionStorage after using it
         sessionStorage.removeItem('newProductName')
@@ -90,6 +99,26 @@ function ProductsPageContent() {
     
     setFormErrors(errors)
     return Object.keys(errors).length === 0
+  }
+
+  const addDetail = () => {
+    setFormData({
+      ...formData,
+      details: [...formData.details, { detail: "", unitPrice: 0, qty: 0 }]
+    })
+  }
+
+  const removeDetail = (index: number) => {
+    setFormData({
+      ...formData,
+      details: formData.details.filter((_, i) => i !== index)
+    })
+  }
+
+  const updateDetail = (index: number, field: keyof ProductDetail, value: string | number) => {
+    const newDetails = [...formData.details]
+    newDetails[index] = { ...newDetails[index], [field]: value }
+    setFormData({ ...formData, details: newDetails })
   }
 
   const handleCreate = async () => {
@@ -146,7 +175,8 @@ function ProductsPageContent() {
   const handleEdit = (product: Product) => {
     setSelectedProduct(product)
     setFormData({
-      name: product.name
+      name: product.name,
+      details: product.details || []
     })
     setIsEditDialogOpen(true)
   }
@@ -282,7 +312,8 @@ function ProductsPageContent() {
 
   const resetForm = () => {
     setFormData({
-      name: ""
+      name: "",
+      details: []
     })
     setFormErrors({})
     setSelectedProduct(null)
@@ -300,6 +331,15 @@ function ProductsPageContent() {
       resetForm()
     }
     setIsEditDialogOpen(open)
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount)
   }
 
   return (
@@ -331,13 +371,13 @@ function ProductsPageContent() {
           </div>
 
           {isLoading ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
                 <SimpleCardSkeleton key={i} />
               ))}
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {sortedProducts.map((product) => (
                 <Card key={product.id} className="group flex flex-col transition-all hover:shadow-lg">
                   <CardHeader>
@@ -348,11 +388,34 @@ function ProductsPageContent() {
                         </div>
                         <div className="flex-1">
                           <CardTitle className="text-lg leading-tight">{product.name}</CardTitle>
+                          {product.details && product.details.length > 0 && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {product.details.length} detail{product.details.length !== 1 ? 's' : ''}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="flex flex-1 flex-col">
+                    {product.details && product.details.length > 0 && (
+                      <div className="space-y-2 text-sm mb-4">
+                        {product.details.slice(0, 3).map((detail, idx) => (
+                          <div key={idx} className="border-l-2 border-primary/20 pl-3 py-1">
+                            <p className="font-medium text-xs text-muted-foreground line-clamp-1">{detail.detail}</p>
+                            <p className="text-xs">
+                              {formatCurrency(detail.unitPrice)} × {detail.qty} = {formatCurrency(detail.unitPrice * detail.qty)}
+                            </p>
+                          </div>
+                        ))}
+                        {product.details.length > 3 && (
+                          <p className="text-xs text-muted-foreground pl-3">
+                            +{product.details.length - 3} more...
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    
                     <div className="flex-1"></div>
                     
                     <div className="flex gap-2 pt-4">
@@ -421,7 +484,7 @@ function ProductsPageContent() {
 
       {/* Create Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={handleDialogClose}>
-        <DialogContent>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create New Product</DialogTitle>
           </DialogHeader>
@@ -437,6 +500,81 @@ function ProductsPageContent() {
               {formErrors.name && (
                 <p className="text-sm text-destructive">{formErrors.name}</p>
               )}
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Product Details (Optional)</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addDetail}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Detail
+                </Button>
+              </div>
+              
+              {formData.details.map((detail, index) => (
+                <div key={index} className="border rounded-lg p-4 space-y-3 relative">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-2 right-2 h-8 w-8 p-0"
+                    onClick={() => removeDetail(index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor={`detail-${index}`}>Description</Label>
+                    <Input
+                      id={`detail-${index}`}
+                      value={detail.detail}
+                      onChange={(e) => updateDetail(index, 'detail', e.target.value)}
+                      placeholder="e.g., Full day photography service"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor={`unitPrice-${index}`}>Unit Price (IDR)</Label>
+                      <Input
+                        id={`unitPrice-${index}`}
+                        type="number"
+                        value={detail.unitPrice || ''}
+                        onChange={(e) => updateDetail(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+                        placeholder="Enter unit price"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor={`qty-${index}`}>Quantity</Label>
+                      <Input
+                        id={`qty-${index}`}
+                        type="number"
+                        value={detail.qty || ''}
+                        onChange={(e) => updateDetail(index, 'qty', parseFloat(e.target.value) || 0)}
+                        placeholder="Enter quantity"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="pt-2 border-t">
+                    <p className="text-sm font-medium">
+                      Amount: {formatCurrency(detail.unitPrice * detail.qty)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              
+              {formData.details.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No details added yet. Click "Add Detail" to create default product details.
+                </p>
+              )}
+              
+              <Button type="button" variant="outline" size="sm" onClick={addDetail} className="w-full">
+                <Plus className="h-4 w-4 mr-1" />
+                Add Detail
+              </Button>
             </div>
           </div>
           <DialogFooter>
@@ -459,7 +597,7 @@ function ProductsPageContent() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={handleEditDialogClose}>
-        <DialogContent>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
           </DialogHeader>
@@ -475,6 +613,75 @@ function ProductsPageContent() {
               {formErrors.name && (
                 <p className="text-sm text-destructive">{formErrors.name}</p>
               )}
+            </div>
+
+            <div className="space-y-3">
+              <Label>Product Details (Optional)</Label>
+              
+              {formData.details.map((detail, index) => (
+                <div key={index} className="border rounded-lg p-4 space-y-3 relative">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-2 right-2 h-8 w-8 p-0"
+                    onClick={() => removeDetail(index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor={`edit-detail-${index}`}>Description</Label>
+                    <Input
+                      id={`edit-detail-${index}`}
+                      value={detail.detail}
+                      onChange={(e) => updateDetail(index, 'detail', e.target.value)}
+                      placeholder="e.g., Full day photography service"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor={`edit-unitPrice-${index}`}>Unit Price (IDR)</Label>
+                      <Input
+                        id={`edit-unitPrice-${index}`}
+                        type="number"
+                        value={detail.unitPrice || ''}
+                        onChange={(e) => updateDetail(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+                        placeholder="Enter unit price"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor={`edit-qty-${index}`}>Quantity</Label>
+                      <Input
+                        id={`edit-qty-${index}`}
+                        type="number"
+                        value={detail.qty || ''}
+                        onChange={(e) => updateDetail(index, 'qty', parseFloat(e.target.value) || 0)}
+                        placeholder="Enter quantity"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="pt-2 border-t">
+                    <p className="text-sm font-medium">
+                      Amount: {formatCurrency(detail.unitPrice * detail.qty)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              
+              {formData.details.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No details added yet. Click "Add Detail" to create default product details.
+                </p>
+              )}
+              
+              <Button type="button" variant="outline" size="sm" onClick={addDetail} className="w-full">
+                <Plus className="h-4 w-4 mr-1" />
+                Add Detail
+              </Button>
             </div>
           </div>
           <DialogFooter>
