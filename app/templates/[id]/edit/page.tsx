@@ -9,11 +9,11 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { AutoExpandInput } from "@/components/ui/auto-expand-input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { CurrencyInput } from "@/components/ui/currency-input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Save, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
+import { formatProductName } from "@/lib/utils"
 
 interface ItemDetail {
   id: string
@@ -42,7 +42,6 @@ export default function EditTemplatePage() {
   
   const [loading, setLoading] = useState(true)
   const [name, setName] = useState("")
-  const [description, setDescription] = useState("")
   const [items, setItems] = useState<Item[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [isSaving, setIsSaving] = useState(false)
@@ -55,22 +54,41 @@ export default function EditTemplatePage() {
   const fetchProducts = async () => {
     try {
       const response = await fetch("/api/products")
+      if (!response.ok) {
+        console.error("Failed to fetch products:", response.statusText)
+        setProducts([]) // Set empty array on error
+        return
+      }
       const data = await response.json()
-      setProducts(data)
+      // Ensure data is an array
+      if (Array.isArray(data)) {
+        setProducts(data)
+      } else {
+        console.error("Products data is not an array:", data)
+        setProducts([])
+      }
     } catch (error) {
       console.error("Error fetching products:", error)
+      setProducts([]) // Set empty array on error
     }
   }
 
   const fetchTemplate = async () => {
     try {
+      console.log('[Edit Template] Fetching template ID:', templateId)
       const response = await fetch(`/api/quotation-templates/${templateId}`)
-      if (!response.ok) throw new Error("Template not found")
+      console.log('[Edit Template] Response status:', response.status)
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('[Edit Template] Error response:', errorData)
+        throw new Error(errorData.error || "Template not found")
+      }
       
       const data = await response.json()
+      console.log('[Edit Template] Template data received:', data)
       
       setName(data.name)
-      setDescription(data.description || "")
       
       // Convert template items to form items
       const formItems = data.items.map((item: any) => ({
@@ -88,8 +106,8 @@ export default function EditTemplatePage() {
       
       setItems(formItems)
     } catch (error) {
-      console.error("Error fetching template:", error)
-      toast.error("Failed to load template")
+      console.error("[Edit Template] Error fetching template:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to load template")
       router.push("/templates")
     } finally {
       setLoading(false)
@@ -118,9 +136,8 @@ export default function EditTemplatePage() {
   }
 
   const updateItemName = (itemId: string, productName: string) => {
-    // Auto-capitalize if not from master data
-    const isFromMasterData = products.some(p => p.name === productName)
-    const finalName = isFromMasterData ? productName : productName.toUpperCase()
+    // Auto-capitalize if not from master data, with normalized space comparison
+    const finalName = formatProductName(productName, products)
     setItems(items.map(item =>
       item.id === itemId ? { ...item, productName: finalName } : item
     ))
@@ -196,14 +213,6 @@ export default function EditTemplatePage() {
       return
     }
 
-    const hasEmptyDetails = items.some(item =>
-      item.details.some(detail => !detail.detail.trim())
-    )
-    if (hasEmptyDetails) {
-      toast.error("Please fill in all item details")
-      return
-    }
-
     setIsSaving(true)
 
     try {
@@ -212,7 +221,6 @@ export default function EditTemplatePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
-          description: description || null,
           items: items.map(item => ({
             productName: item.productName,
             details: item.details.map(detail => ({
@@ -278,17 +286,6 @@ export default function EditTemplatePage() {
                     placeholder="e.g., Basic Video Package"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Optional description for this template"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={2}
                   />
                 </div>
               </CardContent>
@@ -396,9 +393,8 @@ export default function EditTemplatePage() {
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => removeDetail(item.id, detail.id)}
-                                        disabled={item.details.length === 1}
                                         className="h-9 w-8 p-0"
-                                        title={item.details.length === 1 ? "Cannot remove the last detail" : "Remove detail"}
+                                        title="Remove detail"
                                       >
                                         <Trash2 className="h-4 w-4 text-destructive" />
                                       </Button>

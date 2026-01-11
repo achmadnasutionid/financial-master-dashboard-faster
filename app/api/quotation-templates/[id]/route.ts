@@ -8,10 +8,11 @@ export async function GET(
 ) {
   try {
     const params = await context.params
+    console.log('[GET Template] Fetching template with ID:', params.id)
+    
     const template = await prisma.quotationTemplate.findUnique({
       where: {
-        id: params.id,
-        deletedAt: null
+        id: params.id
       },
       include: {
         items: {
@@ -22,7 +23,11 @@ export async function GET(
       }
     })
 
-    if (!template) {
+    console.log('[GET Template] Found template:', template ? 'Yes' : 'No')
+    
+    // Check if template exists and is not soft-deleted
+    if (!template || template.deletedAt !== null) {
+      console.log('[GET Template] Template not found or soft-deleted')
       return NextResponse.json(
         { error: "Template not found" },
         { status: 404 }
@@ -31,7 +36,7 @@ export async function GET(
 
     return NextResponse.json(template)
   } catch (error) {
-    console.error("Error fetching template:", error)
+    console.error("[GET Template] Error fetching template:", error)
     return NextResponse.json(
       { error: "Failed to fetch template" },
       { status: 500 }
@@ -63,7 +68,7 @@ export async function PUT(
       )
     }
 
-    // Check for duplicate name (excluding current template)
+    // Check for duplicate name (excluding current template and soft-deleted)
     const existing = await prisma.quotationTemplate.findFirst({
       where: { 
         name: body.name.trim(),
@@ -94,7 +99,6 @@ export async function PUT(
       where: { id: params.id },
       data: {
         name: body.name.trim(),
-        description: body.description || null,
         items: {
           create: body.items?.map((item: any) => ({
             productName: item.productName,

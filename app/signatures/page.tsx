@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { FileSignature, Edit, Trash2, Plus, Loader2, RotateCcw, Archive } from "lucide-react"
+import { FileSignature, Edit, Trash2, Plus, Loader2, RotateCcw, Archive, RefreshCw } from "lucide-react"
 import { SignatureCardSkeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
 import { toast } from "sonner"
@@ -39,6 +39,7 @@ export default function SignaturesPage() {
   })
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   
   const signatureRef = useRef<SignatureCanvas>(null)
 
@@ -51,7 +52,7 @@ export default function SignaturesPage() {
     try {
       setIsLoading(true)
       const url = includeDeleted ? "/api/signatures?includeDeleted=true" : "/api/signatures"
-      const response = await fetch(url)
+      const response = await fetch(url, { cache: 'no-store' })
       if (response.ok) {
         const data = await response.json()
         setSignatures(data)
@@ -61,6 +62,13 @@ export default function SignaturesPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await fetchSignatures(showDeleted)
+    setIsRefreshing(false)
+    toast.success("Signatures refreshed")
   }
 
   // Filter signatures based on showDeleted toggle
@@ -187,7 +195,7 @@ export default function SignaturesPage() {
       await fetchSignatures()
       setIsCreateDialogOpen(false)
       toast.success("Signature created", {
-        description: `${formData.name} has been added successfully.`
+        description: `${formData.name} has been added successfully. Click refresh button to update the list.`
       })
       resetForm()
     } catch (error) {
@@ -243,7 +251,7 @@ export default function SignaturesPage() {
         await fetchSignatures()
         setIsEditDialogOpen(false)
         toast.success("Signature updated", {
-          description: `${formData.name} has been updated successfully.`
+          description: `${formData.name} has been updated successfully. Click refresh button to update the list.`
         })
         resetForm()
       } else {
@@ -402,6 +410,15 @@ export default function SignaturesPage() {
               {showDeleted ? "Deleted Signatures" : "Signature List"}
             </h2>
             <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
               <Button 
                 variant={showDeleted ? "default" : "outline"} 
                 onClick={() => setShowDeleted(!showDeleted)}

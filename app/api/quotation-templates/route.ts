@@ -50,17 +50,20 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check for duplicate name
+    // Check for duplicate name (excluding soft-deleted)
     const existing = await prisma.quotationTemplate.findFirst({
       where: { 
         name: body.name.trim(),
-        deletedAt: null 
+        deletedAt: null
       }
     })
 
+    console.log('Checking for duplicate template name:', body.name.trim())
+    console.log('Existing template found:', existing)
+
     if (existing) {
       return NextResponse.json(
-        { error: "Template name already exists" },
+        { error: "Template name already exists. Please use a different name." },
         { status: 400 }
       )
     }
@@ -69,7 +72,6 @@ export async function POST(request: Request) {
     const template = await prisma.quotationTemplate.create({
       data: {
         name: body.name.trim(),
-        description: body.description || null,
         items: {
           create: body.items?.map((item: any) => ({
             productName: item.productName,
@@ -95,6 +97,15 @@ export async function POST(request: Request) {
     return NextResponse.json(template, { status: 201 })
   } catch (error) {
     console.error("Error creating quotation template:", error)
+    
+    // Check if it's a Prisma unique constraint error
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
+      return NextResponse.json(
+        { error: "Template name already exists. Please use a different name." },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to create quotation template" },
       { status: 500 }

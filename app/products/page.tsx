@@ -10,13 +10,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Package, Edit, Trash2, Plus, Loader2, RotateCcw, Archive, X } from "lucide-react"
+import { Package, Edit, Trash2, Plus, Loader2, RotateCcw, Archive, X, RefreshCw } from "lucide-react"
 import { SimpleCardSkeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
+import { CurrencyInput } from "@/components/ui/currency-input"
 import { toast } from "sonner"
 
 interface ProductDetail {
   id?: string
+  detail: string
+  unitPrice: number | string
+  qty: number | string
+}
+
+interface ProductDetailFromDB {
+  id: string
   detail: string
   unitPrice: number
   qty: number
@@ -25,7 +33,7 @@ interface ProductDetail {
 interface Product {
   id: string
   name: string
-  details: ProductDetail[]
+  details: ProductDetailFromDB[]
   deletedAt: string | null
   createdAt: string
   updatedAt: string
@@ -47,6 +55,7 @@ function ProductsPageContent() {
   })
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Fetch products on mount and when showDeleted changes
   useEffect(() => {
@@ -71,7 +80,7 @@ function ProductsPageContent() {
     try {
       setIsLoading(true)
       const url = includeDeleted ? "/api/products?includeDeleted=true" : "/api/products"
-      const response = await fetch(url)
+      const response = await fetch(url, { cache: 'no-store' })
       if (response.ok) {
         const data = await response.json()
         setProducts(data)
@@ -81,6 +90,13 @@ function ProductsPageContent() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await fetchProducts(showDeleted)
+    setIsRefreshing(false)
+    toast.success("Products refreshed")
   }
 
   // Filter products based on showDeleted toggle
@@ -104,7 +120,7 @@ function ProductsPageContent() {
   const addDetail = () => {
     setFormData({
       ...formData,
-      details: [...formData.details, { detail: "", unitPrice: 0, qty: 0 }]
+      details: [...formData.details, { detail: "", unitPrice: "", qty: "" }]
     })
   }
 
@@ -117,6 +133,7 @@ function ProductsPageContent() {
 
   const updateDetail = (index: number, field: keyof ProductDetail, value: string | number) => {
     const newDetails = [...formData.details]
+    // Store as string for form fields, will be converted to number on submit
     newDetails[index] = { ...newDetails[index], [field]: value }
     setFormData({ ...formData, details: newDetails })
   }
@@ -129,7 +146,14 @@ function ProductsPageContent() {
       const response = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          name: formData.name,
+          details: formData.details.map(detail => ({
+            detail: detail.detail,
+            unitPrice: parseFloat(detail.unitPrice.toString()) || 0,
+            qty: parseFloat(detail.qty.toString()) || 0
+          }))
+        })
       })
 
       const data = await response.json()
@@ -138,7 +162,7 @@ function ProductsPageContent() {
         await fetchProducts()
         setIsCreateDialogOpen(false)
         toast.success("Product created", {
-          description: `${formData.name} has been added successfully.`
+          description: `${formData.name} has been added successfully. Click refresh button to update the list.`
         })
         resetForm()
         // If coming from landing page ETC card, redirect back
@@ -189,14 +213,21 @@ function ProductsPageContent() {
       const response = await fetch(`/api/products/${selectedProduct.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          name: formData.name,
+          details: formData.details.map(detail => ({
+            detail: detail.detail,
+            unitPrice: parseFloat(detail.unitPrice.toString()) || 0,
+            qty: parseFloat(detail.qty.toString()) || 0
+          }))
+        })
       })
 
       if (response.ok) {
         await fetchProducts()
         setIsEditDialogOpen(false)
         toast.success("Product updated", {
-          description: `${formData.name} has been updated successfully.`
+          description: `${formData.name} has been updated successfully. Click refresh button to update the list.`
         })
         resetForm()
       } else {
@@ -354,6 +385,15 @@ function ProductsPageContent() {
             </h2>
             <div className="flex gap-2">
               <Button 
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button 
                 variant={showDeleted ? "default" : "outline"} 
                 onClick={() => setShowDeleted(!showDeleted)}
                 className="gap-2"
@@ -503,13 +543,7 @@ function ProductsPageContent() {
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Product Details (Optional)</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addDetail}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Detail
-                </Button>
-              </div>
+              <Label>Product Details (Optional)</Label>
               
               {formData.details.map((detail, index) => (
                 <div key={index} className="border rounded-lg p-4 space-y-3 relative">
@@ -536,12 +570,11 @@ function ProductsPageContent() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <Label htmlFor={`unitPrice-${index}`}>Unit Price (IDR)</Label>
-                      <Input
+                      <CurrencyInput
                         id={`unitPrice-${index}`}
-                        type="number"
-                        value={detail.unitPrice || ''}
-                        onChange={(e) => updateDetail(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-                        placeholder="Enter unit price"
+                        value={detail.unitPrice.toString()}
+                        onValueChange={(value) => updateDetail(index, 'unitPrice', value)}
+                        placeholder="Rp 0"
                       />
                     </div>
                     
@@ -550,16 +583,16 @@ function ProductsPageContent() {
                       <Input
                         id={`qty-${index}`}
                         type="number"
-                        value={detail.qty || ''}
-                        onChange={(e) => updateDetail(index, 'qty', parseFloat(e.target.value) || 0)}
-                        placeholder="Enter quantity"
+                        value={detail.qty}
+                        onChange={(e) => updateDetail(index, 'qty', e.target.value)}
+                        placeholder="0"
                       />
                     </div>
                   </div>
                   
                   <div className="pt-2 border-t">
                     <p className="text-sm font-medium">
-                      Amount: {formatCurrency(detail.unitPrice * detail.qty)}
+                      Amount: {formatCurrency((parseFloat(detail.unitPrice.toString()) || 0) * (parseFloat(detail.qty.toString()) || 0))}
                     </p>
                   </div>
                 </div>
@@ -643,12 +676,11 @@ function ProductsPageContent() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <Label htmlFor={`edit-unitPrice-${index}`}>Unit Price (IDR)</Label>
-                      <Input
+                      <CurrencyInput
                         id={`edit-unitPrice-${index}`}
-                        type="number"
-                        value={detail.unitPrice || ''}
-                        onChange={(e) => updateDetail(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-                        placeholder="Enter unit price"
+                        value={detail.unitPrice.toString()}
+                        onValueChange={(value) => updateDetail(index, 'unitPrice', value)}
+                        placeholder="Rp 0"
                       />
                     </div>
                     
@@ -657,16 +689,16 @@ function ProductsPageContent() {
                       <Input
                         id={`edit-qty-${index}`}
                         type="number"
-                        value={detail.qty || ''}
-                        onChange={(e) => updateDetail(index, 'qty', parseFloat(e.target.value) || 0)}
-                        placeholder="Enter quantity"
+                        value={detail.qty}
+                        onChange={(e) => updateDetail(index, 'qty', e.target.value)}
+                        placeholder="0"
                       />
                     </div>
                   </div>
                   
                   <div className="pt-2 border-t">
                     <p className="text-sm font-medium">
-                      Amount: {formatCurrency(detail.unitPrice * detail.qty)}
+                      Amount: {formatCurrency((parseFloat(detail.unitPrice.toString()) || 0) * (parseFloat(detail.qty.toString()) || 0))}
                     </p>
                   </div>
                 </div>

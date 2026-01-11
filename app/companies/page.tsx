@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Building2, Edit, Trash2, Plus, Loader2, RotateCcw, Archive } from "lucide-react"
+import { Building2, Edit, Trash2, Plus, Loader2, RotateCcw, Archive, RefreshCw } from "lucide-react"
 import { CardSkeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
 import { toast } from "sonner"
@@ -48,6 +48,7 @@ export default function CompaniesPage() {
   })
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Fetch companies on mount
   useEffect(() => {
@@ -58,7 +59,7 @@ export default function CompaniesPage() {
     try {
       setIsLoading(true)
       const url = includeDeleted ? "/api/companies?includeDeleted=true" : "/api/companies"
-      const response = await fetch(url)
+      const response = await fetch(url, { cache: 'no-store' })
       if (response.ok) {
         const data = await response.json()
         setCompanies(data)
@@ -68,6 +69,13 @@ export default function CompaniesPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await fetchCompanies(showDeleted)
+    setIsRefreshing(false)
+    toast.success("Companies refreshed")
   }
 
   // Filter companies based on showDeleted toggle
@@ -116,7 +124,7 @@ export default function CompaniesPage() {
         setIsCreateDialogOpen(false)
         resetForm()
         toast.success("Company created", {
-          description: `${formData.name} has been added successfully.`
+          description: `${formData.name} has been added successfully. Click refresh button to update the list.`
         })
       } else {
         const error = await response.json()
@@ -173,7 +181,7 @@ export default function CompaniesPage() {
         setIsEditDialogOpen(false)
         resetForm()
         toast.success("Company updated", {
-          description: `${formData.name} has been updated successfully.`
+          description: `${formData.name} has been updated successfully. Click refresh button to update the list.`
         })
       } else {
         const error = await response.json()
@@ -326,6 +334,15 @@ export default function CompaniesPage() {
               {showDeleted ? "Deleted Companies" : "Company List"}
             </h2>
             <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
               <Button 
                 variant={showDeleted ? "default" : "outline"} 
                 onClick={() => setShowDeleted(!showDeleted)}

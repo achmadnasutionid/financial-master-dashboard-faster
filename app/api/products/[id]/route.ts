@@ -57,7 +57,7 @@ export async function PUT(
     // Check for duplicate name (excluding current product and soft-deleted)
     const existing = await prisma.product.findFirst({
       where: {
-        name: name.trim(),
+        name: name.trim().toUpperCase(),
         deletedAt: null,
         NOT: { id }
       }
@@ -78,7 +78,7 @@ export async function PUT(
     const product = await prisma.product.update({
       where: { id },
       data: {
-        name: name.trim(),
+        name: name.trim().toUpperCase(),
         details: details && Array.isArray(details) ? {
           create: details.map((detail: any) => ({
             detail: detail.detail,

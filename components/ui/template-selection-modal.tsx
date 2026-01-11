@@ -80,7 +80,7 @@ export function TemplateSelectionModal({ open, onClose, onSelect }: TemplateSele
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Select Starting Point</DialogTitle>
           <DialogDescription>
@@ -88,45 +88,39 @@ export function TemplateSelectionModal({ open, onClose, onSelect }: TemplateSele
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {loading ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {[1, 2, 3, 4].map((i) => (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
                 <Card key={i}>
-                  <CardHeader>
-                    <Skeleton className="h-6 w-32" />
-                    <Skeleton className="h-4 w-full mt-2" />
+                  <CardHeader className="pb-2">
+                    <Skeleton className="h-5 w-24" />
                   </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-20 w-full" />
+                  <CardContent className="pb-3">
+                    <Skeleton className="h-10 w-full" />
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : (
             <>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {/* Blank Quotation Card */}
                 <Card
                   className="cursor-pointer transition-all hover:shadow-lg hover:border-primary border-2"
                   onClick={handleSelectBlank}
                 >
-                  <CardHeader>
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                        <FileText className="h-6 w-6 text-primary" />
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10">
+                        <FileText className="h-4 w-4 text-primary" />
                       </div>
-                      <div>
-                        <CardTitle>Blank Quotation</CardTitle>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Start from scratch
-                        </p>
-                      </div>
+                      <CardTitle className="text-base">Blank Quotation</CardTitle>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Create a custom quotation with complete flexibility
+                  <CardContent className="pb-3">
+                    <p className="text-xs text-muted-foreground">
+                      Start from scratch
                     </p>
                   </CardContent>
                 </Card>
@@ -141,30 +135,21 @@ export function TemplateSelectionModal({ open, onClose, onSelect }: TemplateSele
                       className="cursor-pointer transition-all hover:shadow-lg hover:border-primary"
                       onClick={() => handleSelectTemplate(template)}
                     >
-                      <CardHeader>
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-3 flex-1">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-100">
-                              <Package className="h-6 w-6" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <CardTitle className="truncate">{template.name}</CardTitle>
-                              {template.description && (
-                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                  {template.description}
-                                </p>
-                              )}
-                            </div>
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-100">
+                            <Package className="h-4 w-4" />
                           </div>
+                          <CardTitle className="text-base truncate flex-1">{template.name}</CardTitle>
                         </div>
                       </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-sm">
+                      <CardContent className="pb-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-xs">
                             <span className="text-muted-foreground">Items:</span>
                             <span className="font-medium">{template.items.length}</span>
                           </div>
-                          <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center justify-between text-xs">
                             <span className="text-muted-foreground">Est. Value:</span>
                             <span className="font-medium">{formatCurrency(estimatedTotal)}</span>
                           </div>
@@ -176,7 +161,7 @@ export function TemplateSelectionModal({ open, onClose, onSelect }: TemplateSele
               </div>
 
               {/* Manage Templates Link */}
-              <div className="flex justify-center pt-4 border-t">
+              <div className="flex justify-center pt-2 border-t">
                 <Button
                   variant="ghost"
                   size="sm"

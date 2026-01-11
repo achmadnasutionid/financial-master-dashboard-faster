@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { PPH_OPTIONS } from "@/lib/constants"
+import { formatProductName } from "@/lib/utils"
 
 interface Company {
   id: string
@@ -205,9 +206,8 @@ export default function CreateInvoicePage() {
 
   const updateItemName = (itemId: string, productName: string) => {
     markInteracted()
-    // Auto-capitalize if not from master data
-    const isFromMasterData = products.includes(productName)
-    const finalName = isFromMasterData ? productName : productName.toUpperCase()
+    // Auto-capitalize if not from master data, with normalized space comparison
+    const finalName = formatProductName(productName, products)
     setItems(items.map(item =>
       item.id === itemId ? { ...item, productName: finalName } : item
     ))

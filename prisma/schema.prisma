@@ -24,6 +24,8 @@ model Company {
   deletedAt  DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+  
+  @@index([deletedAt])
 }
 
 model Billing {
@@ -37,6 +39,8 @@ model Billing {
   deletedAt       DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  
+  @@index([deletedAt])
 }
 
 model Signature {
@@ -47,6 +51,8 @@ model Signature {
   deletedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  
+  @@index([deletedAt])
 }
 
 model Product {
@@ -56,6 +62,8 @@ model Product {
   deletedAt DateTime?
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
+  
+  @@index([deletedAt])
 }
 
 model ProductDetail {
@@ -522,14 +530,12 @@ model BigExpense {
 model QuotationTemplate {
   id          String                   @id @default(cuid())
   name        String                   @unique
-  description String?
   items       QuotationTemplateItem[]
   deletedAt   DateTime?
   createdAt   DateTime                 @default(now())
   updatedAt   DateTime                 @updatedAt
   
   @@index([deletedAt])
-  @@index([name])
 }
 
 model QuotationTemplateItem {

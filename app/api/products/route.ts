@@ -89,7 +89,7 @@ export async function POST(request: Request) {
 
     // Check for duplicate name (excluding soft-deleted)
     const existing = await prisma.product.findFirst({
-      where: { name: name.trim(), deletedAt: null }
+      where: { name: name.trim().toUpperCase(), deletedAt: null }
     })
 
     if (existing) {
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
 
     const product = await prisma.product.create({
       data: {
-        name: name.trim(),
+        name: name.trim().toUpperCase(),
         details: details && Array.isArray(details) ? {
           create: details.map((detail: any) => ({
             detail: detail.detail,
