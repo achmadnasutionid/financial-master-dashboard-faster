@@ -47,14 +47,15 @@ export default function Home() {
   const [productExpenses, setProductExpenses] = useState<any[]>([])
   const [etcExpenses, setEtcExpenses] = useState<any[]>([])
   const [showAllProducts, setShowAllProducts] = useState(false)
-  const currentYear = new Date().getFullYear().toString()
+  const [currentYear, setCurrentYear] = useState<string>("")
   const [availableYears, setAvailableYears] = useState<number[]>([])
-  const [selectedYear, setSelectedYear] = useState<string>(currentYear)
-  const [selectedFinancialYear, setSelectedFinancialYear] = useState<string>(currentYear)
-  const [selectedTrendsYear, setSelectedTrendsYear] = useState<string>(currentYear)
-  const [selectedProductsYear, setSelectedProductsYear] = useState<string>(currentYear)
+  const [selectedYear, setSelectedYear] = useState<string>("")
+  const [selectedFinancialYear, setSelectedFinancialYear] = useState<string>("")
+  const [selectedTrendsYear, setSelectedTrendsYear] = useState<string>("")
+  const [selectedProductsYear, setSelectedProductsYear] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [isClient, setIsClient] = useState(false)
   
   // Store all fetched data for client-side filtering
   const [allInvoices, setAllInvoices] = useState<any[]>([])
@@ -82,8 +83,21 @@ export default function Home() {
     profitChange: 0
   })
 
+  // Initialize current year and selected years on client side only
+  useEffect(() => {
+    setIsClient(true)
+    const year = new Date().getFullYear().toString()
+    setCurrentYear(year)
+    setSelectedYear(year)
+    setSelectedFinancialYear(year)
+    setSelectedTrendsYear(year)
+    setSelectedProductsYear(year)
+  }, [])
+
   // Fetch statistics
   useEffect(() => {
+    if (!isClient) return // Wait for client-side initialization
+    
     const fetchStats = async () => {
       try {
         // NEW: Single consolidated API call instead of 6 separate calls!
@@ -141,7 +155,7 @@ export default function Home() {
     }
 
     fetchStats()
-  }, [])
+  }, [isClient])
 
   // Recalculate stats when year filter changes (client-side filtering) - MEMOIZED
   const memoizedStats = useMemo(() => {
@@ -330,6 +344,8 @@ export default function Home() {
   }
 
   const formatCurrency = (amount: number) => {
+    if (!isClient) return 'Rp 0' // Return placeholder during SSR
+    
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
@@ -354,6 +370,8 @@ export default function Home() {
   }
 
   const getRelativeTime = (date: string) => {
+    if (!isClient) return '' // Return empty during SSR
+    
     const now = new Date().getTime()
     const activityTime = new Date(date).getTime()
     const diff = now - activityTime
@@ -499,6 +517,8 @@ export default function Home() {
   }
 
   const calculateActionItems = (invoices: any[], quotations: any[], expenses: any[]) => {
+    if (!isClient) return // Skip during SSR
+    
     // 1. Pending Invoices (status = "pending")
     const pendingInvoicesList = invoices.filter((inv: any) => inv.status === "pending")
     const pendingInvoicesTotal = pendingInvoicesList.reduce((sum: number, inv: any) => sum + (inv.totalAmount || 0), 0)
@@ -595,15 +615,17 @@ export default function Home() {
       })
     })
 
-    // Sort by timestamp (newest first) and take top 3
+    // Sort by timestamp (newest first) and take top 6
     const sortedActivities = activities
       .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, 3)
+      .slice(0, 6)
 
     setRecentActivities(sortedActivities)
   }
 
   const calculateThisMonthSummary = (invoices: any[], expenses: any[]) => {
+    if (!isClient) return // Skip during SSR
+    
     const now = new Date()
     const currentMonth = now.getMonth()
     const currentYear = now.getFullYear()
@@ -743,7 +765,7 @@ export default function Home() {
     <div className="flex min-h-screen flex-col">
       <Header />
       
-      <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-12">
+      <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 pt-8 pb-12">
         <div className="container mx-auto max-w-7xl space-y-8">
           {/* Search Bar */}
           <div className="relative w-full">
@@ -767,6 +789,13 @@ export default function Home() {
             )}
           </div>
 
+          {/* Only render content after client hydration to avoid locale-based hydration errors */}
+          {!isClient ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Loading dashboard...</p>
+            </div>
+          ) : (
+            <>
           {/* Show message if search has no results */}
           {searchQuery && filteredCards.length === 0 && (
             <Card className="p-8 text-center">
@@ -816,7 +845,18 @@ export default function Home() {
                 </span>
               </div>
 
-              <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-3">
+              <div className={`grid gap-6 ${
+                (() => {
+                  const activeCount = 
+                    (actionItems.pendingInvoices.count > 0 ? 1 : 0) +
+                    (actionItems.pendingQuotations.count > 0 ? 1 : 0) +
+                    (actionItems.draftExpenses.count > 0 ? 1 : 0)
+                  
+                  if (activeCount === 1) return 'grid-cols-1'
+                  if (activeCount === 2) return 'grid-cols-1 lg:grid-cols-2'
+                  return 'grid-cols-1 lg:grid-cols-3'
+                })()
+              }`}>
                 {/* Pending Invoices */}
                 {actionItems.pendingInvoices.count > 0 && (
                   <Card 
@@ -916,6 +956,92 @@ export default function Home() {
             </div>
           )}
 
+          {/* This Month Summary Section */}
+          {!searchQuery && !loading && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-bold tracking-tight">This Month Summary</h2>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Revenue Card */}
+                <Card>
+                  <CardContent className="py-3">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium text-muted-foreground">Revenue</p>
+                      <p className="text-xl font-bold">{formatCurrency(thisMonthSummary.revenue)}</p>
+                      <p className="text-[10px] text-muted-foreground">Total paid invoices this month</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Revenue Comparison Card */}
+                <Card>
+                  <CardContent className="py-3">
+                    <div className="space-y-0.5 flex flex-col items-end">
+                      <p className="text-xs font-medium text-muted-foreground">Revenue Change</p>
+                      <div className={`flex items-center gap-1 ${
+                        thisMonthSummary.revenueChange > 0 ? 'text-green-600' : 
+                        thisMonthSummary.revenueChange < 0 ? 'text-red-600' : 
+                        'text-gray-600'
+                      }`}>
+                        {thisMonthSummary.revenueChange > 0 && <ArrowUp className="h-4 w-4" />}
+                        {thisMonthSummary.revenueChange < 0 && <ArrowDown className="h-4 w-4" />}
+                        {thisMonthSummary.revenueChange === 0 && <Minus className="h-4 w-4" />}
+                        <span className="text-xl font-bold">
+                          {Math.abs(thisMonthSummary.revenueChange).toFixed(0)}%
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        {thisMonthSummary.revenueChange > 0 ? 'increase' : thisMonthSummary.revenueChange < 0 ? 'decrease' : 'no change'} vs last month
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Net Profit Card */}
+                <Card>
+                  <CardContent className="py-3">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium text-muted-foreground">Net Profit</p>
+                      <p className={`text-xl font-bold ${
+                        thisMonthSummary.netProfit >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {formatCurrency(thisMonthSummary.netProfit)}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">Paid - Actual expenses</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Net Profit Comparison Card */}
+                <Card>
+                  <CardContent className="py-3">
+                    <div className="space-y-0.5 flex flex-col items-end">
+                      <p className="text-xs font-medium text-muted-foreground">Profit Change</p>
+                      <div className={`flex items-center gap-1 ${
+                        thisMonthSummary.profitChange > 0 ? 'text-green-600' : 
+                        thisMonthSummary.profitChange < 0 ? 'text-red-600' : 
+                        'text-gray-600'
+                      }`}>
+                        {thisMonthSummary.profitChange > 0 && <ArrowUp className="h-4 w-4" />}
+                        {thisMonthSummary.profitChange < 0 && <ArrowDown className="h-4 w-4" />}
+                        {thisMonthSummary.profitChange === 0 && <Minus className="h-4 w-4" />}
+                        <span className="text-xl font-bold">
+                          {Math.abs(thisMonthSummary.profitChange).toFixed(0)}%
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        {thisMonthSummary.profitChange > 0 ? 'increase' : thisMonthSummary.profitChange < 0 ? 'decrease' : 'no change'} vs last month
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+
           {/* Recent Activity Timeline */}
           {!searchQuery && !loading && recentActivities.length > 0 && (
             <div className="space-y-6">
@@ -924,126 +1050,47 @@ export default function Home() {
                 <h2 className="text-xl font-bold tracking-tight">Recent Activity</h2>
               </div>
 
-              <div className="grid gap-6 lg:grid-cols-2">
-                {/* Recent Activities Card */}
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="space-y-2">
-                      {recentActivities.map((activity, index) => (
-                        <div 
-                          key={`${activity.type}-${activity.id}-${index}`} 
-                          className="flex items-start gap-4 cursor-pointer hover:bg-muted/50 rounded-lg p-2 transition-colors"
-                          onClick={() => router.push(getActivityLink(activity))}
-                        >
-                          {/* Icon */}
-                          <div className={`flex h-10 w-10 items-center justify-center rounded-full flex-shrink-0 ${
-                            activity.color === 'green' ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-100' :
-                            activity.color === 'blue' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-100' :
-                            activity.color === 'yellow' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-100' :
-                            activity.color === 'orange' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-100' :
-                            'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
-                          }`}>
-                            {activity.icon === 'receipt' && <Receipt className="h-5 w-5" />}
-                            {activity.icon === 'file-check' && <FileCheck className="h-5 w-5" />}
-                            {activity.icon === 'wallet' && <Wallet className="h-5 w-5" />}
-                            {activity.icon === 'calendar' && <Calendar className="h-5 w-5" />}
-                          </div>
-
-                          {/* Content */}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm">
-                              <span className="font-semibold">{activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}</span>
-                              {' '}
-                              <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{activity.displayId}</span>
-                              {' '}
-                              <span className="text-muted-foreground">{activity.action}</span>
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {getRelativeTime(activity.date)}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* This Month Summary Card */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">This Month Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {/* Revenue */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Revenue</p>
-                        <p className="text-lg font-bold">{formatCurrency(thisMonthSummary.revenue)}</p>
-                      </div>
-                      <div className={`flex items-center gap-1 text-xs font-medium ${
-                        thisMonthSummary.revenueChange > 0 ? 'text-green-600' : 
-                        thisMonthSummary.revenueChange < 0 ? 'text-red-600' : 
-                        'text-gray-600'
-                      }`}>
-                        {thisMonthSummary.revenueChange > 0 && <ArrowUp className="h-3 w-3" />}
-                        {thisMonthSummary.revenueChange < 0 && <ArrowDown className="h-3 w-3" />}
-                        {thisMonthSummary.revenueChange === 0 && <Minus className="h-3 w-3" />}
-                        {Math.abs(thisMonthSummary.revenueChange).toFixed(0)}%
-                      </div>
-                    </div>
-
-                    {/* Net Profit */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Net Profit</p>
-                        <p className={`text-lg font-bold ${
-                          thisMonthSummary.netProfit >= 0 ? 'text-green-600' : 'text-red-600'
+              <Card>
+                <CardContent className="pt-4 pb-4">
+                  <div className="grid gap-2 lg:grid-cols-2">
+                    {recentActivities.map((activity, index) => (
+                      <div 
+                        key={`${activity.type}-${activity.id}-${index}`} 
+                        className="flex items-start gap-2 cursor-pointer hover:bg-muted/50 rounded-lg p-2 transition-colors"
+                        onClick={() => router.push(getActivityLink(activity))}
+                      >
+                        {/* Icon */}
+                        <div className={`flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0 ${
+                          activity.color === 'green' ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-100' :
+                          activity.color === 'blue' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-100' :
+                          activity.color === 'yellow' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-100' :
+                          activity.color === 'orange' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-100' :
+                          'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
                         }`}>
-                          {formatCurrency(thisMonthSummary.netProfit)}
-                        </p>
-                      </div>
-                      <div className={`flex items-center gap-1 text-xs font-medium ${
-                        thisMonthSummary.profitChange > 0 ? 'text-green-600' : 
-                        thisMonthSummary.profitChange < 0 ? 'text-red-600' : 
-                        'text-gray-600'
-                      }`}>
-                        {thisMonthSummary.profitChange > 0 && <ArrowUp className="h-3 w-3" />}
-                        {thisMonthSummary.profitChange < 0 && <ArrowDown className="h-3 w-3" />}
-                        {thisMonthSummary.profitChange === 0 && <Minus className="h-3 w-3" />}
-                        {Math.abs(thisMonthSummary.profitChange).toFixed(0)}%
-                      </div>
-                    </div>
+                          {activity.icon === 'receipt' && <Receipt className="h-4 w-4" />}
+                          {activity.icon === 'file-check' && <FileCheck className="h-4 w-4" />}
+                          {activity.icon === 'wallet' && <Wallet className="h-4 w-4" />}
+                          {activity.icon === 'calendar' && <Calendar className="h-4 w-4" />}
+                        </div>
 
-                    <p className="text-xs text-muted-foreground pt-1">
-                      Compared to last month
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
-
-          {/* Special Case Section */}
-          {cardsBySection['Special Case'].length > 0 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold tracking-tight">Special Case</h2>
-
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {cardsBySection['Special Case'].map(card => (
-                  <Card 
-                    key={card.id}
-                    className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                    onClick={() => router.push(card.route)}
-                  >
-                    <CardHeader>
-                      <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                        {getIcon(card.icon)}
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs">
+                            <span className="font-semibold">{activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}</span>
+                            {' '}
+                            <span className="font-mono text-[10px] bg-muted px-1 py-0.5 rounded">{activity.displayId}</span>
+                            {' '}
+                            <span className="text-muted-foreground">{activity.action}</span>
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {getRelativeTime(activity.date)}
+                          </p>
+                        </div>
                       </div>
-                      <CardTitle>{card.title}</CardTitle>
-                    </CardHeader>
-                  </Card>
-                ))}
-              </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
 
@@ -1253,7 +1300,7 @@ export default function Home() {
                       {/* Under Budget */}
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-muted-foreground">Under Budget</p>
-                        <p className="text-4xl font-bold text-[hsl(142_76%_36%)]">
+                        <p className="text-2xl sm:text-3xl font-bold text-[hsl(142_76%_36%)] break-words">
                           {formatCurrency(expenseStats.totalUnderBudget)}
                         </p>
                         <p className="text-xs text-muted-foreground">Total savings</p>
@@ -1262,7 +1309,7 @@ export default function Home() {
                       {/* Over Budget */}
                       <div className="space-y-2 border-l border-r px-6">
                         <p className="text-sm font-medium text-muted-foreground">Over Budget</p>
-                        <p className="text-4xl font-bold text-red-600">
+                        <p className="text-2xl sm:text-3xl font-bold text-red-600 break-words">
                           {formatCurrency(expenseStats.totalOverBudget)}
                         </p>
                         <p className="text-xs text-muted-foreground">Total overspend</p>
@@ -1271,7 +1318,7 @@ export default function Home() {
                       {/* Efficiency */}
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-muted-foreground">Efficiency</p>
-                        <p className={`text-4xl font-bold ${
+                        <p className={`text-2xl sm:text-3xl font-bold break-words ${
                           expenseStats.averageEfficiency >= 0 ? "text-[hsl(142_76%_36%)]" : "text-red-600"
                         }`}>
                           {expenseStats.averageEfficiency.toFixed(0)}%
@@ -1288,7 +1335,7 @@ export default function Home() {
                       {/* Gross Profit */}
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-muted-foreground">Gross Profit</p>
-                        <p className="text-4xl font-bold text-[hsl(199_89%_48%)]">
+                        <p className="text-2xl sm:text-3xl font-bold text-[hsl(199_89%_48%)] break-words">
                           {formatCurrency(expenseStats.grossProfit)}
                         </p>
                         <p className="text-xs text-muted-foreground">Total client paid amount</p>
@@ -1297,7 +1344,7 @@ export default function Home() {
                       {/* Net Profit */}
                       <div className="space-y-2 border-l border-r px-6">
                         <p className="text-sm font-medium text-muted-foreground">Net Profit</p>
-                        <p className={`text-4xl font-bold ${
+                        <p className={`text-2xl sm:text-3xl font-bold break-words ${
                           expenseStats.netProfit >= 0 ? "text-[hsl(142_76%_36%)]" : "text-red-600"
                         }`}>
                           {formatCurrency(expenseStats.netProfit)}
@@ -1308,7 +1355,7 @@ export default function Home() {
                       {/* Margin Percentage */}
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-muted-foreground">Margin</p>
-                        <p className={`text-4xl font-bold ${
+                        <p className={`text-2xl sm:text-3xl font-bold break-words ${
                           expenseStats.marginPercentage >= 0 ? "text-[hsl(142_76%_36%)]" : "text-red-600"
                         }`}>
                           {expenseStats.marginPercentage.toFixed(0)}%
@@ -1326,7 +1373,7 @@ export default function Home() {
                       {/* Net Profit After Expenses */}
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-muted-foreground">Net Profit After Expenses</p>
-                        <p className={`text-4xl font-bold ${
+                        <p className={`text-2xl sm:text-3xl font-bold break-words ${
                           (expenseStats.netProfit - extraExpenses.gearTotal - extraExpenses.bigTotal) >= 0 
                             ? "text-green-600" 
                             : "text-red-600"
@@ -1339,7 +1386,7 @@ export default function Home() {
                       {/* Gear Expenses */}
                       <div className="space-y-2 border-l border-r px-6">
                         <p className="text-sm font-medium text-muted-foreground">Gear Expenses</p>
-                        <p className="text-4xl font-bold text-orange-600">
+                        <p className="text-2xl sm:text-3xl font-bold text-orange-600 break-words">
                           {formatCurrency(extraExpenses.gearTotal)}
                         </p>
                         <p className="text-xs text-muted-foreground">Total gear expenses</p>
@@ -1348,7 +1395,7 @@ export default function Home() {
                       {/* Big Expenses */}
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-muted-foreground">Big Expenses</p>
-                        <p className="text-4xl font-bold text-red-600">
+                        <p className="text-2xl sm:text-3xl font-bold text-red-600 break-words">
                           {formatCurrency(extraExpenses.bigTotal)}
                         </p>
                         <p className="text-xs text-muted-foreground">Total big expenses</p>
@@ -1608,7 +1655,7 @@ export default function Home() {
                         <CardContent className={!productExpenses[0] ? 'invisible' : ''}>
                           {productExpenses[0] ? (
                             <>
-                              <div className="text-4xl font-bold text-blue-600">
+                              <div className="text-2xl sm:text-3xl font-bold text-blue-600 break-words">
                                 Rp {Math.round(productExpenses[0].amount)} Juta
                               </div>
                               <p className="text-sm text-muted-foreground mt-1">
@@ -1641,7 +1688,7 @@ export default function Home() {
                             <CardContent className={!leastExpense ? 'invisible' : ''}>
                               {leastExpense ? (
                                 <>
-                                  <div className="text-4xl font-bold text-green-600">
+                                  <div className="text-2xl sm:text-3xl font-bold text-green-600 break-words">
                                     Rp {Math.round(leastExpense.amount)} Juta
                                   </div>
                                   <p className="text-sm text-muted-foreground mt-1">
@@ -1736,7 +1783,7 @@ export default function Home() {
                     <CardContent className={!etcExpenses[0] ? 'invisible' : ''}>
                       {etcExpenses[0] ? (
                         <>
-                          <div className="text-4xl font-bold text-red-600">
+                          <div className="text-2xl sm:text-3xl font-bold text-red-600 break-words">
                             Rp {Math.round(etcExpenses[0].amount)} Juta
                           </div>
                           <p className="text-sm text-muted-foreground mt-1">
@@ -1775,7 +1822,7 @@ export default function Home() {
                     <CardContent className={!etcExpenses[1] ? 'invisible' : ''}>
                       {etcExpenses[1] ? (
                         <>
-                          <div className="text-4xl font-bold text-orange-600">
+                          <div className="text-2xl sm:text-3xl font-bold text-orange-600 break-words">
                             Rp {Math.round(etcExpenses[1].amount)} Juta
                           </div>
                           <p className="text-sm text-muted-foreground mt-1">
@@ -1846,6 +1893,30 @@ export default function Home() {
           </div>
           )}
 
+          {/* Special Case Section */}
+          {cardsBySection['Special Case'].length > 0 && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-bold tracking-tight">Special Case</h2>
+
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {cardsBySection['Special Case'].map(card => (
+                  <Card 
+                    key={card.id}
+                    className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
+                    onClick={() => router.push(card.route)}
+                  >
+                    <CardHeader>
+                      <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                        {getIcon(card.icon)}
+                      </div>
+                      <CardTitle>{card.title}</CardTitle>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Management Section */}
           {cardsBySection['Management'].length > 0 && (
             <div className="space-y-6">
@@ -1868,6 +1939,8 @@ export default function Home() {
                 ))}
               </div>
             </div>
+          )}
+            </>
           )}
         </div>
       </main>
