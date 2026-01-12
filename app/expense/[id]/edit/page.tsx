@@ -70,13 +70,11 @@ export default function EditExpensePage() {
       fetch("/api/products").then(res => res.json())
     ])
       .then(([data, productsData]) => {
-        // Check if expense is finalized
+        // Show warning if expense is finalized (but allow editing)
         if (data.status === "final") {
-          toast.error("Cannot edit finalized expense", {
-            description: "This expense has been finalized and cannot be edited."
+          toast.warning("Editing finalized expense", {
+            description: "This expense has been finalized. Changes will be saved but may affect reports."
           })
-          router.push("/expense")
-          return
         }
 
         setExpenseNumber(data.expenseId)
@@ -474,6 +472,25 @@ export default function EditExpensePage() {
           ]} />
           <Card>
             <CardContent className="space-y-6 pt-6">
+              {/* Warning Banner for Finalized Expense */}
+              {expenseStatus === "final" && (
+                <div className="rounded-lg border-2 border-yellow-500 bg-yellow-50 p-4 dark:bg-yellow-950">
+                  <div className="flex items-start gap-3">
+                    <div className="text-yellow-600 dark:text-yellow-400">
+                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-yellow-800 dark:text-yellow-200">Editing Finalized Expense</h3>
+                      <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                        This expense has been finalized. Any changes will be saved and may affect financial reports and dashboard statistics.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {/* Basic Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Basic Information</h3>
@@ -512,7 +529,6 @@ export default function EditExpensePage() {
                           value={dateInput}
                           onChange={(e) => handleDateInputChange(e.target.value)}
                           placeholder="DD/MM/YYYY"
-                          disabled={expenseStatus === "final"}
                           className="flex-1"
                           error={!!errors.productionDate}
                         />
@@ -533,7 +549,6 @@ export default function EditExpensePage() {
                               }
                             }}
                             placeholder=""
-                            disabled={expenseStatus === "final"}
                             error={!!errors.productionDate}
                           />
                         </div>
