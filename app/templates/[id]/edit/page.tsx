@@ -75,9 +75,7 @@ export default function EditTemplatePage() {
 
   const fetchTemplate = async () => {
     try {
-      console.log('[Edit Template] Fetching template ID:', templateId)
       const response = await fetch(`/api/quotation-templates/${templateId}`)
-      console.log('[Edit Template] Response status:', response.status)
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
@@ -86,7 +84,6 @@ export default function EditTemplatePage() {
       }
       
       const data = await response.json()
-      console.log('[Edit Template] Template data received:', data)
       
       setName(data.name)
       

@@ -58,9 +58,6 @@ export async function POST(request: Request) {
       }
     })
 
-    console.log('Checking for duplicate template name:', body.name.trim())
-    console.log('Existing template found:', existing)
-
     if (existing) {
       return NextResponse.json(
         { error: "Template name already exists. Please use a different name." },

@@ -8,7 +8,6 @@ export async function GET(
 ) {
   try {
     const params = await context.params
-    console.log('[GET Template] Fetching template with ID:', params.id)
     
     const template = await prisma.quotationTemplate.findUnique({
       where: {
@@ -23,11 +22,8 @@ export async function GET(
       }
     })
 
-    console.log('[GET Template] Found template:', template ? 'Yes' : 'No')
-    
     // Check if template exists and is not soft-deleted
     if (!template || template.deletedAt !== null) {
-      console.log('[GET Template] Template not found or soft-deleted')
       return NextResponse.json(
         { error: "Template not found" },
         { status: 404 }
