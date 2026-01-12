@@ -823,8 +823,8 @@ export default function EditExpensePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Finalize Expense?</AlertDialogTitle>
             <AlertDialogDescription>
-              Once finalized, this expense <strong>cannot be edited anymore</strong>. 
-              Make sure all amounts are correct before proceeding. Are you sure you want to continue?
+              Once finalized, this expense will affect financial reports and dashboard statistics. 
+              You can still edit it later if needed, but changes may impact existing reports. Are you sure you want to finalize?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
