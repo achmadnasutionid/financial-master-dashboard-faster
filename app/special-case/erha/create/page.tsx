@@ -111,6 +111,7 @@ export default function CreateErhaTicketPage() {
   const [billings, setBillings] = useState<Billing[]>([])
   const [signatures, setSignatures] = useState<Signature[]>([])
   const [products, setProducts] = useState<string[]>([])
+  const [productDetails, setProductDetails] = useState<any[]>([])
   
   // UI state
   const [saving, setSaving] = useState(false)
@@ -132,6 +133,7 @@ export default function CreateErhaTicketPage() {
       setBillings(billingsData)
       setSignatures(signaturesData)
       setProducts(productsData.map((p: any) => p.name))
+      setProductDetails(productsData) // Store full product objects with details
     }).catch(console.error)
   }, [])
 
@@ -234,9 +236,40 @@ export default function CreateErhaTicketPage() {
     markInteracted()
     // Auto-capitalize if not from master data, with normalized space comparison
     const finalName = formatProductName(productName, products)
-    setItems(items.map(item =>
-      item.id === itemId ? { ...item, productName: finalName } : item
-    ))
+    
+    // Check if this product exists in master data and has details
+    const masterProduct = productDetails.find((p: any) => 
+      p.name.toLowerCase() === finalName.toLowerCase()
+    )
+    
+    setItems(items.map(item => {
+      if (item.id !== itemId) return item
+      
+      // If master product has details, auto-fill them
+      if (masterProduct && masterProduct.details && masterProduct.details.length > 0) {
+        const autoFilledDetails = masterProduct.details.map((detail: any) => ({
+          id: `detail-${Date.now()}-${Math.random()}`,
+          detail: detail.detail,
+          unitPrice: detail.unitPrice.toString(),
+          qty: detail.qty.toString(),
+          amount: detail.unitPrice * detail.qty
+        }))
+        
+        const total = autoFilledDetails.reduce((sum: number, d: any) => sum + d.amount, 0)
+        
+        toast.success(`Auto-filled ${autoFilledDetails.length} detail(s) from master data`)
+        
+        return {
+          ...item,
+          productName: finalName,
+          details: autoFilledDetails,
+          total
+        }
+      }
+      
+      // No master data details, just update name
+      return { ...item, productName: finalName }
+    }))
   }
 
   const addDetail = (itemId: string) => {

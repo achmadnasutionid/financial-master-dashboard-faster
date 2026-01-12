@@ -47,6 +47,7 @@ export default function CreatePlanningPage() {
   const [notes, setNotes] = useState("")
   const [items, setItems] = useState<PlanningItem[]>([])
   const [products, setProducts] = useState<string[]>([])
+  const [productDetails, setProductDetails] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<any>({})
   const [hasInteracted, setHasInteracted] = useState(false)
@@ -59,7 +60,10 @@ export default function CreatePlanningPage() {
   useEffect(() => {
     fetch("/api/products")
       .then((res) => res.json())
-      .then((data) => setProducts(data.map((p: any) => p.name)))
+      .then((data) => {
+        setProducts(data.map((p: any) => p.name))
+        setProductDetails(data) // Store full product objects with details
+      })
       .catch(console.error)
   }, [])
 
