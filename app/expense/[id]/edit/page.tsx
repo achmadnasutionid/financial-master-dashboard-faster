@@ -33,7 +33,6 @@ interface ExpenseItem {
   budgeted: string
   actual: string
   difference: number
-  fromInvoice?: boolean // Track if this item came from invoice
 }
 
 export default function EditExpensePage() {
@@ -61,6 +60,12 @@ export default function EditExpensePage() {
   const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>("idle")
   const [errors, setErrors] = useState<any>({})
   const [showFinalizeDialog, setShowFinalizeDialog] = useState(false)
+  const [showExceedDialog, setShowExceedDialog] = useState(false)
+  const [exceedInfo, setExceedInfo] = useState<{totalBudgeted: number, totalActual: number, paidAmount: number}>({
+    totalBudgeted: 0,
+    totalActual: 0,
+    paidAmount: 0
+  })
 
   // Fetch expense data and products
   useEffect(() => {
@@ -102,8 +107,7 @@ export default function EditExpensePage() {
           productName: item.productName,
           budgeted: item.budgeted.toString(),
           actual: item.actual.toString(),
-          difference: item.difference,
-          fromInvoice: !!data.invoiceId // Mark as from invoice if expense has invoice reference
+          difference: item.difference
         }))
         setItems(loadedItems)
         
@@ -289,8 +293,7 @@ export default function EditExpensePage() {
       productName: "",
       budgeted: "0",
       actual: "0",
-      difference: 0,
-      fromInvoice: false // Manually added items are NOT from invoice
+      difference: 0
     }
     setItems([...items, newItem])
   }
@@ -370,6 +373,18 @@ export default function EditExpensePage() {
         })
         return
       }
+      
+      // Check if total budgeted or actual exceeds paid amount
+      const totalBudgeted = items.reduce((sum, item) => sum + (parseFloat(item.budgeted) || 0), 0)
+      const totalActual = items.reduce((sum, item) => sum + (parseFloat(item.actual) || 0), 0)
+      const paid = parseFloat(paidAmount) || 0
+      
+      if (totalBudgeted > paid || totalActual > paid) {
+        // Show exceed warning dialog
+        setExceedInfo({ totalBudgeted, totalActual, paidAmount: paid })
+        setShowExceedDialog(true)
+        return // Don't proceed, wait for user confirmation
+      }
     }
 
     // Validate that all items have product names (for both draft and final)
@@ -381,6 +396,11 @@ export default function EditExpensePage() {
       return
     }
 
+    // Proceed with save
+    await saveExpense(status)
+  }
+
+  const saveExpense = async (status: "draft" | "final") => {
     setSaving(true)
     try {
       const payload = {
@@ -662,7 +682,6 @@ export default function EditExpensePage() {
                               onChange={(e) => updateItem(item.id, "productName", e.target.value)}
                               placeholder="Type or select product"
                               list={`products-${item.id}`}
-                              disabled={item.fromInvoice}
                             />
                             <datalist id={`products-${item.id}`}>
                               {products.map((product) => (
@@ -671,17 +690,11 @@ export default function EditExpensePage() {
                             </datalist>
                           </div>
                           <div>
-                            {item.fromInvoice ? (
-                              <div className="flex h-11 items-center rounded-md border px-3 text-sm text-muted-foreground bg-muted">
-                                {formatCurrency(parseFloat(item.budgeted) || 0)}
-                              </div>
-                            ) : (
-                              <CurrencyInput
-                                value={item.budgeted}
-                                onValueChange={(value) => updateItem(item.id, "budgeted", value)}
-                                placeholder="Rp 0"
-                              />
-                            )}
+                            <CurrencyInput
+                              value={item.budgeted}
+                              onValueChange={(value) => updateItem(item.id, "budgeted", value)}
+                              placeholder="Rp 0"
+                            />
                           </div>
                           <div>
                             <CurrencyInput
@@ -700,17 +713,15 @@ export default function EditExpensePage() {
                             </div>
                           </div>
                           <div className="flex items-center">
-                            {!item.fromInvoice && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeItem(item.id)}
-                                className="h-9 w-9 p-0"
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            )}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeItem(item.id)}
+                              className="h-9 w-9 p-0"
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
                           </div>
                         </div>
                       </CardContent>
@@ -835,6 +846,63 @@ export default function EditExpensePage() {
               disabled={saving}
             >
               Yes, Finalize
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Exceed Amount Warning Dialog */}
+      <AlertDialog open={showExceedDialog} onOpenChange={setShowExceedDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-yellow-600">⚠️ Amount Exceeds Paid Amount</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>The expense amounts exceed the paid amount:</p>
+                <div className="rounded-lg bg-yellow-50 p-3 space-y-1 text-sm dark:bg-yellow-950">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Paid Amount:</span>
+                    <span className="font-semibold">{formatCurrency(exceedInfo.paidAmount)}</span>
+                  </div>
+                  {exceedInfo.totalBudgeted > exceedInfo.paidAmount && (
+                    <div className="flex justify-between text-red-600 dark:text-red-400">
+                      <span className="font-medium">Total Budgeted:</span>
+                      <span className="font-semibold">{formatCurrency(exceedInfo.totalBudgeted)}</span>
+                    </div>
+                  )}
+                  {exceedInfo.totalActual > exceedInfo.paidAmount && (
+                    <div className="flex justify-between text-red-600 dark:text-red-400">
+                      <span className="font-medium">Total Actual:</span>
+                      <span className="font-semibold">{formatCurrency(exceedInfo.totalActual)}</span>
+                    </div>
+                  )}
+                  <div className="pt-2 border-t border-yellow-200 dark:border-yellow-800">
+                    <div className="flex justify-between text-red-700 dark:text-red-300">
+                      <span className="font-semibold">Exceeds by:</span>
+                      <span className="font-bold">
+                        {formatCurrency(Math.max(
+                          exceedInfo.totalBudgeted - exceedInfo.paidAmount,
+                          exceedInfo.totalActual - exceedInfo.paidAmount
+                        ))}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm">Do you still want to finalize this expense?</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowExceedDialog(false)
+                saveExpense("final")
+              }}
+              disabled={saving}
+              className="bg-yellow-600 hover:bg-yellow-700"
+            >
+              Yes, Finalize Anyway
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

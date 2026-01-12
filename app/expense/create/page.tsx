@@ -60,6 +60,12 @@ export default function CreateExpensePage() {
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [errors, setErrors] = useState<any>({})
   const [showFinalizeDialog, setShowFinalizeDialog] = useState(false)
+  const [showExceedDialog, setShowExceedDialog] = useState(false)
+  const [exceedInfo, setExceedInfo] = useState<{totalBudgeted: number, totalActual: number, paidAmount: number}>({
+    totalBudgeted: 0,
+    totalActual: 0,
+    paidAmount: 0
+  })
 
   // Fetch products
   useEffect(() => {
@@ -303,6 +309,18 @@ export default function CreateExpensePage() {
         })
         return
       }
+      
+      // Check if total budgeted or actual exceeds paid amount
+      const totalBudgeted = items.reduce((sum, item) => sum + (parseFloat(item.budgeted) || 0), 0)
+      const totalActual = items.reduce((sum, item) => sum + (parseFloat(item.actual) || 0), 0)
+      const paid = parseFloat(paidAmount) || 0
+      
+      if (totalBudgeted > paid || totalActual > paid) {
+        // Show exceed warning dialog
+        setExceedInfo({ totalBudgeted, totalActual, paidAmount: paid })
+        setShowExceedDialog(true)
+        return // Don't proceed, wait for user confirmation
+      }
     }
 
     // Validate that all items have product names (for both draft and final)
@@ -314,6 +332,11 @@ export default function CreateExpensePage() {
       return
     }
 
+    // Proceed with save
+    await saveExpense(status)
+  }
+
+  const saveExpense = async (status: "draft" | "final") => {
     setSaving(true)
     try {
       const payload = {
@@ -675,6 +698,63 @@ export default function CreateExpensePage() {
               disabled={saving}
             >
               Yes, Finalize
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Exceed Amount Warning Dialog */}
+      <AlertDialog open={showExceedDialog} onOpenChange={setShowExceedDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-yellow-600">⚠️ Amount Exceeds Paid Amount</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>The expense amounts exceed the paid amount:</p>
+                <div className="rounded-lg bg-yellow-50 p-3 space-y-1 text-sm dark:bg-yellow-950">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Paid Amount:</span>
+                    <span className="font-semibold">{formatCurrency(exceedInfo.paidAmount)}</span>
+                  </div>
+                  {exceedInfo.totalBudgeted > exceedInfo.paidAmount && (
+                    <div className="flex justify-between text-red-600 dark:text-red-400">
+                      <span className="font-medium">Total Budgeted:</span>
+                      <span className="font-semibold">{formatCurrency(exceedInfo.totalBudgeted)}</span>
+                    </div>
+                  )}
+                  {exceedInfo.totalActual > exceedInfo.paidAmount && (
+                    <div className="flex justify-between text-red-600 dark:text-red-400">
+                      <span className="font-medium">Total Actual:</span>
+                      <span className="font-semibold">{formatCurrency(exceedInfo.totalActual)}</span>
+                    </div>
+                  )}
+                  <div className="pt-2 border-t border-yellow-200 dark:border-yellow-800">
+                    <div className="flex justify-between text-red-700 dark:text-red-300">
+                      <span className="font-semibold">Exceeds by:</span>
+                      <span className="font-bold">
+                        {formatCurrency(Math.max(
+                          exceedInfo.totalBudgeted - exceedInfo.paidAmount,
+                          exceedInfo.totalActual - exceedInfo.paidAmount
+                        ))}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm">Do you still want to finalize this expense?</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowExceedDialog(false)
+                saveExpense("final")
+              }}
+              disabled={saving}
+              className="bg-yellow-600 hover:bg-yellow-700"
+            >
+              Yes, Finalize Anyway
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
