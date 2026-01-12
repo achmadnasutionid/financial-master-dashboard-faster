@@ -610,7 +610,6 @@ export default function EditExpensePage() {
                           setPaidAmount(value)
                         }}
                         placeholder="Rp 0"
-                        disabled={expenseStatus === "final"}
                       />
                       <p className="text-xs text-muted-foreground">
                         Enter the amount paid by client
@@ -660,7 +659,7 @@ export default function EditExpensePage() {
                               onChange={(e) => updateItem(item.id, "productName", e.target.value)}
                               placeholder="Type or select product"
                               list={`products-${item.id}`}
-                              disabled={expenseStatus === "final" || hasInvoice}
+                              disabled={hasInvoice}
                             />
                             <datalist id={`products-${item.id}`}>
                               {products.map((product) => (
@@ -678,7 +677,6 @@ export default function EditExpensePage() {
                                 value={item.budgeted}
                                 onValueChange={(value) => updateItem(item.id, "budgeted", value)}
                                 placeholder="Rp 0"
-                                disabled={expenseStatus === "final"}
                               />
                             )}
                           </div>
@@ -687,7 +685,6 @@ export default function EditExpensePage() {
                               value={item.actual}
                               onValueChange={(value) => updateItem(item.id, "actual", value)}
                               placeholder="Rp 0"
-                              disabled={expenseStatus === "final"}
                             />
                           </div>
                           <div>
@@ -700,17 +697,15 @@ export default function EditExpensePage() {
                             </div>
                           </div>
                           <div className="flex items-center">
-                            {expenseStatus !== "final" && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeItem(item.id)}
-                                className="h-9 w-9 p-0"
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            )}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeItem(item.id)}
+                              className="h-9 w-9 p-0"
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
                           </div>
                         </div>
                       </CardContent>
@@ -719,19 +714,17 @@ export default function EditExpensePage() {
                 </div>
 
                 {/* Add Item Button */}
-                {expenseStatus !== "final" && (
-                  <div className="flex justify-end">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={addItem}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Item
-                    </Button>
-                  </div>
-                )}
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addItem}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Item
+                  </Button>
+                </div>
               </div>
 
               {/* Summary */}
