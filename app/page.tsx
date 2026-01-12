@@ -77,10 +77,8 @@ export default function Home() {
   // This Month Summary State
   const [thisMonthSummary, setThisMonthSummary] = useState({
     revenue: 0,
-    projectsCompleted: 0,
     netProfit: 0,
     revenueChange: 0,
-    projectsChange: 0,
     profitChange: 0
   })
 
@@ -597,10 +595,10 @@ export default function Home() {
       })
     })
 
-    // Sort by timestamp (newest first) and take top 4
+    // Sort by timestamp (newest first) and take top 3
     const sortedActivities = activities
       .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, 4)
+      .slice(0, 3)
 
     setRecentActivities(sortedActivities)
   }
@@ -628,26 +626,24 @@ export default function Home() {
     })
     const lastMonthRevenue = lastMonthPaidInvoices.reduce((sum: number, inv: any) => sum + (inv.totalAmount || 0), 0)
 
-    // This month - finalized expenses (projects completed and net profit)
+    // This month - finalized expenses (net profit)
     const thisMonthExpenses = expenses.filter((exp: any) => {
       if (exp.status !== 'final') return false
       const expDate = new Date(exp.updatedAt)
       return expDate.getMonth() === currentMonth && expDate.getFullYear() === currentYear
     })
-    const thisMonthProjectsCompleted = thisMonthExpenses.length
     const thisMonthTotalPaid = thisMonthExpenses.reduce((sum: number, exp: any) => sum + (exp.paidAmount || 0), 0)
     const thisMonthActualExpenses = thisMonthExpenses.reduce((sum: number, exp: any) => {
       return sum + exp.items.reduce((itemSum: number, item: any) => itemSum + item.actual, 0)
     }, 0)
     const thisMonthNetProfit = thisMonthTotalPaid - thisMonthActualExpenses
 
-    // Last month - finalized expenses (projects completed and net profit)
+    // Last month - finalized expenses (net profit)
     const lastMonthExpenses = expenses.filter((exp: any) => {
       if (exp.status !== 'final') return false
       const expDate = new Date(exp.updatedAt)
       return expDate.getMonth() === lastMonth && expDate.getFullYear() === lastMonthYear
     })
-    const lastMonthProjectsCompleted = lastMonthExpenses.length
     const lastMonthTotalPaid = lastMonthExpenses.reduce((sum: number, exp: any) => sum + (exp.paidAmount || 0), 0)
     const lastMonthActualExpenses = lastMonthExpenses.reduce((sum: number, exp: any) => {
       return sum + exp.items.reduce((itemSum: number, item: any) => itemSum + item.actual, 0)
@@ -656,15 +652,12 @@ export default function Home() {
 
     // Calculate percentage changes
     const revenueChange = lastMonthRevenue > 0 ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0
-    const projectsChange = lastMonthProjectsCompleted > 0 ? ((thisMonthProjectsCompleted - lastMonthProjectsCompleted) / lastMonthProjectsCompleted) * 100 : 0
     const profitChange = lastMonthNetProfit > 0 ? ((thisMonthNetProfit - lastMonthNetProfit) / lastMonthNetProfit) * 100 : 0
 
     setThisMonthSummary({
       revenue: thisMonthRevenue,
-      projectsCompleted: thisMonthProjectsCompleted,
       netProfit: thisMonthNetProfit,
       revenueChange,
-      projectsChange,
       profitChange
     })
   }
@@ -996,24 +989,6 @@ export default function Home() {
                         {thisMonthSummary.revenueChange < 0 && <ArrowDown className="h-3 w-3" />}
                         {thisMonthSummary.revenueChange === 0 && <Minus className="h-3 w-3" />}
                         {Math.abs(thisMonthSummary.revenueChange).toFixed(0)}%
-                      </div>
-                    </div>
-
-                    {/* Projects Completed */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Projects Completed</p>
-                        <p className="text-lg font-bold">{thisMonthSummary.projectsCompleted}</p>
-                      </div>
-                      <div className={`flex items-center gap-1 text-xs font-medium ${
-                        thisMonthSummary.projectsChange > 0 ? 'text-green-600' : 
-                        thisMonthSummary.projectsChange < 0 ? 'text-red-600' : 
-                        'text-gray-600'
-                      }`}>
-                        {thisMonthSummary.projectsChange > 0 && <ArrowUp className="h-3 w-3" />}
-                        {thisMonthSummary.projectsChange < 0 && <ArrowDown className="h-3 w-3" />}
-                        {thisMonthSummary.projectsChange === 0 && <Minus className="h-3 w-3" />}
-                        {Math.abs(thisMonthSummary.projectsChange).toFixed(0)}%
                       </div>
                     </div>
 
