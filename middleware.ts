@@ -4,6 +4,27 @@ import type { NextRequest } from "next/server"
 export function middleware(request: NextRequest) {
   const response = NextResponse.next()
 
+  // Block search engine crawlers
+  const userAgent = request.headers.get('user-agent') || ''
+  const searchBots = [
+    'googlebot',
+    'bingbot',
+    'slurp',
+    'duckduckbot',
+    'baiduspider',
+    'yandexbot',
+    'sogou',
+    'ia_archiver',
+    'facebookexternalhit',
+    'twitterbot',
+  ]
+  
+  const isBot = searchBots.some(bot => userAgent.toLowerCase().includes(bot))
+  
+  if (isBot) {
+    return new NextResponse('Access denied', { status: 403 })
+  }
+
   // Add cache control headers for API responses
   if (request.nextUrl.pathname.startsWith("/api/")) {
     // Only cache MASTER DATA endpoints (rarely change)
@@ -44,12 +65,23 @@ export function middleware(request: NextRequest) {
   response.headers.set("X-Frame-Options", "DENY")
   response.headers.set("X-XSS-Protection", "1; mode=block")
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin")
+  
+  // Prevent search engine indexing via headers
+  response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet, noimageindex")
 
   return response
 }
 
-// Only run middleware on API routes
+// Run middleware on all routes
 export const config = {
-  matcher: ["/api/:path*"],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!_next/static|_next/image|favicon.ico).*)',
+  ],
 }
 
