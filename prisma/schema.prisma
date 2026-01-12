@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,7 +8,6 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// Financial Dashboard Models
 model Company {
   id         String    @id @default(cuid())
   name       String    @unique
@@ -24,7 +20,7 @@ model Company {
   deletedAt  DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
-  
+
   @@index([deletedAt])
 }
 
@@ -39,58 +35,60 @@ model Billing {
   deletedAt       DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-  
+
   @@index([deletedAt])
 }
 
 model Signature {
   id        String    @id @default(cuid())
   name      String    @unique
-  role      String?   // Optional role field
-  imageData String    // Base64 encoded signature image
+  role      String?
+  imageData String
   deletedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  
+
   @@index([deletedAt])
 }
 
 model Product {
   id        String          @id @default(cuid())
   name      String          @unique
-  details   ProductDetail[]
   deletedAt DateTime?
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
-  
+  details   ProductDetail[]
+
   @@index([deletedAt])
 }
 
 model ProductDetail {
   id        String   @id @default(cuid())
   productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  detail    String   // Description of the detail line item
-  unitPrice Float    // Default unit price
-  qty       Float    // Default quantity
+  detail    String
+  unitPrice Float
+  qty       Float
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
 }
 
 model Planning {
-  id                String         @id @default(cuid())
-  planningId        String         @unique // PLN-YYYY-NNNN format
-  projectName       String
-  clientName        String
-  clientBudget      Float
-  notes             String?
-  status            String         @default("draft") // draft or final
-  generatedQuotationId String?     // ID of auto-generated quotation
-  items             PlanningItem[]
-  deletedAt         DateTime?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-  
+  id                   String         @id @default(cuid())
+  planningId           String         @unique
+  projectName          String
+  clientName           String
+  clientBudget         Float
+  notes                String?
+  status               String         @default("draft")
+  generatedQuotationId String?
+  deletedAt            DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  items                PlanningItem[]
+
   @@index([status, deletedAt])
   @@index([planningId])
   @@index([updatedAt])
@@ -99,463 +97,442 @@ model Planning {
 model PlanningItem {
   id          String   @id @default(cuid())
   planningId  String
-  planning    Planning @relation(fields: [planningId], references: [id], onDelete: Cascade)
   productName String
   budget      Float
   expense     Float
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  planning    Planning @relation(fields: [planningId], references: [id], onDelete: Cascade)
+
+  @@index([planningId])
 }
 
 model Quotation {
-  id                String              @id @default(cuid())
-  quotationId       String              @unique // QTN-YYYY-NNNN format
-  
-  // Company data (saved from master)
-  companyName       String
-  companyAddress    String
-  companyCity       String
-  companyProvince   String
-  companyPostalCode String?
-  companyTelp       String?
-  companyEmail      String?
-  
-  productionDate    DateTime
-  billTo            String
-  notes             String?
-  
-  // Billing data (saved from master)
-  billingName       String
-  billingBankName   String
-  billingBankAccount String
+  id                     String            @id @default(cuid())
+  quotationId            String            @unique
+  companyName            String
+  companyAddress         String
+  companyCity            String
+  companyProvince        String
+  companyPostalCode      String?
+  companyTelp            String?
+  companyEmail           String?
+  productionDate         DateTime
+  billTo                 String
+  notes                  String?
+  billingName            String
+  billingBankName        String
+  billingBankAccount     String
   billingBankAccountName String
-  billingKtp        String?
-  billingNpwp       String?
-  
-  // Signature data (saved from master)
-  signatureName     String
-  signatureRole     String?
-  signatureImageData String
-  
-  pph               String // PPh percentage/type
-  totalAmount       Float
-  status            String              @default("draft") // draft, pending, or accepted
-  generatedInvoiceId String?           // ID of auto-generated invoice
-  
-  items             QuotationItem[]
-  remarks           QuotationRemark[]
-  
-  deletedAt         DateTime?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  
+  billingKtp             String?
+  billingNpwp            String?
+  signatureName          String
+  signatureRole          String?
+  signatureImageData     String
+  pph                    String
+  totalAmount            Float
+  status                 String            @default("draft")
+  generatedInvoiceId     String?
+  deletedAt              DateTime?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+  items                  QuotationItem[]
+  remarks                QuotationRemark[]
+
   @@index([status, deletedAt])
   @@index([quotationId])
   @@index([productionDate])
   @@index([updatedAt])
+  @@index([productionDate, status, deletedAt])
+  @@index([status, updatedAt, deletedAt])
+  @@index([companyName])
 }
 
 model QuotationItem {
   id          String                @id @default(cuid())
   quotationId String
-  quotation   Quotation             @relation(fields: [quotationId], references: [id], onDelete: Cascade)
   productName String
-  total       Float                 // Sum of all child amounts
-  details     QuotationItemDetail[]
+  total       Float
   createdAt   DateTime              @default(now())
   updatedAt   DateTime              @updatedAt
+  quotation   Quotation             @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  details     QuotationItemDetail[]
+
+  @@index([quotationId])
 }
 
 model QuotationItemDetail {
-  id               String         @id @default(cuid())
-  quotationItemId  String
-  quotationItem    QuotationItem  @relation(fields: [quotationItemId], references: [id], onDelete: Cascade)
-  detail           String
-  unitPrice        Float
-  qty              Float
-  amount           Float          // unitPrice * qty
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  id              String        @id @default(cuid())
+  quotationItemId String
+  detail          String
+  unitPrice       Float
+  qty             Float
+  amount          Float
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  quotationItem   QuotationItem @relation(fields: [quotationItemId], references: [id], onDelete: Cascade)
+
+  @@index([quotationItemId])
 }
 
 model QuotationRemark {
   id          String    @id @default(cuid())
   quotationId String
-  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
   text        String
   isCompleted Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([quotationId])
 }
 
 model Invoice {
-  id                String              @id @default(cuid())
-  invoiceId         String              @unique // INV-YYYY-NNNN format
-  
-  // Reference to original planning (if generated from planning->quotation->invoice flow)
-  planningId        String?
-  
-  // Company data (saved from master)
-  companyName       String
-  companyAddress    String
-  companyCity       String
-  companyProvince   String
-  companyPostalCode String?
-  companyTelp       String?
-  companyEmail      String?
-  
-  productionDate    DateTime
-  billTo            String
-  notes             String?
-  
-  // Billing data (saved from master)
-  billingName       String
-  billingBankName   String
-  billingBankAccount String
+  id                     String          @id @default(cuid())
+  invoiceId              String          @unique
+  planningId             String?
+  companyName            String
+  companyAddress         String
+  companyCity            String
+  companyProvince        String
+  companyPostalCode      String?
+  companyTelp            String?
+  companyEmail           String?
+  productionDate         DateTime
+  billTo                 String
+  notes                  String?
+  billingName            String
+  billingBankName        String
+  billingBankAccount     String
   billingBankAccountName String
-  billingKtp        String?
-  billingNpwp       String?
-  
-  // Signature data (saved from master)
-  signatureName     String
-  signatureRole     String?
-  signatureImageData String
-  
-  pph               String // PPh percentage/type
-  totalAmount       Float
-  status            String              @default("draft") // draft, pending, or paid
-  generatedExpenseId String?           // ID of auto-generated expense
-  
-  items             InvoiceItem[]
-  remarks           InvoiceRemark[]
-  expenses          Expense[]           // Track expenses when invoice is paid
-  
-  deletedAt         DateTime?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  
+  billingKtp             String?
+  billingNpwp            String?
+  signatureName          String
+  signatureRole          String?
+  signatureImageData     String
+  pph                    String
+  totalAmount            Float
+  status                 String          @default("draft")
+  generatedExpenseId     String?
+  deletedAt              DateTime?
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+  expenses               Expense[]
+  items                  InvoiceItem[]
+  remarks                InvoiceRemark[]
+
   @@index([status, deletedAt])
   @@index([invoiceId])
   @@index([productionDate])
   @@index([updatedAt])
+  @@index([productionDate, status, deletedAt])
+  @@index([status, updatedAt, deletedAt])
+  @@index([companyName])
+  @@index([planningId])
 }
 
 model InvoiceItem {
-  id          String                @id @default(cuid())
+  id          String              @id @default(cuid())
   invoiceId   String
-  invoice     Invoice               @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   productName String
-  total       Float                 // Sum of all child amounts
+  total       Float
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  invoice     Invoice             @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   details     InvoiceItemDetail[]
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
+
+  @@index([invoiceId])
 }
 
 model InvoiceItemDetail {
-  id               String         @id @default(cuid())
-  invoiceItemId    String
-  invoiceItem      InvoiceItem    @relation(fields: [invoiceItemId], references: [id], onDelete: Cascade)
-  detail           String
-  unitPrice        Float
-  qty              Float
-  amount           Float          // unitPrice * qty
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  id            String      @id @default(cuid())
+  invoiceItemId String
+  detail        String
+  unitPrice     Float
+  qty           Float
+  amount        Float
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  invoiceItem   InvoiceItem @relation(fields: [invoiceItemId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceItemId])
 }
 
 model InvoiceRemark {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   invoiceId   String
-  invoice     Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   text        String
-  isCompleted Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  isCompleted Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
 }
 
 model Expense {
-  id                String              @id @default(cuid())
-  expenseId         String              @unique // EXP-YYYY-NNNN format
-  
-  // Reference to invoice (optional - expenses can be created manually)
-  invoiceId         String?
-  invoice           Invoice?            @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  
-  // Planning reference (if invoice came from planning flow)
-  planningId        String?
-  
-  // Basic info
-  projectName       String
-  productionDate    DateTime            // Required production date
-  clientBudget      Float               @default(0) // Total client budget (auto-filled from planning if available)
-  paidAmount        Float               @default(0) // Amount actually paid by client (from invoice total after tax)
-  
-  // Item totals (for reference)
-  totalItemBudgeted Float               @default(0) // Sum of budgeted from expense items
-  totalItemDifferences Float            @default(0) // Sum of differences from expense items
-  
-  notes             String?
-  status            String              @default("draft") // draft or final
-  
-  items             ExpenseItem[]
-  
-  deletedAt         DateTime?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  
+  id                   String        @id @default(cuid())
+  expenseId            String        @unique
+  invoiceId            String?
+  planningId           String?
+  projectName          String
+  productionDate       DateTime
+  clientBudget         Float         @default(0)
+  paidAmount           Float         @default(0)
+  totalItemBudgeted    Float         @default(0)
+  totalItemDifferences Float         @default(0)
+  notes                String?
+  status               String        @default("draft")
+  deletedAt            DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  invoice              Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  items                ExpenseItem[]
+
   @@index([status, deletedAt])
   @@index([expenseId])
   @@index([productionDate])
   @@index([updatedAt])
+  @@index([productionDate, status, deletedAt])
+  @@index([status, updatedAt, deletedAt])
+  @@index([invoiceId])
+  @@index([planningId])
 }
 
 model ExpenseItem {
-  id            String      @id @default(cuid())
-  expenseId     String
-  expense       Expense     @relation(fields: [expenseId], references: [id], onDelete: Cascade)
-  productName   String
-  budgeted      Float       // From invoice/planning
-  actual        Float       // Actual expense incurred
-  difference    Float       // budgeted - actual
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id          String   @id @default(cuid())
+  expenseId   String
+  productName String
+  budgeted    Float
+  actual      Float
+  difference  Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  expense     Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  @@index([expenseId])
+  @@index([productName])
 }
 
-// Special Cases
 model ParagonTicket {
-  id                String              @id @default(cuid())
-  ticketId          String              @unique // PRG-YYYY-NNNN format
-  quotationId       String              @default("") @unique // QTN-YYYY-NNNN format (from main quotation database)
-  invoiceId         String              @default("") @unique // INV-YYYY-NNNN format (from main invoice database)
-  
-  // Company data (saved from master)
-  companyName       String
-  companyAddress    String
-  companyCity       String
-  companyProvince   String
-  companyPostalCode String?
-  companyTelp       String?
-  companyEmail      String?
-  
-  // Dates
-  productionDate    DateTime
-  quotationDate     DateTime
-  invoiceBastDate   DateTime
-  
-  // Client contact info (instead of billing)
-  billTo            String
-  contactPerson     String
-  contactPosition   String
-  
-  // Signature data (saved from master)
-  signatureName     String
-  signatureRole     String?
+  id                 String                @id @default(cuid())
+  ticketId           String                @unique
+  quotationId        String                @unique @default("")
+  invoiceId          String                @unique @default("")
+  companyName        String
+  companyAddress     String
+  companyCity        String
+  companyProvince    String
+  companyPostalCode  String?
+  companyTelp        String?
+  companyEmail       String?
+  productionDate     DateTime
+  quotationDate      DateTime
+  invoiceBastDate    DateTime
+  billTo             String
+  contactPerson      String
+  contactPosition    String
+  signatureName      String
+  signatureRole      String?
   signatureImageData String
-  
-  // Screenshot final work (for BAST)
-  finalWorkImageData String?           // Base64 image data
-  
-  pph               String // PPh percentage/type
-  totalAmount       Float
-  status            String              @default("draft") // draft, pending, or accepted
-  generatedInvoiceId String?           // ID of auto-generated invoice
-  
-  items             ParagonTicketItem[]
-  remarks           ParagonTicketRemark[]
-  
-  deletedAt         DateTime?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  
+  finalWorkImageData String?
+  pph                String
+  totalAmount        Float
+  status             String                @default("draft")
+  generatedInvoiceId String?
+  deletedAt          DateTime?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  items              ParagonTicketItem[]
+  remarks            ParagonTicketRemark[]
+
   @@index([status, deletedAt])
   @@index([ticketId])
   @@index([updatedAt])
+  @@index([productionDate, status, deletedAt])
 }
 
 model ParagonTicketItem {
-  id          String                @id @default(cuid())
+  id          String                    @id @default(cuid())
   ticketId    String
-  ticket      ParagonTicket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   productName String
-  total       Float                 // Sum of all child amounts
+  total       Float
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+  ticket      ParagonTicket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   details     ParagonTicketItemDetail[]
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
+
+  @@index([ticketId])
 }
 
 model ParagonTicketItemDetail {
-  id          String            @id @default(cuid())
-  itemId      String
-  item        ParagonTicketItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  detail      String
-  unitPrice   Float
-  qty         Float
-  amount      Float
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  id        String            @id @default(cuid())
+  itemId    String
+  detail    String
+  unitPrice Float
+  qty       Float
+  amount    Float
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  item      ParagonTicketItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
 }
 
 model ParagonTicketRemark {
   id          String        @id @default(cuid())
   ticketId    String
-  ticket      ParagonTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   text        String
   isCompleted Boolean       @default(false)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+  ticket      ParagonTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
 }
 
-// Erha Special Case
 model ErhaTicket {
-  id                String              @id @default(cuid())
-  ticketId          String              @unique // ERH-YYYY-NNNN format
-  quotationId       String              @default("") @unique // QTN-YYYY-NNNN format (from main quotation database)
-  invoiceId         String              @default("") @unique // INV-YYYY-NNNN format (from main invoice database)
-  
-  // Company data (saved from master)
-  companyName       String
-  companyAddress    String
-  companyCity       String
-  companyProvince   String
-  companyPostalCode String?
-  companyTelp       String?
-  companyEmail      String?
-  
-  // Dates
-  productionDate    DateTime
-  quotationDate     DateTime
-  invoiceBastDate   DateTime
-  
-  // Client contact info
-  billTo            String
-  billToAddress     String              @default("")
-  contactPerson     String
-  contactPosition   String
-  
-  // Billing data (saved from master)
-  billingName       String
-  billingBankName   String
-  billingBankAccount String
+  id                     String             @id @default(cuid())
+  ticketId               String             @unique
+  quotationId            String             @unique @default("")
+  invoiceId              String             @unique @default("")
+  companyName            String
+  companyAddress         String
+  companyCity            String
+  companyProvince        String
+  companyPostalCode      String?
+  companyTelp            String?
+  companyEmail           String?
+  productionDate         DateTime
+  quotationDate          DateTime
+  invoiceBastDate        DateTime
+  billTo                 String
+  billToAddress          String             @default("")
+  contactPerson          String
+  contactPosition        String
+  billingName            String
+  billingBankName        String
+  billingBankAccount     String
   billingBankAccountName String
-  billingKtp        String?
-  billingNpwp       String?
-  
-  // Signature data (saved from master)
-  signatureName     String
-  signatureRole     String?
-  signatureImageData String
-  
-  // Screenshot final work (for BAST)
-  finalWorkImageData String?           // Base64 image data
-  
-  pph               String // PPh percentage/type
-  totalAmount       Float
-  status            String              @default("draft") // draft, pending, or accepted
-  generatedInvoiceId String?           // ID of auto-generated invoice
-  
-  items             ErhaTicketItem[]
-  remarks           ErhaTicketRemark[]
-  
-  deletedAt         DateTime?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  
+  billingKtp             String?
+  billingNpwp            String?
+  signatureName          String
+  signatureRole          String?
+  signatureImageData     String
+  finalWorkImageData     String?
+  pph                    String
+  totalAmount            Float
+  status                 String             @default("draft")
+  generatedInvoiceId     String?
+  deletedAt              DateTime?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  items                  ErhaTicketItem[]
+  remarks                ErhaTicketRemark[]
+
   @@index([status, deletedAt])
   @@index([ticketId])
   @@index([updatedAt])
+  @@index([productionDate, status, deletedAt])
 }
 
 model ErhaTicketItem {
-  id          String                @id @default(cuid())
+  id          String                 @id @default(cuid())
   ticketId    String
-  ticket      ErhaTicket            @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   productName String
-  total       Float                 // Sum of all child amounts
+  total       Float
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  ticket      ErhaTicket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   details     ErhaTicketItemDetail[]
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
+
+  @@index([ticketId])
 }
 
 model ErhaTicketItemDetail {
-  id          String            @id @default(cuid())
-  itemId      String
-  item        ErhaTicketItem    @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  detail      String
-  unitPrice   Float
-  qty         Float
-  amount      Float
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  id        String         @id @default(cuid())
+  itemId    String
+  detail    String
+  unitPrice Float
+  qty       Float
+  amount    Float
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  item      ErhaTicketItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
 }
 
 model ErhaTicketRemark {
-  id          String        @id @default(cuid())
+  id          String     @id @default(cuid())
   ticketId    String
-  ticket      ErhaTicket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   text        String
-  isCompleted Boolean       @default(false)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  isCompleted Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  ticket      ErhaTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
 }
 
-// Gear Expenses - Expenses outside of projects
 model GearExpense {
-  id          String    @id @default(cuid())
-  name        String
-  amount      Float
-  date        DateTime? // Optional date of the expense
-  year        Int       // Year the expense belongs to
-  deletedAt   DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
+  id        String    @id @default(cuid())
+  name      String
+  amount    Float
+  date      DateTime?
+  year      Int
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
   @@index([year, deletedAt])
 }
 
-// Big Expenses - Large expenses outside of projects
 model BigExpense {
-  id          String    @id @default(cuid())
-  name        String
-  amount      Float
-  date        DateTime? // Optional date of the expense
-  year        Int       // Year the expense belongs to
-  deletedAt   DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
+  id        String    @id @default(cuid())
+  name      String
+  amount    Float
+  date      DateTime?
+  year      Int
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
   @@index([year, deletedAt])
 }
 
-// Quotation Templates - Reusable quotation packages
 model QuotationTemplate {
-  id          String                   @id @default(cuid())
-  name        String                   @unique
-  items       QuotationTemplateItem[]
-  deletedAt   DateTime?
-  createdAt   DateTime                 @default(now())
-  updatedAt   DateTime                 @updatedAt
-  
+  id        String                  @id @default(cuid())
+  name      String                  @unique
+  deletedAt DateTime?
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+  items     QuotationTemplateItem[]
+
   @@index([deletedAt])
 }
 
 model QuotationTemplateItem {
   id          String                        @id @default(cuid())
   templateId  String
-  template    QuotationTemplate             @relation(fields: [templateId], references: [id], onDelete: Cascade)
   productName String
-  details     QuotationTemplateItemDetail[]
   createdAt   DateTime                      @default(now())
   updatedAt   DateTime                      @updatedAt
+  template    QuotationTemplate             @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  details     QuotationTemplateItemDetail[]
+
+  @@index([templateId])
 }
 
 model QuotationTemplateItemDetail {
-  id        String                 @id @default(cuid())
+  id        String                @id @default(cuid())
   itemId    String
-  item      QuotationTemplateItem  @relation(fields: [itemId], references: [id], onDelete: Cascade)
   detail    String
   unitPrice Float
   qty       Float
-  createdAt DateTime               @default(now())
-  updatedAt DateTime               @updatedAt
-}
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+  item      QuotationTemplateItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
+  @@index([itemId])
+}

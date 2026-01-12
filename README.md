@@ -1,31 +1,5 @@
 # Financial Master Dashboard
 
-A comprehensive financial management dashboard for tracking quotations, invoices, expenses, and project planning.
-
-## Features
-
-- 📋 **Planning** - Create project plans with budgets and generate quotations
-- 📄 **Quotation** - Generate and manage quotations with PDF export
-- 🧾 **Invoice** - Track invoices with status management (Draft → Pending → Paid)
-- 💰 **Expense** - Track project expenses and calculate profit margins
-- 🏢 **Master Data** - Manage companies, products, billings, and signatures
-- 📊 **Dashboard** - Financial overview with yearly statistics
-- 🎫 **Special Cases** - Paragon and Erha ticket management
-- 📱 **PDF Export** - Generate professional PDFs for all documents
-- 🌙 **Dark Mode** - Full dark mode support
-
-## Tech Stack
-
-- **Framework:** Next.js 16 (App Router)
-- **Database:** PostgreSQL (Railway)
-- **ORM:** Prisma
-- **Styling:** Tailwind CSS v4
-- **UI Components:** shadcn/ui + Radix UI
-- **PDF Generation:** @react-pdf/renderer
-- **Charts:** Recharts
-
----
-
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -85,51 +59,13 @@ Open [http://localhost:3000](http://localhost:3000) to view the app.
 
 ---
 
-## 📁 Project Structure
-
-```
-master-dashboard/
-├── app/                    # Next.js App Router pages
-│   ├── api/               # API routes
-│   ├── planning/          # Planning pages
-│   ├── quotation/         # Quotation pages
-│   ├── invoice/           # Invoice pages
-│   ├── expense/           # Expense pages
-│   ├── companies/         # Company master data
-│   ├── products/          # Product master data
-│   ├── billings/          # Billing master data
-│   ├── signatures/        # Signature master data
-│   └── special-case/      # Paragon & Erha tickets
-├── components/            # React components
-│   ├── ui/               # UI components (shadcn/ui)
-│   ├── pdf/              # PDF templates
-│   └── layout/           # Layout components
-├── lib/                   # Utility functions
-├── hooks/                 # Custom React hooks
-├── prisma/               # Prisma schema
-└── public/               # Static assets
-```
-
----
-
 ## 🔧 Available Scripts
 
 ```bash
 npm run dev      # Start development server
 npm run build    # Build for production
 npm run start    # Start production server
-npm run lint     # Run ESLint
 ```
-
-### Prisma Commands
-
-```bash
-npx prisma generate    # Generate Prisma client
-npx prisma db push     # Push schema to database
-npx prisma studio      # Open Prisma Studio (database GUI)
-```
-
----
 
 ## 🌐 Deployment (Railway)
 
@@ -153,66 +89,3 @@ git push origin main
 6. Deploy!
 
 The app will automatically deploy on every push to your GitHub repository.
-
----
-
-## 📝 Usage Guide
-
-### Document Flow
-
-```
-Planning → Quotation → Invoice → Expense
-   ↓           ↓           ↓         ↓
- Draft      Draft       Draft     Draft
-   ↓           ↓           ↓         ↓
- Final     Pending     Pending    Final
-             ↓           ↓
-          Accepted     Paid
-```
-
-### Status Meanings
-
-| Document | Status | Editable |
-|----------|--------|----------|
-| Planning | Draft | ✅ Yes |
-| Planning | Final | ❌ No (generates quotation) |
-| Quotation | Draft | ✅ Yes |
-| Quotation | Pending | ✅ Yes |
-| Quotation | Accepted | ❌ No (can generate invoice) |
-| Invoice | Draft | ✅ Yes |
-| Invoice | Pending | ✅ Yes |
-| Invoice | Paid | ❌ No (creates expense) |
-| Expense | Draft | ✅ Yes |
-| Expense | Final | ❌ No |
-
----
-
-## 🛡️ Backup
-
-Railway PostgreSQL automatically handles backups for you:
-
-- **Automatic Backups**: Railway takes daily snapshots of your database
-- **Point-in-time Recovery**: Restore your database to any point in time
-- **Backup Retention**: Backups are retained according to your Railway plan
-
-You can also manually export data:
-
-1. Use Prisma Studio to view/export data: `npx prisma studio`
-2. Export data via Railway dashboard
-3. Use `pg_dump` for full database backup if needed
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-This project is private and for internal use only.
