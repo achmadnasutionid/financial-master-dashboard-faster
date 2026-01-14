@@ -489,30 +489,30 @@ export default function CreateQuotationPage() {
       setAutoSaveStatus("saving")
     }
     try {
-      const company = companies.find(c => c.id === selectedCompanyId)!
-      const billing = billings.find(b => b.id === selectedBillingId)!
-      const signature = signatures.find(s => s.id === selectedSignatureId)!
+      const company = companies.find(c => c.id === selectedCompanyId)
+      const billing = billings.find(b => b.id === selectedBillingId)
+      const signature = signatures.find(s => s.id === selectedSignatureId)
 
       const payload = {
-        companyName: company.name,
-        companyAddress: company.address,
-        companyCity: company.city,
-        companyProvince: company.province,
-        companyPostalCode: company.postalCode,
-        companyTelp: company.telp,
-        companyEmail: company.email,
-        productionDate: productionDate!.toISOString(),
+        companyName: company?.name || "",
+        companyAddress: company?.address || "",
+        companyCity: company?.city || "",
+        companyProvince: company?.province || "",
+        companyPostalCode: company?.postalCode || null,
+        companyTelp: company?.telp || null,
+        companyEmail: company?.email || null,
+        productionDate: productionDate?.toISOString() || new Date().toISOString(),
         billTo: billTo.trim(),
         notes: notes.trim() || null,
-        billingName: billing.name,
-        billingBankName: billing.bankName,
-        billingBankAccount: billing.bankAccount,
-        billingBankAccountName: billing.bankAccountName,
-        billingKtp: billing.ktp,
-        billingNpwp: billing.npwp,
-        signatureName: signature.name,
-        signatureRole: signature.role,
-        signatureImageData: signature.imageData,
+        billingName: billing?.name || "",
+        billingBankName: billing?.bankName || "",
+        billingBankAccount: billing?.bankAccount || "",
+        billingBankAccountName: billing?.bankAccountName || "",
+        billingKtp: billing?.ktp || null,
+        billingNpwp: billing?.npwp || null,
+        signatureName: signature?.name || "",
+        signatureRole: signature?.role || null,
+        signatureImageData: signature?.imageData || "",
         pph,
         totalAmount: calculateTotalAmount(),
         status,
@@ -976,7 +976,7 @@ export default function CreateQuotationPage() {
                     type="button"
                     variant="outline"
                     onClick={() => handleSubmit("draft")}
-                    disabled={saving}
+                    disabled={saving || autoSaveStatus === "saving"}
                   >
                     <Save className="mr-2 h-4 w-4" />
                     Save as Draft
@@ -984,7 +984,7 @@ export default function CreateQuotationPage() {
                   <Button
                     type="button"
                     onClick={() => handleSubmit("pending")}
-                    disabled={saving}
+                    disabled={saving || autoSaveStatus === "saving"}
                   >
                     <Save className="mr-2 h-4 w-4" />
                     Save as Pending

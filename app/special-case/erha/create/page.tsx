@@ -523,34 +523,34 @@ export default function CreateErhaTicketPage() {
       setAutoSaveStatus("saving")
     }
     try {
-      const company = companies.find(c => c.id === selectedCompanyId)!
-      const billing = billings.find(b => b.id === selectedBillingId)!
-      const signature = signatures.find(s => s.id === selectedSignatureId)!
+      const company = companies.find(c => c.id === selectedCompanyId)
+      const billing = billings.find(b => b.id === selectedBillingId)
+      const signature = signatures.find(s => s.id === selectedSignatureId)
 
       const payload = {
-        companyName: company.name,
-        companyAddress: company.address,
-        companyCity: company.city,
-        companyProvince: company.province,
-        companyPostalCode: company.postalCode,
-        companyTelp: company.telp,
-        companyEmail: company.email,
-        productionDate: productionDate!.toISOString(),
-        quotationDate: quotationDate!.toISOString(),
-        invoiceBastDate: invoiceBastDate!.toISOString(),
+        companyName: company?.name || "",
+        companyAddress: company?.address || "",
+        companyCity: company?.city || "",
+        companyProvince: company?.province || "",
+        companyPostalCode: company?.postalCode || null,
+        companyTelp: company?.telp || null,
+        companyEmail: company?.email || null,
+        productionDate: productionDate?.toISOString() || new Date().toISOString(),
+        quotationDate: quotationDate?.toISOString() || new Date().toISOString(),
+        invoiceBastDate: invoiceBastDate?.toISOString() || new Date().toISOString(),
         billTo: billTo.trim(),
         billToAddress: billToAddress.trim(),
         contactPerson: contactPerson.trim(),
         contactPosition: contactPosition.trim(),
-        billingName: billing.name,
-        billingBankName: billing.bankName,
-        billingBankAccount: billing.bankAccount,
-        billingBankAccountName: billing.bankAccountName,
-        billingKtp: billing.ktp || null,
-        billingNpwp: billing.npwp || null,
-        signatureName: signature.name,
-        signatureRole: signature.role || null,
-        signatureImageData: signature.imageData,
+        billingName: billing?.name || "",
+        billingBankName: billing?.bankName || "",
+        billingBankAccount: billing?.bankAccount || "",
+        billingBankAccountName: billing?.bankAccountName || "",
+        billingKtp: billing?.ktp || null,
+        billingNpwp: billing?.npwp || null,
+        signatureName: signature?.name || "",
+        signatureRole: signature?.role || null,
+        signatureImageData: signature?.imageData || "",
         finalWorkImageData: finalWorkImage || null,
         pph,
         totalAmount: calculateTotalAmount(),
@@ -1146,7 +1146,7 @@ export default function CreateErhaTicketPage() {
                     type="button"
                     variant="outline"
                     onClick={() => handleSubmit("draft")}
-                    disabled={saving}
+                    disabled={saving || autoSaveStatus === "saving"}
                   >
                     <Save className="mr-2 h-4 w-4" />
                     Save as Draft

@@ -114,51 +114,54 @@ export async function POST(request: Request) {
       const quotationId = `QTN-${year}-${nextQuotationNum.toString().padStart(4, "0")}`
       const invoiceId = `INV-${year}-${nextInvoiceNum.toString().padStart(4, "0")}`
 
+      // For drafts, provide defaults for required fields if not provided
+      const isDraft = body.status === "draft"
+
       // Create ticket atomically
       return tx.paragonTicket.create({
         data: {
           ticketId,
           quotationId,
           invoiceId,
-          companyName: body.companyName,
-          companyAddress: body.companyAddress,
-          companyCity: body.companyCity,
-          companyProvince: body.companyProvince,
+          companyName: body.companyName || (isDraft ? "" : body.companyName),
+          companyAddress: body.companyAddress || (isDraft ? "" : body.companyAddress),
+          companyCity: body.companyCity || (isDraft ? "" : body.companyCity),
+          companyProvince: body.companyProvince || (isDraft ? "" : body.companyProvince),
           companyPostalCode: body.companyPostalCode || null,
           companyTelp: body.companyTelp || null,
           companyEmail: body.companyEmail || null,
-          productionDate: new Date(body.productionDate),
-          quotationDate: new Date(body.quotationDate),
-          invoiceBastDate: new Date(body.invoiceBastDate),
-          billTo: body.billTo,
-          contactPerson: body.contactPerson,
-          contactPosition: body.contactPosition,
-          signatureName: body.signatureName,
+          productionDate: body.productionDate ? new Date(body.productionDate) : new Date(),
+          quotationDate: body.quotationDate ? new Date(body.quotationDate) : new Date(),
+          invoiceBastDate: body.invoiceBastDate ? new Date(body.invoiceBastDate) : new Date(),
+          billTo: body.billTo || (isDraft ? "" : body.billTo),
+          contactPerson: body.contactPerson || (isDraft ? "" : body.contactPerson),
+          contactPosition: body.contactPosition || (isDraft ? "" : body.contactPosition),
+          signatureName: body.signatureName || (isDraft ? "" : body.signatureName),
           signatureRole: body.signatureRole || null,
-          signatureImageData: body.signatureImageData,
+          signatureImageData: body.signatureImageData || (isDraft ? "" : body.signatureImageData),
           finalWorkImageData: body.finalWorkImageData || null,
-          pph: body.pph,
-          totalAmount: parseFloat(body.totalAmount),
+          pph: body.pph || (isDraft ? "" : body.pph),
+          totalAmount: body.totalAmount ? parseFloat(body.totalAmount) : 0,
           status: body.status || "draft",
           items: {
             create: body.items?.map((item: any) => ({
-              productName: item.productName,
-              total: parseFloat(item.total),
+              productName: item.productName || "",
+              total: item.total ? parseFloat(item.total) : 0,
               details: {
                 create: item.details?.map((detail: any) => ({
-                  detail: detail.detail,
-                  unitPrice: parseFloat(detail.unitPrice),
-                  qty: parseFloat(detail.qty),
-                  amount: parseFloat(detail.amount)
-                }))
+                  detail: detail.detail || "",
+                  unitPrice: detail.unitPrice ? parseFloat(detail.unitPrice) : 0,
+                  qty: detail.qty ? parseFloat(detail.qty) : 0,
+                  amount: detail.amount ? parseFloat(detail.amount) : 0
+                })) || []
               }
-            }))
+            })) || []
           },
           remarks: {
             create: body.remarks?.map((remark: any) => ({
-              text: remark.text,
+              text: remark.text || "",
               isCompleted: remark.isCompleted || false
-            }))
+            })) || []
           }
         },
         include: {
