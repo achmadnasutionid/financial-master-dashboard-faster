@@ -224,8 +224,18 @@ export default function CreateParagonTicketPage() {
 
   const updateItemName = (itemId: string, productName: string) => {
     markInteracted()
-    // Auto-capitalize if not from master data, with normalized space comparison
-    const finalName = formatProductName(productName, products)
+    // Just update the raw name (allow spaces while typing)
+    setItems(items.map(item => 
+      item.id === itemId ? { ...item, productName } : item
+    ))
+  }
+
+  const formatItemName = (itemId: string) => {
+    const item = items.find(i => i.id === itemId)
+    if (!item || !item.productName.trim()) return
+    
+    // Format on blur: Auto-capitalize if not from master data, normalize spaces
+    const finalName = formatProductName(item.productName, products)
     
     // Check if this product exists in master data and has details
     const masterProduct = productDetails.find((p: any) => 
@@ -257,7 +267,7 @@ export default function CreateParagonTicketPage() {
         }
       }
       
-      // No master data details, just update name
+      // No master data details, just update formatted name
       return { ...item, productName: finalName }
     }))
   }
@@ -877,6 +887,7 @@ export default function CreateParagonTicketPage() {
                               <Input
                                 value={item.productName}
                                 onChange={(e) => updateItemName(item.id, e.target.value)}
+                                onBlur={() => formatItemName(item.id)}
                                 placeholder="Type or select product"
                                 list={`products-${item.id}`}
                               />

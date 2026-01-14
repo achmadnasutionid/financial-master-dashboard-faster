@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { FileText, Package, Settings } from "lucide-react"
+import { FileText, Package, Settings, Check, X } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
@@ -32,17 +32,19 @@ interface QuotationTemplate {
 interface TemplateSelectionModalProps {
   open: boolean
   onClose: () => void
-  onSelect: (template: QuotationTemplate | null) => void
+  onSelect: (templates: QuotationTemplate[] | null) => void
 }
 
 export function TemplateSelectionModal({ open, onClose, onSelect }: TemplateSelectionModalProps) {
   const router = useRouter()
   const [templates, setTemplates] = useState<QuotationTemplate[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedTemplates, setSelectedTemplates] = useState<QuotationTemplate[]>([])
 
   useEffect(() => {
     if (open) {
       fetchTemplates()
+      setSelectedTemplates([]) // Reset selection when modal opens
     }
   }, [open])
 
@@ -73,9 +75,38 @@ export function TemplateSelectionModal({ open, onClose, onSelect }: TemplateSele
     onClose()
   }
 
-  const handleSelectTemplate = (template: QuotationTemplate) => {
-    onSelect(template)
+  const handleToggleTemplate = (template: QuotationTemplate) => {
+    setSelectedTemplates(prev => {
+      const isSelected = prev.some(t => t.id === template.id)
+      if (isSelected) {
+        // Remove from selection
+        return prev.filter(t => t.id !== template.id)
+      } else {
+        // Add to selection (maintains order of selection)
+        return [...prev, template]
+      }
+    })
+  }
+
+  const handleConfirmSelection = () => {
+    if (selectedTemplates.length === 0) {
+      toast.warning("No templates selected", {
+        description: "Please select at least one template or choose blank quotation."
+      })
+      return
+    }
+    
+    onSelect(selectedTemplates)
     onClose()
+  }
+
+  const isTemplateSelected = (templateId: string) => {
+    return selectedTemplates.some(t => t.id === templateId)
+  }
+
+  const getSelectionOrder = (templateId: string) => {
+    const index = selectedTemplates.findIndex(t => t.id === templateId)
+    return index >= 0 ? index + 1 : null
   }
 
   return (
@@ -84,7 +115,7 @@ export function TemplateSelectionModal({ open, onClose, onSelect }: TemplateSele
         <DialogHeader>
           <DialogTitle>Select Starting Point</DialogTitle>
           <DialogDescription>
-            Choose a template to start with, or create a blank quotation
+            Choose one or more templates to start with, or create a blank quotation. Items will be added in the order you select.
           </DialogDescription>
         </DialogHeader>
 
@@ -128,19 +159,36 @@ export function TemplateSelectionModal({ open, onClose, onSelect }: TemplateSele
                 {/* Template Cards */}
                 {templates.map((template) => {
                   const estimatedTotal = calculateEstimatedTotal(template.items)
+                  const isSelected = isTemplateSelected(template.id)
+                  const selectionOrder = getSelectionOrder(template.id)
 
                   return (
                     <Card
                       key={template.id}
-                      className="cursor-pointer transition-all hover:shadow-lg hover:border-primary"
-                      onClick={() => handleSelectTemplate(template)}
+                      className={`cursor-pointer transition-all hover:shadow-lg relative ${
+                        isSelected 
+                          ? "border-2 border-primary bg-primary/5" 
+                          : "hover:border-primary"
+                      }`}
+                      onClick={() => handleToggleTemplate(template)}
                     >
+                      {/* Selection Badge */}
+                      {isSelected && (
+                        <div className="absolute top-2 right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                          {selectionOrder}
+                        </div>
+                      )}
+                      
                       <CardHeader className="pb-2">
                         <div className="flex items-center gap-2">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-100">
-                            <Package className="h-4 w-4" />
+                          <div className={`flex h-8 w-8 items-center justify-center rounded-md ${
+                            isSelected 
+                              ? "bg-primary text-primary-foreground" 
+                              : "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-100"
+                          }`}>
+                            {isSelected ? <Check className="h-4 w-4" /> : <Package className="h-4 w-4" />}
                           </div>
-                          <CardTitle className="text-base truncate flex-1">{template.name}</CardTitle>
+                          <CardTitle className="text-base truncate flex-1 pr-6">{template.name}</CardTitle>
                         </div>
                       </CardHeader>
                       <CardContent className="pb-3">
@@ -177,6 +225,32 @@ export function TemplateSelectionModal({ open, onClose, onSelect }: TemplateSele
             </>
           )}
         </div>
+
+        {/* Footer with confirm/cancel buttons */}
+        {selectedTemplates.length > 0 && (
+          <DialogFooter>
+            <div className="flex w-full items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                {selectedTemplates.length} template{selectedTemplates.length > 1 ? 's' : ''} selected
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedTemplates([])}
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Clear Selection
+                </Button>
+                <Button
+                  onClick={handleConfirmSelection}
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  Confirm Selection
+                </Button>
+              </div>
+            </div>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   )

@@ -160,27 +160,34 @@ export default function CreateQuotationPage() {
   }
 
   // Handle template selection
-  const handleTemplateSelect = (template: any) => {
+  const handleTemplateSelect = (templates: any[] | null) => {
     setTemplateSelected(true)
     
-    if (template) {
-      // Convert template items to form items
-      const formItems = template.items.map((item: any) => ({
-        id: Date.now().toString() + Math.random(),
-        productName: item.productName,
-        details: item.details.map((detail: any) => ({
-          id: `detail-${Date.now()}-${Math.random()}`,
-          detail: detail.detail,
-          unitPrice: detail.unitPrice.toString(),
-          qty: detail.qty.toString(),
-          amount: detail.unitPrice * detail.qty
-        })),
-        total: item.details.reduce((sum: number, d: any) => sum + (d.unitPrice * d.qty), 0)
-      }))
+    if (templates && templates.length > 0) {
+      // Merge all template items in the order templates were selected
+      const allFormItems: Item[] = []
       
-      setItems(formItems)
+      templates.forEach((template: any) => {
+        const templateItems = template.items.map((item: any) => ({
+          id: `${Date.now()}-${Math.random()}`,
+          productName: item.productName,
+          details: item.details.map((detail: any) => ({
+            id: `detail-${Date.now()}-${Math.random()}`,
+            detail: detail.detail,
+            unitPrice: detail.unitPrice.toString(),
+            qty: detail.qty.toString(),
+            amount: detail.unitPrice * detail.qty
+          })),
+          total: item.details.reduce((sum: number, d: any) => sum + (d.unitPrice * d.qty), 0)
+        }))
+        
+        allFormItems.push(...templateItems)
+      })
       
-      toast.success(`Template "${template.name}" loaded`)
+      setItems(allFormItems)
+      
+      const templateNames = templates.map(t => t.name).join(', ')
+      toast.success(`${templates.length} template(s) loaded: ${templateNames}`)
     }
   }
 
@@ -238,8 +245,18 @@ export default function CreateQuotationPage() {
 
   const updateItemName = (itemId: string, productName: string) => {
     markInteracted()
-    // Auto-capitalize if not from master data, with normalized space comparison
-    const finalName = formatProductName(productName, products)
+    // Just update the raw name (allow spaces while typing)
+    setItems(items.map(item => 
+      item.id === itemId ? { ...item, productName } : item
+    ))
+  }
+
+  const formatItemName = (itemId: string) => {
+    const item = items.find(i => i.id === itemId)
+    if (!item || !item.productName.trim()) return
+    
+    // Format on blur: Auto-capitalize if not from master data, normalize spaces
+    const finalName = formatProductName(item.productName, products)
     
     // Check if this product exists in master data and has details
     const masterProduct = productDetails.find((p: any) => 
@@ -271,7 +288,7 @@ export default function CreateQuotationPage() {
         }
       }
       
-      // No master data details, just update name
+      // No master data details, just update formatted name
       return { ...item, productName: finalName }
     }))
   }
@@ -797,6 +814,7 @@ export default function CreateQuotationPage() {
                               <Input
                                 value={item.productName}
                                 onChange={(e) => updateItemName(item.id, e.target.value)}
+                                onBlur={() => formatItemName(item.id)}
                                 placeholder="Type or select product"
                                 list={`products-${item.id}`}
                               />

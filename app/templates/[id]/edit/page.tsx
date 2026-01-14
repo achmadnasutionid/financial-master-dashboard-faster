@@ -133,8 +133,18 @@ export default function EditTemplatePage() {
   }
 
   const updateItemName = (itemId: string, productName: string) => {
-    // Auto-capitalize if not from master data, with normalized space comparison
-    const finalName = formatProductName(productName, products)
+    // Just update the raw name (allow spaces while typing)
+    setItems(items.map(item =>
+      item.id === itemId ? { ...item, productName } : item
+    ))
+  }
+
+  const formatItemName = (itemId: string) => {
+    const item = items.find(i => i.id === itemId)
+    if (!item || !item.productName.trim()) return
+    
+    // Format on blur: Auto-capitalize if not from master data, normalize spaces
+    const finalName = formatProductName(item.productName, products)
     setItems(items.map(item =>
       item.id === itemId ? { ...item, productName: finalName } : item
     ))
@@ -313,6 +323,7 @@ export default function EditTemplatePage() {
                               <Input
                                 value={item.productName}
                                 onChange={(e) => updateItemName(item.id, e.target.value)}
+                                onBlur={() => formatItemName(item.id)}
                                 placeholder="Type or select product"
                                 list={`products-${item.id}`}
                               />
