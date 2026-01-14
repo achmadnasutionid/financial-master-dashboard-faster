@@ -130,7 +130,7 @@ export default function EditExpensePage() {
     }
   }
 
-  // Debounced auto-save (2 seconds after last change)
+  // Debounced auto-save (30 seconds after last change)
   const debouncedAutoSave = useDebouncedCallback(
     async () => {
       if (!hasInteracted || !projectName.trim()) {
@@ -176,7 +176,7 @@ export default function EditExpensePage() {
         setAutoSaveStatus("error")
       }
     },
-    2000,
+    30000,
     [hasInteracted, projectName, productionDate, clientBudget, paidAmount, notes, expenseStatus, items, expenseId]
   )
 

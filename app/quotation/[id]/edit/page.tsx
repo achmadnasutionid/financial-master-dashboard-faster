@@ -309,7 +309,7 @@ export default function EditQuotationPage() {
         setAutoSaveStatus("error")
       }
     },
-    2000, // Debounce for 2 seconds
+    30000, // Debounce for 30 seconds
     [hasInteracted, selectedCompanyId, productionDate, billTo, selectedBillingId, selectedSignatureId, companies, billings, signatures, notes, pph, quotationStatus, remarks, items, quotationId]
   )
 
