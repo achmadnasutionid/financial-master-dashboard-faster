@@ -363,10 +363,11 @@ export default function EditInvoicePage() {
     setItems(items.map(item => {
       if (item.id !== itemId) return item
       
-      // If master product has details, auto-fill them
-      if (masterProduct && masterProduct.details && masterProduct.details.length > 0) {
+      // If master product has details AND current item has NO details (empty), auto-fill them
+      // Don't auto-fill if item already has details (to avoid losing existing data and causing DB errors)
+      if (masterProduct && masterProduct.details && masterProduct.details.length > 0 && item.details.length === 0) {
         const autoFilledDetails = masterProduct.details.map((detail: any) => ({
-          id: `detail-${Date.now()}-${Math.random()}`,
+          id: `temp-detail-${Date.now()}-${Math.random()}`,
           detail: detail.detail,
           unitPrice: detail.unitPrice.toString(),
           qty: detail.qty.toString(),
@@ -385,7 +386,7 @@ export default function EditInvoicePage() {
         }
       }
       
-      // No master data details, just update formatted name
+      // No master data details OR item already has details, just update formatted name
       return { ...item, productName: finalName }
     }))
   }
