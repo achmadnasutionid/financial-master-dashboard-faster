@@ -1071,7 +1071,7 @@ export default function EditInvoicePage() {
                       type="button"
                       variant="outline"
                       onClick={() => handleSubmit("draft")}
-                      disabled={saving}
+                      disabled={saving || autoSaveStatus === "saving"}
                     >
                       <Save className="mr-2 h-4 w-4" />
                       Save as Draft
@@ -1080,7 +1080,7 @@ export default function EditInvoicePage() {
                   <Button
                     type="button"
                     onClick={() => handleSubmit("pending")}
-                    disabled={saving}
+                    disabled={saving || autoSaveStatus === "saving"}
                   >
                     <Save className="mr-2 h-4 w-4" />
                     Save as Pending

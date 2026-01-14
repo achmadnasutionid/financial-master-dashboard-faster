@@ -806,7 +806,7 @@ export default function EditExpensePage() {
                     type="button"
                     variant="outline"
                     onClick={() => handleSubmit("draft")}
-                    disabled={saving}
+                    disabled={saving || autoSaveStatus === "saving"}
                   >
                     <Save className="mr-2 h-4 w-4" />
                     Save as Draft
@@ -814,7 +814,7 @@ export default function EditExpensePage() {
                   <Button
                     type="button"
                     onClick={() => setShowFinalizeDialog(true)}
-                    disabled={saving}
+                    disabled={saving || autoSaveStatus === "saving"}
                   >
                     <CheckCircle className="mr-2 h-4 w-4" />
                     Finalize Expense

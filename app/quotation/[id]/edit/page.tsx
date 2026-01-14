@@ -1074,7 +1074,7 @@ export default function EditQuotationPage() {
                       type="button"
                       variant="outline"
                       onClick={() => handleSubmit("draft")}
-                      disabled={saving}
+                      disabled={saving || autoSaveStatus === "saving"}
                     >
                       <Save className="mr-2 h-4 w-4" />
                       Save as Draft
@@ -1083,7 +1083,7 @@ export default function EditQuotationPage() {
                   <Button
                     type="button"
                     onClick={() => handleSubmit("pending")}
-                    disabled={saving}
+                    disabled={saving || autoSaveStatus === "saving"}
                   >
                     <Save className="mr-2 h-4 w-4" />
                     Save as Pending
