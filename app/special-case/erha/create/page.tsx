@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { DatePicker } from "@/components/ui/date-picker"
 import { CurrencyInput } from "@/components/ui/currency-input"
-import { Save, CheckCircle, Plus, Trash2 } from "lucide-react"
+import { Save, CheckCircle, Plus, Trash2, GripVertical } from "lucide-react"
+import { SortableItems } from "@/components/ui/sortable-items"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
@@ -230,6 +231,11 @@ export default function CreateErhaTicketPage() {
   const removeItem = (itemId: string) => {
     markInteracted()
     setItems(items.filter(item => item.id !== itemId))
+  }
+
+  const handleReorderItems = (reorderedItems: Item[]) => {
+    markInteracted()
+    setItems(reorderedItems)
   }
 
   const updateItemName = (itemId: string, productName: string) => {
@@ -974,9 +980,11 @@ export default function CreateErhaTicketPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {items.map((item, itemIndex) => (
-                      <Card key={item.id} className="border-2">
+                  <SortableItems
+                    items={items}
+                    onReorder={handleReorderItems}
+                    renderItem={(item, itemIndex) => (
+                      <Card className="border-2">
                         <CardContent className="space-y-4 pt-4">
                           {/* Product Header */}
                           <div className="flex items-start gap-3">
@@ -1093,8 +1101,8 @@ export default function CreateErhaTicketPage() {
                           </div>
                         </CardContent>
                       </Card>
-                    ))}
-                  </div>
+                    )}
+                  />
                 )}
 
                 {/* Add Product Button - Moved to bottom */}
