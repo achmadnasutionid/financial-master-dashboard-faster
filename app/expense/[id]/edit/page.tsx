@@ -185,7 +185,8 @@ export default function EditExpensePage() {
     if (hasInteracted) {
       debouncedAutoSave()
     }
-  }, [projectName, productionDate, clientBudget, paidAmount, notes, items, hasInteracted, debouncedAutoSave])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectName, productionDate, clientBudget, paidAmount, notes, items, hasInteracted])
 
   // Parse DD/MM/YYYY format to Date
   const parseDateInput = (input: string): Date | null => {

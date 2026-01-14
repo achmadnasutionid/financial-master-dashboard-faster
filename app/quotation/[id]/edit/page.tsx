@@ -317,7 +317,8 @@ export default function EditQuotationPage() {
     if (hasInteracted) {
       debouncedAutoSave()
     }
-  }, [selectedCompanyId, productionDate, billTo, notes, remarks, selectedBillingId, selectedSignatureId, pph, items, hasInteracted, debouncedAutoSave])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCompanyId, productionDate, billTo, notes, remarks, selectedBillingId, selectedSignatureId, pph, items, hasInteracted])
 
   // Item management functions (same as create page)
   const addItem = () => {
