@@ -180,12 +180,18 @@ const formatCurrency = (amount: number) => {
 }
 
 export const QuotationPDF: React.FC<QuotationPDFProps> = ({ data }) => {
+  // Ensure items is an array with valid structure
+  const safeItems = (data.items || []).map(item => ({
+    ...item,
+    details: (item.details || [])
+  }))
+  
   // Items total is the NET amount (after tax deduction)
-  const netAmount = data.items.reduce((sum, item) => sum + item.total, 0)
+  const netAmount = safeItems.reduce((sum, item) => sum + (item.total || 0), 0)
   
   // Calculate GROSS amount (before tax deduction)
   // Formula: Gross = Net × (100 / (100 - pph%))
-  const pphRate = parseFloat(data.pph)
+  const pphRate = parseFloat(data.pph || "0")
   const grossAmount = pphRate > 0 ? netAmount * (100 / (100 - pphRate)) : netAmount
   
   // PPh amount is the difference
@@ -279,11 +285,11 @@ export const QuotationPDF: React.FC<QuotationPDFProps> = ({ data }) => {
               <Text style={styles.col4}>Amount</Text>
             </View>
 
-            {data.items.map((item, itemIndex) => (
+            {safeItems.map((item, itemIndex) => (
               <View key={itemIndex} wrap={false}>
                 {/* Product Header Row - No Amount */}
                 <View style={[styles.tableRow, { backgroundColor: "#f9f9f9", fontWeight: "bold" }]}>
-                  <Text style={styles.col1}>{item.productName}</Text>
+                  <Text style={styles.col1}>{item.productName || ''}</Text>
                   <Text style={styles.col2}></Text>
                   <Text style={styles.col3}></Text>
                   <Text style={styles.col4}></Text>
@@ -292,10 +298,10 @@ export const QuotationPDF: React.FC<QuotationPDFProps> = ({ data }) => {
                 {/* Detail Rows */}
                 {item.details.map((detail, detailIndex) => (
                   <View key={detailIndex} style={styles.tableRow}>
-                    <Text style={styles.col1}>  • {detail.detail}</Text>
-                    <Text style={styles.col2}>{formatCurrency(detail.unitPrice)}</Text>
-                    <Text style={styles.col3}>{detail.qty}</Text>
-                    <Text style={styles.col4}>{formatCurrency(detail.amount)}</Text>
+                    <Text style={styles.col1}>  • {detail.detail || ''}</Text>
+                    <Text style={styles.col2}>{formatCurrency(detail.unitPrice || 0)}</Text>
+                    <Text style={styles.col3}>{detail.qty || 0}</Text>
+                    <Text style={styles.col4}>{formatCurrency(detail.amount || 0)}</Text>
                   </View>
                 ))}
               </View>
