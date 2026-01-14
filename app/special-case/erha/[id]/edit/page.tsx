@@ -605,11 +605,13 @@ export default function EditErhaTicketPage() {
         totalAmount: calculateTotalAmount(),
         status,
         items: items.map(item => ({
+          id: item.id,
           productName: item.productName,
           total: item.total,
           details: item.details
             .filter(detail => detail.detail.trim() || parseFloat(detail.unitPrice) || parseFloat(detail.qty))
             .map(detail => ({
+              id: detail.id,
               detail: detail.detail,
               unitPrice: parseFloat(detail.unitPrice) || 0,
               qty: parseFloat(detail.qty) || 0,
@@ -617,6 +619,7 @@ export default function EditErhaTicketPage() {
             }))
         })),
         remarks: remarks.filter(r => r.text.trim()).map(remark => ({
+          id: remark.id,
           text: remark.text,
           isCompleted: remark.isCompleted
         }))

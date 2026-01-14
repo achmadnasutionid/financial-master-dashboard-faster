@@ -605,15 +605,18 @@ export default function EditQuotationPage() {
         totalAmount: calculateTotalAmount(),
         status,
         remarks: remarks.map(remark => ({
+          id: remark.id,
           text: remark.text,
           isCompleted: remark.isCompleted
         })),
         items: items.map(item => ({
+          id: item.id,
           productName: item.productName,
           total: item.total,
           details: item.details
             .filter(detail => detail.detail.trim() || parseFloat(detail.unitPrice) || parseFloat(detail.qty))
             .map(detail => ({
+              id: detail.id,
               detail: detail.detail,
               unitPrice: parseFloat(detail.unitPrice) || 0,
               qty: parseFloat(detail.qty) || 0,
