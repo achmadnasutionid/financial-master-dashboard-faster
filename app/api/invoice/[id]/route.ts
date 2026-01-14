@@ -96,6 +96,13 @@ export async function PUT(
         }
       })
 
+      // Get existing item IDs from database
+      const existingItems = await tx.invoiceItem.findMany({
+        where: { invoiceId: id },
+        select: { id: true }
+      })
+      const existingItemIds = new Set(existingItems.map(item => item.id))
+
       // Collect IDs from incoming data
       const incomingItemIds = new Set(
         body.items?.map((item: any) => item.id).filter(Boolean) || []
@@ -106,8 +113,8 @@ export async function PUT(
 
       // UPSERT items and details
       for (const item of body.items || []) {
-        if (item.id && !item.id.startsWith('temp-')) {
-          // Update existing item
+        if (item.id && existingItemIds.has(item.id)) {
+          // Update existing item (only if it exists in database)
           await tx.invoiceItem.update({
             where: { id: item.id },
             data: {
@@ -134,7 +141,7 @@ export async function PUT(
             })
           }
         } else {
-          // Create new item with details
+          // Create new item with details (either no ID or ID doesn't exist in DB)
           await tx.invoiceItem.create({
             data: {
               invoiceId: id,
@@ -161,10 +168,17 @@ export async function PUT(
         }
       })
 
+      // Get existing remark IDs from database
+      const existingRemarks = await tx.invoiceRemark.findMany({
+        where: { invoiceId: id },
+        select: { id: true }
+      })
+      const existingRemarkIds = new Set(existingRemarks.map(remark => remark.id))
+
       // UPSERT remarks
       for (const remark of body.remarks || []) {
-        if (remark.id && !remark.id.startsWith('temp-')) {
-          // Update existing remark
+        if (remark.id && existingRemarkIds.has(remark.id)) {
+          // Update existing remark (only if it exists in database)
           await tx.invoiceRemark.update({
             where: { id: remark.id },
             data: {
@@ -173,7 +187,7 @@ export async function PUT(
             }
           })
         } else {
-          // Create new remark
+          // Create new remark (either no ID or ID doesn't exist in DB)
           await tx.invoiceRemark.create({
             data: {
               invoiceId: id,
