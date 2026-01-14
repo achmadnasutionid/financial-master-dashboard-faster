@@ -286,7 +286,7 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ data }) => {
             </View>
 
             {safeItems.map((item, itemIndex) => (
-              <View key={itemIndex} wrap={false}>
+              <View key={`item-${itemIndex}`} wrap={false}>
                 {/* Product Header Row - No Amount */}
                 <View style={[styles.tableRow, { backgroundColor: "#f9f9f9", fontWeight: "bold" }]}>
                   <Text style={styles.col1}>{item.productName || ''}</Text>
@@ -296,8 +296,8 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ data }) => {
                 </View>
 
                 {/* Detail Rows */}
-                {item.details.map((detail, detailIndex) => (
-                  <View key={detailIndex} style={styles.tableRow}>
+                {(item.details || []).map((detail, detailIndex) => (
+                  <View key={`detail-${itemIndex}-${detailIndex}`} style={styles.tableRow}>
                     <Text style={styles.col1}>  • {detail.detail || ''}</Text>
                     <Text style={styles.col2}>{formatCurrency(detail.unitPrice || 0)}</Text>
                     <Text style={styles.col3}>{detail.qty || 0}</Text>
@@ -336,8 +336,8 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ data }) => {
         {data.remarks && data.remarks.length > 0 && (
           <View style={styles.section} wrap={false}>
             <Text style={styles.sectionTitle}>Remarks</Text>
-            {data.remarks.map((remark, index) => (
-              <View key={index} style={{ flexDirection: "row", marginBottom: 3 }}>
+            {(data.remarks || []).map((remark, index) => (
+              <View key={`remark-${index}`} style={{ flexDirection: "row", marginBottom: 3 }}>
                 <Text style={{ fontSize: 8, marginRight: 5 }}>
                   {remark.isCompleted ? "☑" : "☐"}
                 </Text>
@@ -346,7 +346,7 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ data }) => {
                   textDecoration: remark.isCompleted ? "line-through" : "none",
                   color: remark.isCompleted ? "#999" : "#000"
                 }}>
-                  {remark.text}
+                  {remark.text || ''}
                 </Text>
               </View>
             ))}
