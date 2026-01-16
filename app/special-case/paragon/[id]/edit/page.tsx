@@ -16,6 +16,8 @@ import { SortableItems } from "@/components/ui/sortable-items"
 import { useRouter, useParams } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
+import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog"
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
 import {
   Select,
   SelectContent,
@@ -97,6 +99,8 @@ export default function EditParagonTicketPage() {
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<any>({})
   const [ticketNumber, setTicketNumber] = useState<string>("")
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const initialDataRef = useRef<string>("")
   // Fetch master data and ticket data
   useEffect(() => {
     Promise.all([
@@ -158,12 +162,78 @@ export default function EditParagonTicketPage() {
       setFinalWorkImage(ticketData.finalWorkImageData || "")
       
       setLoading(false)
+      
+      // Store initial data snapshot for change detection
+      const loadedItems = ticketData.items.map((item: any) => ({
+        id: item.id,
+        productName: item.productName,
+        total: item.total,
+        details: item.details
+      }))
+      const loadedRemarks = ticketData.remarks?.map((remark: any) => ({
+        id: remark.id,
+        text: remark.text,
+        isCompleted: remark.isCompleted
+      })) || []
+      
+      initialDataRef.current = JSON.stringify({
+        selectedCompanyId,
+        productionDate,
+        quotationDate,
+        invoiceBastDate,
+        billTo,
+        contactPerson,
+        contactPosition,
+        selectedSignatureId,
+        pph,
+        items: loadedItems,
+        remarks: loadedRemarks,
+        finalWorkImage: ticketData.finalWorkImageData || ""
+      })
     }).catch(error => {
       console.error("Error fetching data:", error)
       toast.error("Failed to load ticket data")
       setLoading(false)
     })
   }, [ticketId])
+
+  // Track changes
+  useEffect(() => {
+    if (loading || !initialDataRef.current) return
+    
+    const currentData = JSON.stringify({
+      selectedCompanyId,
+      productionDate: productionDate?.toISOString(),
+      quotationDate: quotationDate?.toISOString(),
+      invoiceBastDate: invoiceBastDate?.toISOString(),
+      billTo,
+      contactPerson,
+      contactPosition,
+      selectedSignatureId,
+      pph,
+      items,
+      remarks,
+      finalWorkImage
+    })
+    
+    setHasUnsavedChanges(currentData !== initialDataRef.current)
+  }, [selectedCompanyId, productionDate, quotationDate, invoiceBastDate, billTo, contactPerson, contactPosition, selectedSignatureId, pph, items, remarks, finalWorkImage, loading])
+
+  // Unsaved changes dialog
+  const {
+    showDialog: showUnsavedDialog,
+    setShowDialog: setShowUnsavedDialog,
+    isSaving: isSavingDraft,
+    interceptNavigation,
+    handleSaveAndLeave,
+    handleLeaveWithoutSaving
+  } = useUnsavedChanges({
+    hasUnsavedChanges,
+    onSaveAsDraft: async () => {
+      await handleSubmit("draft")
+    },
+    enabled: !loading
+  })
 
   // Handle screenshot final work upload with compression
   const handleFinalWorkImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -545,6 +615,7 @@ export default function EditParagonTicketPage() {
 
       if (response.ok) {
         toast.success(`Ticket ${status === "final" ? "finalized" : "saved as draft"} successfully!`)
+        setHasUnsavedChanges(false)
         router.push("/special-case/paragon")
       } else {
         const errorData = await response.json()
@@ -562,7 +633,11 @@ export default function EditParagonTicketPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PageHeader title="Edit Paragon Ticket" showBackButton={true} backTo="/special-case/paragon" />
+      <PageHeader 
+        title="Edit Paragon Ticket" 
+        showBackButton={true} 
+        onBackClick={() => interceptNavigation("/special-case/paragon")}
+      />
       <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-12">
         {loading ? (
           <div className="container mx-auto max-w-5xl space-y-6">
@@ -1044,6 +1119,15 @@ export default function EditParagonTicketPage() {
         )}
       </main>
       <Footer />
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        open={showUnsavedDialog}
+        onOpenChange={setShowUnsavedDialog}
+        onSaveAsDraft={handleSaveAndLeave}
+        onLeave={handleLeaveWithoutSaving}
+        isSaving={isSavingDraft}
+      />
     </div>
   )
 }

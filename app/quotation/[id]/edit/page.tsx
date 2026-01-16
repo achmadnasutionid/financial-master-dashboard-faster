@@ -16,6 +16,8 @@ import { SortableItems } from "@/components/ui/sortable-items"
 import { useRouter, useParams } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
+import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog"
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
 import {
   Select,
   SelectContent,
@@ -104,6 +106,8 @@ export default function EditQuotationPage() {
   const [errors, setErrors] = useState<any>({})
   const [quotationNumber, setQuotationNumber] = useState<string>("")
   const [quotationStatus, setQuotationStatus] = useState<string>("")
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const initialDataRef = useRef<string>("")
 
   // Fetch quotation data
   useEffect(() => {
@@ -185,6 +189,19 @@ export default function EditQuotationPage() {
       setProductDetails(productsData) // Store full product objects with details
       
       setLoading(false)
+      
+      // Store initial data snapshot for change detection
+      initialDataRef.current = JSON.stringify({
+        selectedCompanyId: company?.id,
+        productionDate: parsedDate.toISOString(),
+        billTo: quotationData.billTo,
+        notes: quotationData.notes || "",
+        selectedBillingId: billing?.id,
+        selectedSignatureId: signature?.id,
+        pph: quotationData.pph,
+        remarks: loadedRemarks,
+        items: loadedItems
+      })
     }).catch((error) => {
       console.error("Error fetching quotation:", error)
       toast.error("Failed to load quotation", {
@@ -193,6 +210,41 @@ export default function EditQuotationPage() {
       setLoading(false)
     })
   }, [quotationId, router])
+
+  // Track changes
+  useEffect(() => {
+    if (loading || !initialDataRef.current) return
+    
+    const currentData = JSON.stringify({
+      selectedCompanyId,
+      productionDate: productionDate?.toISOString(),
+      billTo,
+      notes,
+      selectedBillingId,
+      selectedSignatureId,
+      pph,
+      remarks,
+      items
+    })
+    
+    setHasUnsavedChanges(currentData !== initialDataRef.current)
+  }, [selectedCompanyId, productionDate, billTo, notes, selectedBillingId, selectedSignatureId, pph, remarks, items, loading])
+
+  // Unsaved changes dialog
+  const {
+    showDialog: showUnsavedDialog,
+    setShowDialog: setShowUnsavedDialog,
+    isSaving: isSavingDraft,
+    interceptNavigation,
+    handleSaveAndLeave,
+    handleLeaveWithoutSaving
+  } = useUnsavedChanges({
+    hasUnsavedChanges,
+    onSaveAsDraft: async () => {
+      await handleSubmit("draft")
+    },
+    enabled: !loading
+  })
 
   // Remark management
   const addRemark = () => {
@@ -534,6 +586,9 @@ export default function EditQuotationPage() {
           description: `Quotation has been ${statusText}.`
         })
         
+        // Clear unsaved changes flag
+        setHasUnsavedChanges(false)
+        
         // Redirect to view page if pending, otherwise to list
         if (status === "pending") {
           router.push(`/quotation/${quotationId}/view`)
@@ -559,7 +614,11 @@ export default function EditQuotationPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col">
-        <PageHeader title="Edit Quotation" showBackButton={true} backTo="/quotation" />
+        <PageHeader 
+        title="Edit Quotation" 
+        showBackButton={true} 
+        onBackClick={() => interceptNavigation("/quotation")}
+      />
         <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-12">
           <div className="container mx-auto max-w-5xl space-y-6">
             <div className="flex justify-between items-center">
@@ -591,7 +650,11 @@ export default function EditQuotationPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PageHeader title="Edit Quotation" showBackButton={true} backTo="/quotation" />
+      <PageHeader 
+        title="Edit Quotation" 
+        showBackButton={true} 
+        onBackClick={() => interceptNavigation("/quotation")}
+      />
       <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-12">
         <div className="container mx-auto max-w-5xl space-y-6">
           <Breadcrumb items={[
@@ -975,6 +1038,15 @@ export default function EditQuotationPage() {
         </div>
       </main>
       <Footer />
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        open={showUnsavedDialog}
+        onOpenChange={setShowUnsavedDialog}
+        onSaveAsDraft={handleSaveAndLeave}
+        onLeave={handleLeaveWithoutSaving}
+        isSaving={isSavingDraft}
+      />
     </div>
   )
 }

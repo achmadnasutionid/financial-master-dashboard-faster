@@ -13,6 +13,8 @@ import { Plus, Trash2, Save, CheckCircle } from "lucide-react"
 import { useRouter, useParams } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
+import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog"
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
 import {
   Select,
   SelectContent,
@@ -49,6 +51,8 @@ export default function EditPlanningPage() {
   const [clientBudget, setClientBudget] = useState("")
   const [notes, setNotes] = useState("")
   const [items, setItems] = useState<PlanningItem[]>([])
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const initialDataRef = useRef<string>("")
   const [products, setProducts] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<any>({})
@@ -87,6 +91,15 @@ export default function EditPlanningPage() {
           }))
         )
         setLoading(false)
+        
+        // Store initial data snapshot for change detection
+        initialDataRef.current = JSON.stringify({
+          projectName: data.projectName,
+          clientName: data.clientName,
+          clientBudget: data.clientBudget,
+          notes: data.notes || "",
+          items: data.items
+        })
       })
       .catch((error) => {
         console.error("Error fetching planning:", error)
@@ -104,6 +117,42 @@ export default function EditPlanningPage() {
       .then((data) => setProducts(data.map((p: any) => p.name)))
       .catch(console.error)
   }, [])
+
+  // Track changes
+  useEffect(() => {
+    if (loading || !initialDataRef.current) return
+    
+    const currentData = JSON.stringify({
+      projectName,
+      clientName,
+      clientBudget: parseFloat(clientBudget) || 0,
+      notes,
+      items: items.map(item => ({
+        id: item.id,
+        productName: item.productName,
+        budget: item.budget,
+        expense: item.expense
+      }))
+    })
+    
+    setHasUnsavedChanges(currentData !== initialDataRef.current)
+  }, [projectName, clientName, clientBudget, notes, items, loading])
+
+  // Unsaved changes dialog
+  const {
+    showDialog: showUnsavedDialog,
+    setShowDialog: setShowUnsavedDialog,
+    isSaving: isSavingDraft,
+    interceptNavigation,
+    handleSaveAndLeave,
+    handleLeaveWithoutSaving
+  } = useUnsavedChanges({
+    hasUnsavedChanges,
+    onSaveAsDraft: async () => {
+      await handleSubmit("draft")
+    },
+    enabled: !loading
+  })
 
   const addItem = () => {
     setItems([
@@ -260,6 +309,9 @@ export default function EditPlanningPage() {
           description: `Planning has been ${status === "final" ? "finalized" : "saved as draft"}.`
         })
         
+        // Clear unsaved changes flag
+        setHasUnsavedChanges(false)
+        
         // Redirect to view page if finalized, otherwise go to list
         if (status === "final") {
           router.push(`/planning/${planningId}/view`)
@@ -285,7 +337,11 @@ export default function EditPlanningPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col">
-        <PageHeader title="Edit Planning" showBackButton={true} backTo="/planning" />
+        <PageHeader 
+        title="Edit Planning" 
+        showBackButton={true} 
+        onBackClick={() => interceptNavigation("/planning")}
+      />
         <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-12">
           <div className="container mx-auto max-w-5xl space-y-6">
             <div className="flex justify-between items-center">
@@ -319,7 +375,11 @@ export default function EditPlanningPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PageHeader title="Edit Planning" showBackButton={true} backTo="/planning" />
+      <PageHeader 
+        title="Edit Planning" 
+        showBackButton={true} 
+        onBackClick={() => interceptNavigation("/planning")}
+      />
       <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-12">
         <div className="container mx-auto max-w-5xl space-y-6">
           <Breadcrumb items={[
@@ -592,6 +652,15 @@ export default function EditPlanningPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        open={showUnsavedDialog}
+        onOpenChange={setShowUnsavedDialog}
+        onSaveAsDraft={handleSaveAndLeave}
+        onLeave={handleLeaveWithoutSaving}
+        isSaving={isSavingDraft}
+      />
     </div>
   )
 }
