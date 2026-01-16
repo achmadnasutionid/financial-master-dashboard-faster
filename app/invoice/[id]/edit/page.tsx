@@ -16,6 +16,8 @@ import { SortableItems } from "@/components/ui/sortable-items"
 import { useRouter, useParams } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
+import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog"
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
 import {
   Select,
   SelectContent,
@@ -104,6 +106,8 @@ export default function EditInvoicePage() {
   const [errors, setErrors] = useState<any>({})
   const [invoiceNumber, setInvoiceNumber] = useState<string>("")
   const [InvoiceStatus, setInvoiceStatus] = useState<string>("")
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const initialDataRef = useRef<string>("")
 
   // Fetch Invoice data
   useEffect(() => {
@@ -159,19 +163,22 @@ export default function EditInvoicePage() {
       }
       
       // Load items with details
-      if (InvoiceData.items && Array.isArray(InvoiceData.items)) {
-        const loadedItems = InvoiceData.items.map((item: any) => ({
-          id: item.id,
-          productName: item.productName,
-          total: item.total,
-          details: item.details?.map((detail: any) => ({
-            id: detail.id,
-            detail: detail.detail,
-            unitPrice: detail.unitPrice.toString(),
-            qty: detail.qty.toString(),
-            amount: detail.amount
-          })) || []
-        }))
+      const loadedItems = InvoiceData.items && Array.isArray(InvoiceData.items)
+        ? InvoiceData.items.map((item: any) => ({
+            id: item.id,
+            productName: item.productName,
+            total: item.total,
+            details: item.details?.map((detail: any) => ({
+              id: detail.id,
+              detail: detail.detail,
+              unitPrice: detail.unitPrice.toString(),
+              qty: detail.qty.toString(),
+              amount: detail.amount
+            })) || []
+          }))
+        : []
+      
+      if (loadedItems.length > 0) {
         setItems(loadedItems)
       }
       
@@ -182,6 +189,19 @@ export default function EditInvoicePage() {
       setProductDetails(productsData) // Store full product objects with details
       
       setLoading(false)
+      
+      // Store initial data snapshot for change detection
+      initialDataRef.current = JSON.stringify({
+        selectedCompanyId: company?.id,
+        productionDate: parsedDate.toISOString(),
+        billTo: InvoiceData.billTo,
+        notes: InvoiceData.notes || "",
+        selectedBillingId: billing?.id,
+        selectedSignatureId: signature?.id,
+        pph: InvoiceData.pph,
+        remarks: InvoiceData.remarks,
+        items: loadedItems
+      })
     }).catch((error) => {
       console.error("Error fetching Invoice:", error)
       toast.error("Failed to load Invoice", {
@@ -190,6 +210,41 @@ export default function EditInvoicePage() {
       setLoading(false)
     })
   }, [InvoiceId, router])
+
+  // Track changes
+  useEffect(() => {
+    if (loading || !initialDataRef.current) return
+    
+    const currentData = JSON.stringify({
+      selectedCompanyId,
+      productionDate: productionDate?.toISOString(),
+      billTo,
+      notes,
+      selectedBillingId,
+      selectedSignatureId,
+      pph,
+      remarks,
+      items
+    })
+    
+    setHasUnsavedChanges(currentData !== initialDataRef.current)
+  }, [selectedCompanyId, productionDate, billTo, notes, selectedBillingId, selectedSignatureId, pph, remarks, items, loading])
+
+  // Unsaved changes dialog
+  const {
+    showDialog: showUnsavedDialog,
+    setShowDialog: setShowUnsavedDialog,
+    isSaving: isSavingDraft,
+    interceptNavigation,
+    handleSaveAndLeave,
+    handleLeaveWithoutSaving
+  } = useUnsavedChanges({
+    hasUnsavedChanges,
+    onSaveAsDraft: async () => {
+      await handleSubmit("draft")
+    },
+    enabled: !loading
+  })
 
   // Remark management
   const addRemark = () => {
@@ -531,6 +586,9 @@ export default function EditInvoicePage() {
           description: `Invoice has been ${statusText}.`
         })
         
+        // Clear unsaved changes flag
+        setHasUnsavedChanges(false)
+        
         // Redirect to view page if pending, otherwise to list
         if (status === "pending") {
           router.push(`/invoice/${InvoiceId}/view`)
@@ -556,7 +614,11 @@ export default function EditInvoicePage() {
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col">
-        <PageHeader title="Edit Invoice" showBackButton={true} backTo="/invoice" />
+        <PageHeader 
+        title="Edit Invoice" 
+        showBackButton={true} 
+        onBackClick={() => interceptNavigation("/invoice")}
+      />
         <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-12">
           <div className="container mx-auto max-w-5xl space-y-6">
             <div className="flex justify-between items-center">
@@ -588,7 +650,11 @@ export default function EditInvoicePage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PageHeader title="Edit Invoice" showBackButton={true} backTo="/invoice" />
+      <PageHeader 
+        title="Edit Invoice" 
+        showBackButton={true} 
+        onBackClick={() => interceptNavigation("/invoice")}
+      />
       <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-12">
         <div className="container mx-auto max-w-5xl space-y-6">
           <Breadcrumb items={[
@@ -972,6 +1038,15 @@ export default function EditInvoicePage() {
         </div>
       </main>
       <Footer />
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        open={showUnsavedDialog}
+        onOpenChange={setShowUnsavedDialog}
+        onSaveAsDraft={handleSaveAndLeave}
+        onLeave={handleLeaveWithoutSaving}
+        isSaving={isSavingDraft}
+      />
     </div>
   )
 }
