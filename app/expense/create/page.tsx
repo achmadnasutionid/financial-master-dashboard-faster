@@ -15,6 +15,8 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { AutoSaveIndicator, AutoSaveStatus } from "@/components/ui/auto-save-indicator"
+import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog"
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -83,6 +85,22 @@ export default function CreateExpensePage() {
       setHasInteracted(true)
     }
   }
+
+  // Unsaved changes dialog
+  const {
+    showDialog: showUnsavedDialog,
+    setShowDialog: setShowUnsavedDialog,
+    isSaving: isSavingDraft,
+    interceptNavigation,
+    handleSaveAndLeave,
+    handleLeaveWithoutSaving
+  } = useUnsavedChanges({
+    hasUnsavedChanges: hasInteracted,
+    onSaveAsDraft: async () => {
+      await saveExpense("draft")
+    },
+    enabled: true
+  })
 
   // Parse DD/MM/YYYY format to Date
   const parseDateInput = (input: string): Date | null => {
@@ -368,6 +386,9 @@ export default function CreateExpensePage() {
           description: `Expense has been ${statusText}.`
         })
         
+        // Clear interaction flag
+        setHasInteracted(false)
+        
         // Redirect to view page if final, otherwise to list
         if (status === "final") {
           router.push(`/expense/${data.id}/view`)
@@ -392,7 +413,11 @@ export default function CreateExpensePage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PageHeader title="Create Expense" showBackButton={true} backTo="/expense" />
+      <PageHeader 
+        title="Create Expense" 
+        showBackButton={true} 
+        onBackClick={() => interceptNavigation("/expense")}
+      />
       <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-12">
         <div className="container mx-auto max-w-5xl space-y-6">
           <Breadcrumb items={[
@@ -759,6 +784,15 @@ export default function CreateExpensePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        open={showUnsavedDialog}
+        onOpenChange={setShowUnsavedDialog}
+        onSaveAsDraft={handleSaveAndLeave}
+        onLeave={handleLeaveWithoutSaving}
+        isSaving={isSavingDraft}
+      />
     </div>
   )
 }
