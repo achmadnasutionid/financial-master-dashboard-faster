@@ -14,8 +14,6 @@ import { Save, CheckCircle, Plus, Trash2 } from "lucide-react"
 import { useRouter, useParams } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
-import { AutoSaveIndicator, AutoSaveStatus } from "@/components/ui/auto-save-indicator"
-import { useDebouncedCallback } from "@/hooks/use-debounce"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,8 +54,6 @@ export default function EditExpensePage() {
   // UI state
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [hasInteracted, setHasInteracted] = useState(false)
-  const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>("idle")
   const [errors, setErrors] = useState<any>({})
   const [showFinalizeDialog, setShowFinalizeDialog] = useState(false)
   const [showExceedDialog, setShowExceedDialog] = useState(false)
@@ -123,71 +119,6 @@ export default function EditExpensePage() {
       })
   }, [expenseId, router])
 
-  // Mark as interacted on first change
-  const markInteracted = () => {
-    if (!hasInteracted) {
-      setHasInteracted(true)
-    }
-  }
-
-  // Debounced auto-save (30 seconds after last change)
-  const debouncedAutoSave = useDebouncedCallback(
-    async () => {
-      if (!hasInteracted || !projectName.trim()) {
-        return
-      }
-
-      const validItems = items.filter(item => item.productName.trim() !== '')
-      if (validItems.length === 0) {
-        return
-      }
-
-      try {
-        setAutoSaveStatus("saving")
-        
-        const payload = {
-          projectName: projectName.trim(),
-          productionDate: productionDate ? productionDate.toISOString() : new Date().toISOString(),
-          clientBudget: parseFloat(clientBudget) || 0,
-          paidAmount: parseFloat(paidAmount) || 0,
-          notes: notes.trim() || null,
-          status: expenseStatus || "draft",
-          items: validItems.map(item => ({
-            productName: item.productName,
-            budgeted: parseFloat(item.budgeted) || 0,
-            actual: parseFloat(item.actual) || 0
-          }))
-        }
-
-        const response = await fetch(`/api/expense/${expenseId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-
-        if (response.ok) {
-          setAutoSaveStatus("saved")
-          setTimeout(() => setAutoSaveStatus("idle"), 3000)
-        } else {
-          setAutoSaveStatus("error")
-        }
-      } catch (error) {
-        console.error("Auto-save error:", error)
-        setAutoSaveStatus("error")
-      }
-    },
-    30000,
-    [hasInteracted, projectName, productionDate, clientBudget, paidAmount, notes, expenseStatus, items, expenseId]
-  )
-
-  // Trigger debounced auto-save on any field change
-  useEffect(() => {
-    if (hasInteracted) {
-      debouncedAutoSave()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectName, productionDate, clientBudget, paidAmount, notes, items, hasInteracted])
-
   // Parse DD/MM/YYYY format to Date
   const parseDateInput = (input: string): Date | null => {
     const match = input.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
@@ -214,7 +145,6 @@ export default function EditExpensePage() {
   // Handle manual date input
   const handleDateInputChange = (value: string) => {
     setDateInput(value)
-    markInteracted()
     
     // Try to parse the date if it matches DD/MM/YYYY format
     const parsedDate = parseDateInput(value)
@@ -225,55 +155,7 @@ export default function EditExpensePage() {
     }
   }
 
-  // Auto-save function
-  const autoSave = async () => {
-    if (!hasInteracted || !projectName.trim()) {
-      return
-    }
-
-    // Filter out items with empty product names before saving
-    const validItems = items.filter(item => item.productName.trim() !== '')
-    
-    if (validItems.length === 0) {
-      return // Don't auto-save if there are no valid items
-    }
-
-    try {
-      setAutoSaveStatus("saving")
-      
-      const payload = {
-        projectName: projectName.trim(),
-        clientBudget: parseFloat(clientBudget),
-        notes: notes.trim() || null,
-        status: expenseStatus || "draft",
-        totalItemBudgeted: validItems.reduce((sum, item) => sum + (parseFloat(item.budgeted) || 0), 0),
-        totalItemDifferences: validItems.reduce((sum, item) => sum + item.difference, 0),
-        items: validItems.map(item => ({
-          productName: item.productName,
-          budgeted: parseFloat(item.budgeted) || 0,
-          actual: parseFloat(item.actual) || 0
-        }))
-      }
-
-      const response = await fetch(`/api/expense/${expenseId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-
-      if (response.ok) {
-        setAutoSaveStatus("saved")
-        // Reset to idle after 3 seconds
-        setTimeout(() => setAutoSaveStatus("idle"), 3000)
-      }
-    } catch (error) {
-      console.error("Auto-save error:", error)
-      setAutoSaveStatus("error")
-    }
-  }
-
   const updateItem = (itemId: string, field: string, value: string) => {
-    markInteracted()
     setItems(items.map(item => {
       if (item.id !== itemId) return item
 
@@ -288,7 +170,6 @@ export default function EditExpensePage() {
   }
 
   const addItem = () => {
-    markInteracted()
     const newItem: ExpenseItem = {
       id: Date.now().toString(),
       productName: "",
@@ -300,7 +181,6 @@ export default function EditExpensePage() {
   }
 
   const removeItem = (itemId: string) => {
-    markInteracted()
     setItems(items.filter(item => item.id !== itemId))
   }
 
@@ -524,7 +404,6 @@ export default function EditExpensePage() {
                   <Input
                     value={projectName}
                     onChange={(e) => {
-                      markInteracted()
                       setProjectName(e.target.value)
                       if (errors.projectName) validateField("projectName", e.target.value)
                     }}
@@ -560,7 +439,6 @@ export default function EditExpensePage() {
                           <DatePicker
                             date={productionDate || undefined}
                             onDateChange={(date) => {
-                              markInteracted()
                               setProductionDate(date || null)
                               if (errors.productionDate) validateField("productionDate", date || null)
                               if (date) {
@@ -601,7 +479,6 @@ export default function EditExpensePage() {
                       <CurrencyInput
                         value={clientBudget}
                         onValueChange={(value) => {
-                          markInteracted()
                           setClientBudget(value)
                         }}
                         placeholder="Rp 0"
@@ -630,7 +507,6 @@ export default function EditExpensePage() {
                       <CurrencyInput
                         value={paidAmount}
                         onValueChange={(value) => {
-                          markInteracted()
                           setPaidAmount(value)
                         }}
                         placeholder="Rp 0"
@@ -647,7 +523,6 @@ export default function EditExpensePage() {
                   <Textarea
                     value={notes}
                     onChange={(e) => {
-                      markInteracted()
                       setNotes(e.target.value)
                     }}
                     placeholder="Enter additional notes"
@@ -798,28 +673,24 @@ export default function EditExpensePage() {
               )}
 
               {/* Actions */}
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                {/* Auto-save status */}
-                <AutoSaveIndicator status={autoSaveStatus} />
-                <div className="flex flex-wrap gap-3 ml-auto">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleSubmit("draft")}
-                    disabled={saving || autoSaveStatus === "saving"}
-                  >
-                    <Save className="mr-2 h-4 w-4" />
-                    Save as Draft
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => setShowFinalizeDialog(true)}
-                    disabled={saving || autoSaveStatus === "saving"}
-                  >
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Finalize Expense
-                  </Button>
-                </div>
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleSubmit("draft")}
+                  disabled={saving}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Save as Draft
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => setShowFinalizeDialog(true)}
+                  disabled={saving}
+                >
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Finalize Expense
+                </Button>
               </div>
             </CardContent>
           </Card>

@@ -16,8 +16,6 @@ import { SortableItems } from "@/components/ui/sortable-items"
 import { useRouter, useParams } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
-import { AutoSaveIndicator, AutoSaveStatus } from "@/components/ui/auto-save-indicator"
-import { useDebouncedCallback } from "@/hooks/use-debounce"
 import {
   Select,
   SelectContent,
@@ -99,9 +97,6 @@ export default function EditParagonTicketPage() {
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<any>({})
   const [ticketNumber, setTicketNumber] = useState<string>("")
-  const [hasInteracted, setHasInteracted] = useState(false)
-  const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>("idle")
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   // Fetch master data and ticket data
   useEffect(() => {
     Promise.all([
@@ -170,32 +165,8 @@ export default function EditParagonTicketPage() {
     })
   }, [ticketId])
 
-  // Auto-save effect
-  useEffect(() => {
-    if (hasInteracted && !loading) {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-      }
-      autoSaveTimerRef.current = setTimeout(() => {
-        handleSubmit("draft", true) // Pass true to indicate auto-save
-      }, 30000) // 30 seconds
-    }
-    return () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-      }
-    }
-  }, [selectedCompanyId, productionDate, quotationDate, invoiceBastDate, billTo, contactPerson, contactPosition, remarks, selectedSignatureId, pph, items, finalWorkImage, hasInteracted, loading])
-
-  const markInteracted = () => {
-    if (!hasInteracted) {
-      setHasInteracted(true)
-    }
-  }
-
   // Handle screenshot final work upload with compression
   const handleFinalWorkImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    markInteracted()
     const file = e.target.files?.[0]
     if (file) {
       try {
@@ -209,13 +180,11 @@ export default function EditParagonTicketPage() {
   }
 
   const removeFinalWorkImage = () => {
-    markInteracted()
     setFinalWorkImage("")
   }
 
   // Remark management
   const addRemark = () => {
-    markInteracted()
     setRemarks([...remarks, {
       id: Date.now().toString(),
       text: "",
@@ -224,19 +193,16 @@ export default function EditParagonTicketPage() {
   }
 
   const removeRemark = (id: string) => {
-    markInteracted()
     setRemarks(remarks.filter(remark => remark.id !== id))
   }
 
   const updateRemarkText = (id: string, text: string) => {
-    markInteracted()
     setRemarks(remarks.map(remark =>
       remark.id === id ? { ...remark, text } : remark
     ))
   }
 
   const toggleRemarkCompleted = (id: string) => {
-    markInteracted()
     setRemarks(remarks.map(remark =>
       remark.id === id ? { ...remark, isCompleted: !remark.isCompleted } : remark
     ))
@@ -244,7 +210,6 @@ export default function EditParagonTicketPage() {
 
   // Item management
   const addItem = () => {
-    markInteracted()
     const newItemId = Date.now().toString()
     setItems([...items, {
       id: newItemId,
@@ -261,17 +226,14 @@ export default function EditParagonTicketPage() {
   }
 
   const removeItem = (itemId: string) => {
-    markInteracted()
     setItems(items.filter(item => item.id !== itemId))
   }
 
   const handleReorderItems = (reorderedItems: Item[]) => {
-    markInteracted()
     setItems(reorderedItems)
   }
 
   const updateItemName = (itemId: string, productName: string) => {
-    markInteracted()
     // Just update the raw name (allow spaces while typing)
     setItems(items.map(item => 
       item.id === itemId ? { ...item, productName } : item
@@ -322,7 +284,6 @@ export default function EditParagonTicketPage() {
   }
 
   const addDetail = (itemId: string) => {
-    markInteracted()
     setItems(items.map(item =>
       item.id === itemId
         ? {
@@ -340,7 +301,6 @@ export default function EditParagonTicketPage() {
   }
 
   const removeDetail = (itemId: string, detailId: string) => {
-    markInteracted()
     setItems(items.map(item => {
       if (item.id === itemId) {
         // Prevent removing the last detail
@@ -363,7 +323,6 @@ export default function EditParagonTicketPage() {
   }
 
   const updateDetail = (itemId: string, detailId: string, field: string, value: string) => {
-    markInteracted()
     setItems(items.map(item => {
       if (item.id !== itemId) return item
 
@@ -495,22 +454,18 @@ export default function EditParagonTicketPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = async (status: "draft" | "final", isAutoSave: boolean = false) => {
+  const handleSubmit = async (status: "draft" | "final") => {
     if (saving) return
-    // For auto-save, skip if required fields are missing
-    if (isAutoSave && (!selectedCompanyId || !productionDate || !quotationDate || !invoiceBastDate || !billTo.trim() || !contactPerson.trim() || !contactPosition.trim() || !selectedSignatureId)) {
-      return
-    }
 
-    if (!validateForm() && !isAutoSave) {
+    if (!validateForm()) {
       toast.error("Validation failed", {
         description: "Please fill in all required fields"
       })
       return
     }
 
-    // Additional validation for final status (skip for auto-save)
-    if (status === "final" && !isAutoSave) {
+    // Additional validation for final status
+    if (status === "final") {
       if (items.length === 0) {
         toast.warning("Cannot finalize ticket", {
           description: "Please add at least one item before finalizing."
@@ -536,9 +491,6 @@ export default function EditParagonTicketPage() {
     }
 
     setSaving(true)
-    if (isAutoSave) {
-      setAutoSaveStatus("saving")
-    }
     try {
       const company = companies.find(c => c.id === selectedCompanyId)!
       const signature = signatures.find(s => s.id === selectedSignatureId)!
@@ -592,30 +544,17 @@ export default function EditParagonTicketPage() {
       })
 
       if (response.ok) {
-        if (isAutoSave) {
-          setAutoSaveStatus("saved")
-          setTimeout(() => setAutoSaveStatus("idle"), 3000)
-        } else {
-          toast.success(`Ticket ${status === "final" ? "finalized" : "saved as draft"} successfully!`)
-          router.push("/special-case/paragon")
-        }
+        toast.success(`Ticket ${status === "final" ? "finalized" : "saved as draft"} successfully!`)
+        router.push("/special-case/paragon")
       } else {
         const errorData = await response.json()
-        if (isAutoSave) {
-          setAutoSaveStatus("error")
-        } else {
-          toast.error("Failed to update ticket", {
-            description: errorData.error || "An error occurred"
-          })
-        }
+        toast.error("Failed to update ticket", {
+          description: errorData.error || "An error occurred"
+        })
       }
     } catch (error) {
       console.error("Error updating ticket:", error)
-      if (isAutoSave) {
-        setAutoSaveStatus("error")
-      } else {
-        toast.error("Failed to update ticket")
-      }
+      toast.error("Failed to update ticket")
     } finally {
       setSaving(false)
     }
@@ -664,7 +603,6 @@ export default function EditParagonTicketPage() {
                   <div className="space-y-2">
                     <Label>Company <span className="text-destructive">*</span></Label>
                     <Select value={selectedCompanyId} onValueChange={(value) => {
-                      markInteracted()
                       setSelectedCompanyId(value)
                       if (errors.company) validateField("company", value)
                     }}>
@@ -687,7 +625,6 @@ export default function EditParagonTicketPage() {
                   <div className="space-y-2">
                     <Label>Production Date <span className="text-destructive">*</span></Label>
                     <DatePicker date={productionDate} onDateChange={(date) => {
-                      markInteracted()
                       setProductionDate(date)
                       if (errors.productionDate) validateField("productionDate", date || null)
                     }} error={!!errors.productionDate} />
@@ -701,7 +638,6 @@ export default function EditParagonTicketPage() {
                   <div className="space-y-2">
                     <Label>Quotation Date <span className="text-destructive">*</span></Label>
                     <DatePicker date={quotationDate} onDateChange={(date) => {
-                      markInteracted()
                       setQuotationDate(date)
                       if (errors.quotationDate) validateField("quotationDate", date || null)
                     }} error={!!errors.quotationDate} />
@@ -713,7 +649,6 @@ export default function EditParagonTicketPage() {
                   <div className="space-y-2">
                     <Label>Invoice / BAST Date <span className="text-destructive">*</span></Label>
                     <DatePicker date={invoiceBastDate} onDateChange={(date) => {
-                      markInteracted()
                       setInvoiceBastDate(date)
                       if (errors.invoiceBastDate) validateField("invoiceBastDate", date || null)
                     }} error={!!errors.invoiceBastDate} />
@@ -728,7 +663,6 @@ export default function EditParagonTicketPage() {
                   <Input
                     value={billTo}
                     onChange={(e) => {
-                      markInteracted()
                       setBillTo(e.target.value)
                       if (errors.billTo) validateField("billTo", e.target.value)
                     }}
@@ -747,7 +681,6 @@ export default function EditParagonTicketPage() {
                     <Input
                       value={contactPerson}
                       onChange={(e) => {
-                        markInteracted()
                         setContactPerson(e.target.value)
                         if (errors.contactPerson) validateField("contactPerson", e.target.value)
                       }}
@@ -765,7 +698,6 @@ export default function EditParagonTicketPage() {
                     <Input
                       value={contactPosition}
                       onChange={(e) => {
-                        markInteracted()
                         setContactPosition(e.target.value)
                         if (errors.contactPosition) validateField("contactPosition", e.target.value)
                       }}
@@ -833,7 +765,6 @@ export default function EditParagonTicketPage() {
                   <div className="space-y-2">
                     <Label>Signature <span className="text-destructive">*</span></Label>
                     <Select value={selectedSignatureId} onValueChange={(value) => {
-                      markInteracted()
                       setSelectedSignatureId(value)
                       if (errors.signature) validateField("signature", value)
                     }}>
@@ -856,7 +787,6 @@ export default function EditParagonTicketPage() {
                   <div className="space-y-2">
                     <Label>PPh</Label>
                     <Select value={pph} onValueChange={(value) => {
-                      markInteracted()
                       setPph(value)
                     }}>
                       <SelectTrigger>
@@ -1089,28 +1019,24 @@ export default function EditParagonTicketPage() {
               )}
 
               {/* Actions */}
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                {/* Auto-save status */}
-                <AutoSaveIndicator status={autoSaveStatus} />
-                <div className="flex flex-wrap gap-3 ml-auto">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleSubmit("draft")}
-                    disabled={saving}
-                  >
-                    <Save className="mr-2 h-4 w-4" />
-                    Save as Draft
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => handleSubmit("final")}
-                    disabled={saving}
-                  >
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Finalize Ticket
-                  </Button>
-                </div>
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleSubmit("draft")}
+                  disabled={saving}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Save as Draft
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => handleSubmit("final")}
+                  disabled={saving}
+                >
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Finalize Ticket
+                </Button>
               </div>
             </CardContent>
           </Card>

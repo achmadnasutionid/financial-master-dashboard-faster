@@ -16,7 +16,6 @@ import { SortableItems } from "@/components/ui/sortable-items"
 import { useRouter, useParams } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
-import { AutoSaveIndicator, AutoSaveStatus } from "@/components/ui/auto-save-indicator"
 import {
   Select,
   SelectContent,
@@ -25,7 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { PPH_OPTIONS } from "@/lib/constants"
-import { useDebouncedCallback } from "@/hooks/use-debounce"
 import { formatProductName } from "@/lib/utils"
 
 interface Company {
@@ -106,8 +104,6 @@ export default function EditQuotationPage() {
   const [errors, setErrors] = useState<any>({})
   const [quotationNumber, setQuotationNumber] = useState<string>("")
   const [quotationStatus, setQuotationStatus] = useState<string>("")
-  const [hasInteracted, setHasInteracted] = useState(false)
-  const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>("idle")
 
   // Fetch quotation data
   useEffect(() => {
@@ -198,16 +194,8 @@ export default function EditQuotationPage() {
     })
   }, [quotationId, router])
 
-  // Mark as interacted on first change
-  const markInteracted = () => {
-    if (!hasInteracted) {
-      setHasInteracted(true)
-    }
-  }
-
   // Remark management
   const addRemark = () => {
-    markInteracted()
     setRemarks([...remarks, {
       id: Date.now().toString(),
       text: "",
@@ -216,114 +204,23 @@ export default function EditQuotationPage() {
   }
 
   const removeRemark = (id: string) => {
-    markInteracted()
     setRemarks(remarks.filter(remark => remark.id !== id))
   }
 
   const updateRemarkText = (id: string, text: string) => {
-    markInteracted()
     setRemarks(remarks.map(remark =>
       remark.id === id ? { ...remark, text } : remark
     ))
   }
 
   const toggleRemarkCompleted = (id: string) => {
-    markInteracted()
     setRemarks(remarks.map(remark =>
       remark.id === id ? { ...remark, isCompleted: !remark.isCompleted } : remark
     ))
   }
 
-  // Debounced auto-save (2 seconds after last change)
-  const debouncedAutoSave = useDebouncedCallback(
-    async () => {
-      if (!hasInteracted || !selectedCompanyId || !productionDate || !billTo || !selectedBillingId || !selectedSignatureId) {
-        return
-      }
-
-      try {
-        setAutoSaveStatus("saving")
-        
-        const company = companies.find(c => c.id === selectedCompanyId)!
-        const billing = billings.find(b => b.id === selectedBillingId)!
-        const signature = signatures.find(s => s.id === selectedSignatureId)!
-
-        const payload = {
-          companyName: company.name,
-          companyAddress: company.address,
-          companyCity: company.city,
-          companyProvince: company.province,
-          companyPostalCode: company.postalCode,
-          companyTelp: company.telp,
-          companyEmail: company.email,
-          productionDate: productionDate!.toISOString(),
-          billTo: billTo.trim(),
-          notes: notes.trim() || null,
-          billingName: billing.name,
-          billingBankName: billing.bankName,
-          billingBankAccount: billing.bankAccount,
-          billingBankAccountName: billing.bankAccountName,
-          billingKtp: billing.ktp,
-          billingNpwp: billing.npwp,
-          signatureName: signature.name,
-          signatureRole: signature.role,
-          signatureImageData: signature.imageData,
-          pph,
-          totalAmount: calculateTotalAmount(),
-          status: quotationStatus || "draft",
-          remarks: remarks.map(remark => ({
-            id: remark.id,
-            text: remark.text,
-            isCompleted: remark.isCompleted
-          })),
-          items: items.map(item => ({
-            id: item.id,
-            productName: item.productName,
-            total: item.total,
-            details: item.details
-              .filter(detail => detail.detail.trim() || parseFloat(detail.unitPrice) || parseFloat(detail.qty))
-              .map(detail => ({
-                id: detail.id,
-                detail: detail.detail,
-                unitPrice: parseFloat(detail.unitPrice) || 0,
-                qty: parseFloat(detail.qty) || 0,
-                amount: detail.amount
-              }))
-          }))
-        }
-
-        const response = await fetch(`/api/quotation/${quotationId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-
-        if (response.ok) {
-          setAutoSaveStatus("saved")
-          setTimeout(() => setAutoSaveStatus("idle"), 3000)
-        } else {
-          setAutoSaveStatus("error")
-        }
-      } catch (error) {
-        console.error("Auto-save error:", error)
-        setAutoSaveStatus("error")
-      }
-    },
-    30000, // Debounce for 30 seconds
-    [hasInteracted, selectedCompanyId, productionDate, billTo, selectedBillingId, selectedSignatureId, companies, billings, signatures, notes, pph, quotationStatus, remarks, items, quotationId]
-  )
-
-  // Trigger debounced auto-save on any field change
-  useEffect(() => {
-    if (hasInteracted) {
-      debouncedAutoSave()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCompanyId, productionDate, billTo, notes, remarks, selectedBillingId, selectedSignatureId, pph, items, hasInteracted])
-
   // Item management functions (same as create page)
   const addItem = () => {
-    markInteracted()
     const newItemId = Date.now().toString()
     setItems([...items, {
       id: newItemId,
@@ -340,17 +237,14 @@ export default function EditQuotationPage() {
   }
 
   const removeItem = (itemId: string) => {
-    markInteracted()
     setItems(items.filter(item => item.id !== itemId))
   }
 
   const handleReorderItems = (reorderedItems: Item[]) => {
-    markInteracted()
     setItems(reorderedItems)
   }
 
   const updateItemName = (itemId: string, productName: string) => {
-    markInteracted()
     // Just update the raw name (allow spaces while typing)
     setItems(items.map(item => 
       item.id === itemId ? { ...item, productName } : item
@@ -401,7 +295,6 @@ export default function EditQuotationPage() {
   }
 
   const addDetail = (itemId: string) => {
-    markInteracted()
     setItems(items.map(item =>
       item.id === itemId
         ? {
@@ -427,7 +320,6 @@ export default function EditQuotationPage() {
       return
     }
     
-    markInteracted()
     setItems(items.map(item =>
       item.id === itemId
         ? {
@@ -442,7 +334,6 @@ export default function EditQuotationPage() {
   }
 
   const updateDetail = (itemId: string, detailId: string, field: string, value: string) => {
-    markInteracted()
     setItems(items.map(item => {
       if (item.id !== itemId) return item
 
@@ -717,7 +608,6 @@ export default function EditQuotationPage() {
                   <div className="space-y-2">
                     <Label>Company <span className="text-destructive">*</span></Label>
                     <Select value={selectedCompanyId} onValueChange={(value) => {
-                      markInteracted()
                       setSelectedCompanyId(value)
                       if (errors.company) validateField("company", value)
                     }}>
@@ -740,7 +630,6 @@ export default function EditQuotationPage() {
                   <div className="space-y-2">
                     <Label>Production Date <span className="text-destructive">*</span></Label>
                     <DatePicker date={productionDate} onDateChange={(date) => {
-                      markInteracted()
                       setProductionDate(date)
                       if (errors.productionDate) validateField("productionDate", date || null)
                     }} error={!!errors.productionDate} />
@@ -755,7 +644,6 @@ export default function EditQuotationPage() {
                   <Input
                     value={billTo}
                     onChange={(e) => {
-                      markInteracted()
                       setBillTo(e.target.value)
                       if (errors.billTo) validateField("billTo", e.target.value)
                     }}
@@ -773,7 +661,6 @@ export default function EditQuotationPage() {
                   <Textarea
                     value={notes}
                     onChange={(e) => {
-                      markInteracted()
                       setNotes(e.target.value)
                     }}
                     placeholder="Enter additional notes"
@@ -836,7 +723,6 @@ export default function EditQuotationPage() {
                   <div className="space-y-2">
                     <Label>Billing <span className="text-destructive">*</span></Label>
                     <Select value={selectedBillingId} onValueChange={(value) => {
-                      markInteracted()
                       setSelectedBillingId(value)
                       if (errors.billing) validateField("billing", value)
                     }}>
@@ -859,7 +745,6 @@ export default function EditQuotationPage() {
                   <div className="space-y-2">
                     <Label>Signature <span className="text-destructive">*</span></Label>
                     <Select value={selectedSignatureId} onValueChange={(value) => {
-                      markInteracted()
                       setSelectedSignatureId(value)
                       if (errors.signature) validateField("signature", value)
                     }}>
@@ -883,7 +768,6 @@ export default function EditQuotationPage() {
                 <div className="space-y-2">
                   <Label>PPh</Label>
                   <Select value={pph} onValueChange={(value) => {
-                    markInteracted()
                     setPph(value)
                   }}>
                     <SelectTrigger>
@@ -1065,30 +949,26 @@ export default function EditQuotationPage() {
               )}
 
               {/* Actions */}
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                {/* Auto-save status */}
-                <AutoSaveIndicator status={autoSaveStatus} />
-                <div className="flex flex-wrap gap-3 ml-auto">
-                  {quotationStatus === "draft" && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => handleSubmit("draft")}
-                      disabled={saving || autoSaveStatus === "saving"}
-                    >
-                      <Save className="mr-2 h-4 w-4" />
-                      Save as Draft
-                    </Button>
-                  )}
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                {quotationStatus === "draft" && (
                   <Button
                     type="button"
-                    onClick={() => handleSubmit("pending")}
-                    disabled={saving || autoSaveStatus === "saving"}
+                    variant="outline"
+                    onClick={() => handleSubmit("draft")}
+                    disabled={saving}
                   >
                     <Save className="mr-2 h-4 w-4" />
-                    Save as Pending
+                    Save as Draft
                   </Button>
-                </div>
+                )}
+                <Button
+                  type="button"
+                  onClick={() => handleSubmit("pending")}
+                  disabled={saving}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Save as Pending
+                </Button>
               </div>
             </CardContent>
           </Card>

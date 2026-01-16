@@ -13,7 +13,6 @@ import { Plus, Trash2, Save, CheckCircle } from "lucide-react"
 import { useRouter, useParams } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
-import { AutoSaveIndicator, AutoSaveStatus } from "@/components/ui/auto-save-indicator"
 import {
   Select,
   SelectContent,
@@ -31,7 +30,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { useDebouncedCallback } from "@/hooks/use-debounce"
 
 interface PlanningItem {
   id: string
@@ -54,8 +52,6 @@ export default function EditPlanningPage() {
   const [products, setProducts] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<any>({})
-  const [hasInteracted, setHasInteracted] = useState(false)
-  const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>("idle")
   const [planningNumber, setPlanningNumber] = useState<string>("")
   const [planningStatus, setPlanningStatus] = useState<string>("")
   const [showFinalizeDialog, setShowFinalizeDialog] = useState(false)
@@ -109,53 +105,7 @@ export default function EditPlanningPage() {
       .catch(console.error)
   }, [])
 
-  // Mark as interacted on first change
-  const markInteracted = () => {
-    if (!hasInteracted) {
-      setHasInteracted(true)
-    }
-  }
-
-  // Auto-save function
-  const autoSave = async () => {
-    if (!hasInteracted || !projectName || !clientName || !clientBudget) {
-      return
-    }
-
-    try {
-      setAutoSaveStatus("saving")
-      
-      const payload = {
-        projectName,
-        clientName,
-        clientBudget: parseFloat(clientBudget) || 0,
-        notes,
-        items: items.map((item) => ({
-          productName: item.productName,
-          budget: parseFloat(item.budget) || 0,
-          expense: parseFloat(item.expense) || 0,
-        })),
-        status: "draft",
-      }
-
-      const response = await fetch(`/api/planning/${planningId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-
-      if (response.ok) {
-        setAutoSaveStatus("saved")
-        setTimeout(() => setAutoSaveStatus("idle"), 3000)
-      }
-    } catch (error) {
-      console.error("Auto-save error:", error)
-      setAutoSaveStatus("error")
-    }
-  }
-
   const addItem = () => {
-    markInteracted()
     setItems([
       ...items,
       {
@@ -168,12 +118,10 @@ export default function EditPlanningPage() {
   }
 
   const removeItem = (id: string) => {
-    markInteracted()
     setItems(items.filter((item) => item.id !== id))
   }
 
   const updateItem = (id: string, field: string, value: string) => {
-    markInteracted()
     setItems(
       items.map((item) =>
         item.id === id ? { ...item, [field]: value } : item
@@ -392,7 +340,6 @@ export default function EditPlanningPage() {
                       id="projectName"
                       value={projectName}
                       onChange={(e) => {
-                        markInteracted()
                         setProjectName(e.target.value)
                         if (errors.projectName) validateField("projectName", e.target.value)
                       }}
@@ -412,7 +359,6 @@ export default function EditPlanningPage() {
                       id="clientName"
                       value={clientName}
                       onChange={(e) => {
-                        markInteracted()
                         setClientName(e.target.value)
                         if (errors.clientName) validateField("clientName", e.target.value)
                       }}
@@ -433,7 +379,6 @@ export default function EditPlanningPage() {
                     id="clientBudget"
                     value={clientBudget}
                     onValueChange={(value) => {
-                      markInteracted()
                       setClientBudget(value)
                     }}
                     placeholder="Enter client budget"
@@ -448,7 +393,6 @@ export default function EditPlanningPage() {
                     id="notes"
                     value={notes}
                     onChange={(e) => {
-                      markInteracted()
                       setNotes(e.target.value)
                     }}
                     placeholder="Enter additional notes"
@@ -599,28 +543,24 @@ export default function EditPlanningPage() {
               )}
 
               {/* Actions */}
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                {/* Auto-save status */}
-                <AutoSaveIndicator status={autoSaveStatus} />
-                <div className="flex flex-wrap gap-3 ml-auto">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleSubmit("draft")}
-                    disabled={saving}
-                  >
-                    <Save className="mr-2 h-4 w-4" />
-                    Save as Draft
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => setShowFinalizeDialog(true)}
-                    disabled={saving}
-                  >
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Finalize Planning
-                  </Button>
-                </div>
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleSubmit("draft")}
+                  disabled={saving}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Save as Draft
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => setShowFinalizeDialog(true)}
+                  disabled={saving}
+                >
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Finalize Planning
+                </Button>
               </div>
             </CardContent>
           </Card>
