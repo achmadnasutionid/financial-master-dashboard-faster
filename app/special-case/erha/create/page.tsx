@@ -17,6 +17,8 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { AutoSaveIndicator, AutoSaveStatus } from "@/components/ui/auto-save-indicator"
+import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog"
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
 import {
   Select,
   SelectContent,
@@ -160,6 +162,22 @@ export default function CreateErhaTicketPage() {
       setHasInteracted(true)
     }
   }
+
+  // Unsaved changes dialog
+  const {
+    showDialog: showUnsavedDialog,
+    setShowDialog: setShowUnsavedDialog,
+    isSaving: isSavingDraft,
+    interceptNavigation,
+    handleSaveAndLeave,
+    handleLeaveWithoutSaving
+  } = useUnsavedChanges({
+    hasUnsavedChanges: hasInteracted,
+    onSaveAsDraft: async () => {
+      await handleSubmit("draft")
+    },
+    enabled: true
+  })
 
   // Handle screenshot final work upload with compression
   const handleFinalWorkImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -600,6 +618,9 @@ export default function CreateErhaTicketPage() {
             description: `Erha Ticket has been ${statusText}.`
           })
           
+          // Clear interaction flag
+          setHasInteracted(false)
+          
           // Redirect to view page
           router.push(`/special-case/erha/${data.id}/view`)
         } else {
@@ -632,7 +653,11 @@ export default function CreateErhaTicketPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PageHeader title="Create Erha Ticket" showBackButton={true} backTo="/special-case/erha" />
+      <PageHeader 
+        title="Create Erha Ticket" 
+        showBackButton={true} 
+        onBackClick={() => interceptNavigation("/special-case/erha")}
+      />
       <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-12">
         <div className="container mx-auto max-w-5xl space-y-6">
           <Breadcrumb items={[
@@ -1158,6 +1183,15 @@ export default function CreateErhaTicketPage() {
         </div>
       </main>
       <Footer />
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        open={showUnsavedDialog}
+        onOpenChange={setShowUnsavedDialog}
+        onSaveAsDraft={handleSaveAndLeave}
+        onLeave={handleLeaveWithoutSaving}
+        isSaving={isSavingDraft}
+      />
     </div>
   )
 }

@@ -17,6 +17,8 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { AutoSaveIndicator, AutoSaveStatus } from "@/components/ui/auto-save-indicator"
+import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog"
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
 import { TemplateSelectionModal } from "@/components/ui/template-selection-modal"
 import {
   Select,
@@ -159,6 +161,22 @@ export default function CreateQuotationPage() {
       setHasInteracted(true)
     }
   }
+
+  // Unsaved changes dialog
+  const {
+    showDialog: showUnsavedDialog,
+    setShowDialog: setShowUnsavedDialog,
+    isSaving: isSavingDraft,
+    interceptNavigation,
+    handleSaveAndLeave,
+    handleLeaveWithoutSaving
+  } = useUnsavedChanges({
+    hasUnsavedChanges: hasInteracted,
+    onSaveAsDraft: async () => {
+      await handleSubmit("draft")
+    },
+    enabled: true
+  })
 
   // Handle template selection
   const handleTemplateSelect = (templates: any[] | null) => {
@@ -561,6 +579,9 @@ export default function CreateQuotationPage() {
             description: `Quotation has been ${statusText}.`
           })
           
+          // Clear interaction flag
+          setHasInteracted(false)
+          
           // Redirect to view page if pending, otherwise to list
           if (status === "pending") {
             router.push(`/quotation/${data.id}/view`)
@@ -597,7 +618,11 @@ export default function CreateQuotationPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PageHeader title="Create Quotation" showBackButton={true} backTo="/quotation" />
+      <PageHeader 
+        title="Create Quotation" 
+        showBackButton={true} 
+        onBackClick={() => interceptNavigation("/quotation")}
+      />
       <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-12">
         <div className="container mx-auto max-w-5xl space-y-6">
           <Breadcrumb items={[
@@ -1002,6 +1027,15 @@ export default function CreateQuotationPage() {
         open={showTemplateModal && !templateSelected}
         onClose={() => setShowTemplateModal(false)}
         onSelect={handleTemplateSelect}
+      />
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        open={showUnsavedDialog}
+        onOpenChange={setShowUnsavedDialog}
+        onSaveAsDraft={handleSaveAndLeave}
+        onLeave={handleLeaveWithoutSaving}
+        isSaving={isSavingDraft}
       />
     </div>
   )

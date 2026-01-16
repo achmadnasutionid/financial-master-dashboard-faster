@@ -14,6 +14,8 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { AutoSaveIndicator, AutoSaveStatus } from "@/components/ui/auto-save-indicator"
+import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog"
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
 import {
   Select,
   SelectContent,
@@ -73,6 +75,22 @@ export default function CreatePlanningPage() {
       setHasInteracted(true)
     }
   }
+
+  // Unsaved changes dialog
+  const {
+    showDialog: showUnsavedDialog,
+    setShowDialog: setShowUnsavedDialog,
+    isSaving: isSavingDraft,
+    interceptNavigation,
+    handleSaveAndLeave,
+    handleLeaveWithoutSaving
+  } = useUnsavedChanges({
+    hasUnsavedChanges: hasInteracted,
+    onSaveAsDraft: async () => {
+      await handleSubmit("draft")
+    },
+    enabled: true
+  })
 
   // Auto-save function
   const autoSave = async () => {
@@ -308,6 +326,9 @@ export default function CreatePlanningPage() {
           description: `Planning has been ${status === "final" ? "finalized" : "saved as draft"}.`
         })
         
+        // Clear interaction flag
+        setHasInteracted(false)
+        
         // Redirect to view page if finalized, otherwise go to list
         if (status === "final") {
           router.push(`/planning/${data.id}/view`)
@@ -334,7 +355,11 @@ export default function CreatePlanningPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PageHeader title="Create Planning" showBackButton={true} backTo="/planning" />
+      <PageHeader 
+        title="Create Planning" 
+        showBackButton={true} 
+        onBackClick={() => interceptNavigation("/planning")}
+      />
       <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-12">
         <div className="container mx-auto max-w-5xl space-y-6">
           <Breadcrumb items={[
@@ -615,6 +640,15 @@ export default function CreatePlanningPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        open={showUnsavedDialog}
+        onOpenChange={setShowUnsavedDialog}
+        onSaveAsDraft={handleSaveAndLeave}
+        onLeave={handleLeaveWithoutSaving}
+        isSaving={isSavingDraft}
+      />
     </div>
   )
 }
