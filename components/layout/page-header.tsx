@@ -10,9 +10,10 @@ interface PageHeaderProps {
   title: string
   showBackButton?: boolean
   backTo?: string
+  onBackClick?: () => void
 }
 
-export function PageHeader({ title, showBackButton = false, backTo = "/" }: PageHeaderProps) {
+export function PageHeader({ title, showBackButton = false, backTo = "/", onBackClick }: PageHeaderProps) {
   const [currentDate, setCurrentDate] = useState("")
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -42,6 +43,12 @@ export function PageHeader({ title, showBackButton = false, backTo = "/" }: Page
   }
 
   const handleBack = () => {
+    // If onBackClick is provided, use it (for unsaved changes handling)
+    if (onBackClick) {
+      onBackClick()
+      return
+    }
+    
     // Add refresh=true parameter for list pages to ensure fresh data
     const listPages = ['/quotation', '/invoice', '/planning', '/expense', '/special-case/paragon', '/special-case/erha']
     const isListPage = listPages.some(page => backTo.startsWith(page))

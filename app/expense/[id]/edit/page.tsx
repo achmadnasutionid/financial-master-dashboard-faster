@@ -14,6 +14,8 @@ import { Save, CheckCircle, Plus, Trash2 } from "lucide-react"
 import { useRouter, useParams } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
+import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog"
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,6 +64,8 @@ export default function EditExpensePage() {
     totalActual: 0,
     paidAmount: 0
   })
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const initialDataRef = useRef<string>("")
 
   // Fetch expense data and products
   useEffect(() => {
@@ -111,6 +115,16 @@ export default function EditExpensePage() {
         setProducts(productsData.map((p: any) => p.name))
         
         setLoading(false)
+        
+        // Store initial data snapshot for change detection
+        initialDataRef.current = JSON.stringify({
+          projectName: data.projectName,
+          productionDate: data.productionDate,
+          clientBudget: data.clientBudget,
+          paidAmount: data.paidAmount,
+          notes: data.notes || "",
+          items: loadedItems
+        })
       })
       .catch((error) => {
         console.error("Error fetching expense:", error)
@@ -118,6 +132,43 @@ export default function EditExpensePage() {
         setLoading(false)
       })
   }, [expenseId, router])
+
+  // Track changes
+  useEffect(() => {
+    if (loading || !initialDataRef.current) return
+    
+    const currentData = JSON.stringify({
+      projectName,
+      productionDate: productionDate?.toISOString(),
+      clientBudget: parseFloat(clientBudget) || 0,
+      paidAmount: parseFloat(paidAmount) || 0,
+      notes,
+      items: items.map(item => ({
+        id: item.id,
+        productName: item.productName,
+        budgeted: item.budgeted,
+        actual: item.actual
+      }))
+    })
+    
+    setHasUnsavedChanges(currentData !== initialDataRef.current)
+  }, [projectName, productionDate, clientBudget, paidAmount, notes, items, loading])
+
+  // Unsaved changes dialog
+  const {
+    showDialog: showUnsavedDialog,
+    setShowDialog: setShowUnsavedDialog,
+    isSaving: isSavingDraft,
+    interceptNavigation,
+    handleSaveAndLeave,
+    handleLeaveWithoutSaving
+  } = useUnsavedChanges({
+    hasUnsavedChanges,
+    onSaveAsDraft: async () => {
+      await saveExpense("draft")
+    },
+    enabled: !loading
+  })
 
   // Parse DD/MM/YYYY format to Date
   const parseDateInput = (input: string): Date | null => {
@@ -310,6 +361,9 @@ export default function EditExpensePage() {
           description: `Expense has been ${statusText}.`
         })
         
+        // Clear unsaved changes flag
+        setHasUnsavedChanges(false)
+        
         // Redirect to view page if final, otherwise to list
         if (status === "final") {
           router.push(`/expense/${expenseId}/view`)
@@ -333,7 +387,11 @@ export default function EditExpensePage() {
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col">
-        <PageHeader title="Edit Expense" showBackButton={true} backTo="/expense" />
+        <PageHeader 
+        title="Edit Expense" 
+        showBackButton={true} 
+        onBackClick={() => interceptNavigation("/expense")}
+      />
         <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-12">
           <div className="container mx-auto max-w-5xl space-y-6">
             <div className="flex justify-between items-center">
@@ -367,7 +425,11 @@ export default function EditExpensePage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PageHeader title="Edit Expense" showBackButton={true} backTo="/expense" />
+      <PageHeader 
+        title="Edit Expense" 
+        showBackButton={true} 
+        onBackClick={() => interceptNavigation("/expense")}
+      />
       <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-12">
         <div className="container mx-auto max-w-5xl space-y-6">
           <Breadcrumb items={[
@@ -779,6 +841,15 @@ export default function EditExpensePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        open={showUnsavedDialog}
+        onOpenChange={setShowUnsavedDialog}
+        onSaveAsDraft={handleSaveAndLeave}
+        onLeave={handleLeaveWithoutSaving}
+        isSaving={isSavingDraft}
+      />
     </div>
   )
 }
