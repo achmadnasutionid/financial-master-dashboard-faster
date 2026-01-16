@@ -14,7 +14,6 @@ import { Save, CheckCircle, Plus, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
-import { AutoSaveIndicator, AutoSaveStatus } from "@/components/ui/auto-save-indicator"
 import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog"
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
 import {
@@ -58,8 +57,6 @@ export default function CreateExpensePage() {
   // UI state
   const [saving, setSaving] = useState(false)
   const [hasInteracted, setHasInteracted] = useState(false)
-  const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>("idle")
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [errors, setErrors] = useState<any>({})
   const [showFinalizeDialog, setShowFinalizeDialog] = useState(false)
   const [showExceedDialog, setShowExceedDialog] = useState(false)
@@ -138,91 +135,6 @@ export default function CreateExpensePage() {
       setProductionDate(null)
     }
   }
-
-  // Auto-save function
-  const autoSave = async () => {
-    if (!hasInteracted || !projectName.trim() || !productionDate) {
-      return
-    }
-
-    // Filter out items with empty product names before saving
-    const validItems = items.filter(item => item.productName.trim() !== '')
-    
-    if (validItems.length === 0) {
-      return // Don't auto-save if there are no valid items
-    }
-
-    try {
-      setAutoSaveStatus("saving")
-      
-      const payload = {
-        projectName: projectName.trim(),
-        productionDate: productionDate!.toISOString(),
-        clientBudget: parseFloat(clientBudget) || 0,
-        paidAmount: parseFloat(paidAmount) || 0,
-        notes: notes.trim() || null,
-        status: "draft",
-        totalItemBudgeted: validItems.reduce((sum, item) => sum + (parseFloat(item.budgeted) || 0), 0),
-        totalItemDifferences: validItems.reduce((sum, item) => sum + item.difference, 0),
-        items: validItems.map(item => ({
-          productName: item.productName,
-          budgeted: parseFloat(item.budgeted) || 0,
-          actual: parseFloat(item.actual) || 0
-        }))
-      }
-
-      const response = await fetch("/api/expense", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setAutoSaveStatus("saved")
-        toast.success("Draft saved", {
-          description: "Redirecting to edit page..."
-        })
-        // Redirect to edit page after saving
-        setTimeout(() => {
-          router.push(`/expense/${data.id}/edit`)
-        }, 500)
-      } else {
-        const error = await response.json()
-        setAutoSaveStatus("error")
-        toast.error("Auto-save failed", {
-          description: error.error || "Failed to save draft"
-        })
-      }
-    } catch (error) {
-      console.error("Auto-save error:", error)
-      setAutoSaveStatus("error")
-      toast.error("Auto-save failed", {
-        description: "An error occurred while saving"
-      })
-    }
-  }
-
-  // Auto-save timer
-  useEffect(() => {
-    if (hasInteracted) {
-      // Clear existing timer
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-      }
-
-      // Set new timer
-      autoSaveTimerRef.current = setTimeout(() => {
-        autoSave()
-      }, 30000) // 30 seconds
-    }
-
-    return () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-      }
-    }
-  }, [projectName, productionDate, clientBudget, paidAmount, notes, items, hasInteracted])
 
   const updateItem = (itemId: string, field: string, value: string) => {
     markInteracted()
@@ -675,9 +587,7 @@ export default function CreateExpensePage() {
 
               {/* Actions */}
               <div className="flex flex-wrap items-center justify-between gap-3">
-                {/* Auto-save status */}
-                <AutoSaveIndicator status={autoSaveStatus} />
-                <div className="flex flex-wrap gap-3 ml-auto">
+                {/* Auto-save status */}                <div className="flex flex-wrap gap-3 ml-auto">
                   <Button
                     type="button"
                     variant="outline"

@@ -16,7 +16,6 @@ import { SortableItems } from "@/components/ui/sortable-items"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
-import { AutoSaveIndicator, AutoSaveStatus } from "@/components/ui/auto-save-indicator"
 import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog"
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
 import { TemplateSelectionModal } from "@/components/ui/template-selection-modal"
@@ -119,9 +118,6 @@ export default function CreateQuotationPage() {
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<any>({})
   const [hasInteracted, setHasInteracted] = useState(false)
-  const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>("idle")
-  const [createdQuotationId, setCreatedQuotationId] = useState<string | null>(null)
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Fetch master data
   useEffect(() => {
@@ -138,23 +134,6 @@ export default function CreateQuotationPage() {
       setProductDetails(productsData) // Store full product objects with details
     }).catch(console.error)
   }, [])
-
-  // Auto-save effect
-  useEffect(() => {
-    if (hasInteracted) {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-      }
-      autoSaveTimerRef.current = setTimeout(() => {
-        handleSubmit("draft", true) // Pass true to indicate auto-save
-      }, 30000) // 30 seconds
-    }
-    return () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-      }
-    }
-  }, [selectedCompanyId, productionDate, billTo, notes, remarks, selectedBillingId, selectedSignatureId, pph, items, hasInteracted])
 
   const markInteracted = () => {
     if (!hasInteracted) {
@@ -467,9 +446,9 @@ export default function CreateQuotationPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = async (status: "draft" | "pending", isAutoSave: boolean = false) => {
+  const handleSubmit = async (status: "draft" | "pending") => {
     if (saving) return
-    if (!validateForm() && !isAutoSave) {
+    if (!validateForm()) {
       toast.error("Validation failed", {
         description: "Please fill in all required fields"
       })
@@ -503,9 +482,6 @@ export default function CreateQuotationPage() {
     }
 
     setSaving(true)
-    if (isAutoSave) {
-      setAutoSaveStatus("saving")
-    }
     try {
       const company = companies.find(c => c.id === selectedCompanyId)
       const billing = billings.find(b => b.id === selectedBillingId)
@@ -552,28 +528,16 @@ export default function CreateQuotationPage() {
         }))
       }
 
-      let response
-      if (createdQuotationId) {
-        // Update existing draft
-        response = await fetch(`/api/quotation/${createdQuotationId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-      } else {
-        // Create new quotation
-        response = await fetch("/api/quotation", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-      }
+      // Create new quotation
+      const response = await fetch("/api/quotation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
 
       if (response.ok) {
-        const data = await response.json()
-        setCreatedQuotationId(data.id) // Store the ID for subsequent auto-saves
-        
-        if (!isAutoSave) {
+        const data = await response.json()        
+        {
           const statusText = status === "pending" ? "saved as pending" : "saved as draft"
           toast.success("Quotation saved successfully", {
             description: `Quotation has been ${statusText}.`
@@ -588,29 +552,18 @@ export default function CreateQuotationPage() {
           } else {
             router.push("/quotation")
           }
-        } else {
-          setAutoSaveStatus("saved")
-          setTimeout(() => setAutoSaveStatus("idle"), 3000)
         }
       } else {
         const errorData = await response.json()
-        if (!isAutoSave) {
-          toast.error("Failed to save quotation", {
-            description: errorData.error || "An error occurred while saving."
-          })
-        } else {
-          setAutoSaveStatus("error")
-        }
+        toast.error("Failed to save quotation", {
+          description: errorData.error || "An error occurred while saving."
+        })
       }
     } catch (error) {
       console.error("Error saving quotation:", error)
-      if (!isAutoSave) {
-        toast.error("Failed to save quotation", {
-          description: "An unexpected error occurred."
-        })
-      } else {
-        setAutoSaveStatus("error")
-      }
+      toast.error("Failed to save quotation", {
+        description: "An unexpected error occurred."
+      })
     } finally {
       setSaving(false)
     }
@@ -994,14 +947,12 @@ export default function CreateQuotationPage() {
 
               {/* Actions */}
               <div className="flex flex-wrap items-center justify-between gap-3">
-                {/* Auto-save status */}
-                <AutoSaveIndicator status={autoSaveStatus} />
-                <div className="flex flex-wrap gap-3 ml-auto">
+                {/* Auto-save status */}                <div className="flex flex-wrap gap-3 ml-auto">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => handleSubmit("draft")}
-                    disabled={saving || autoSaveStatus === "saving"}
+                    disabled={saving}
                   >
                     <Save className="mr-2 h-4 w-4" />
                     Save as Draft
@@ -1009,7 +960,7 @@ export default function CreateQuotationPage() {
                   <Button
                     type="button"
                     onClick={() => handleSubmit("pending")}
-                    disabled={saving || autoSaveStatus === "saving"}
+                    disabled={saving}
                   >
                     <Save className="mr-2 h-4 w-4" />
                     Save as Pending

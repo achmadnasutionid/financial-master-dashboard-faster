@@ -13,7 +13,6 @@ import { Plus, Trash2, Save, CheckCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
-import { AutoSaveIndicator, AutoSaveStatus } from "@/components/ui/auto-save-indicator"
 import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog"
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
 import {
@@ -53,9 +52,6 @@ export default function CreatePlanningPage() {
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<any>({})
   const [hasInteracted, setHasInteracted] = useState(false)
-  const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>("idle")
-  const [createdPlanningId, setCreatedPlanningId] = useState<string | null>(null)
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [showFinalizeDialog, setShowFinalizeDialog] = useState(false)
 
   // Fetch products for dropdown
@@ -91,80 +87,6 @@ export default function CreatePlanningPage() {
     },
     enabled: true
   })
-
-  // Auto-save function
-  const autoSave = async () => {
-    if (!hasInteracted || !projectName || !clientName) {
-      return
-    }
-
-    try {
-      setAutoSaveStatus("saving")
-      
-      const payload = {
-        projectName,
-        clientName,
-        clientBudget: parseFloat(clientBudget) || 0,
-        notes,
-        items: items.map((item) => ({
-          productName: item.productName,
-          budget: parseFloat(item.budget) || 0,
-          expense: parseFloat(item.expense) || 0,
-        })),
-        status: "draft",
-      }
-
-      let response
-      if (createdPlanningId) {
-        // Update existing draft
-        response = await fetch(`/api/planning/${createdPlanningId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-      } else {
-        // Create new draft
-        response = await fetch("/api/planning", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-      }
-
-      if (response.ok) {
-        const data = await response.json()
-        if (!createdPlanningId) {
-          setCreatedPlanningId(data.id)
-        }
-        setAutoSaveStatus("saved")
-        setTimeout(() => setAutoSaveStatus("idle"), 3000)
-      }
-    } catch (error) {
-      console.error("Auto-save error:", error)
-      setAutoSaveStatus("error")
-    }
-  }
-
-  // Set up auto-save timer
-  useEffect(() => {
-    if (hasInteracted) {
-      // Clear existing timer
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-      }
-
-      // Set new timer
-      autoSaveTimerRef.current = setTimeout(() => {
-        autoSave()
-      }, 30000) // 30 seconds
-    }
-
-    return () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-      }
-    }
-  }, [projectName, clientName, clientBudget, notes, items, hasInteracted])
 
   const addItem = () => {
     markInteracted()
@@ -303,22 +225,12 @@ export default function CreatePlanningPage() {
         status,
       }
 
-      let response
-      if (createdPlanningId) {
-        // Update existing draft
-        response = await fetch(`/api/planning/${createdPlanningId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-      } else {
-        // Create new
-        response = await fetch("/api/planning", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-      }
+      // Create new
+      const response = await fetch("/api/planning", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
 
       if (response.ok) {
         const data = await response.json()
@@ -588,9 +500,7 @@ export default function CreatePlanningPage() {
 
               {/* Actions */}
               <div className="flex flex-wrap items-center justify-between gap-3">
-                {/* Auto-save status */}
-                <AutoSaveIndicator status={autoSaveStatus} />
-                <div className="flex flex-wrap gap-3 ml-auto">
+                {/* Auto-save status */}                <div className="flex flex-wrap gap-3 ml-auto">
                   <Button
                     type="button"
                     variant="outline"

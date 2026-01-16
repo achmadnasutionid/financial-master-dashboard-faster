@@ -16,7 +16,6 @@ import { SortableItems } from "@/components/ui/sortable-items"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
-import { AutoSaveIndicator, AutoSaveStatus } from "@/components/ui/auto-save-indicator"
 import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog"
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
 import {
@@ -120,9 +119,6 @@ export default function CreateErhaTicketPage() {
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<any>({})
   const [hasInteracted, setHasInteracted] = useState(false)
-  const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>("idle")
-  const [createdTicketId, setCreatedTicketId] = useState<string | null>(null)
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Fetch master data
   useEffect(() => {
@@ -139,23 +135,6 @@ export default function CreateErhaTicketPage() {
       setProductDetails(productsData) // Store full product objects with details
     }).catch(console.error)
   }, [])
-
-  // Auto-save effect
-  useEffect(() => {
-    if (hasInteracted) {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-      }
-      autoSaveTimerRef.current = setTimeout(() => {
-        handleSubmit("draft", true) // Pass true to indicate auto-save
-      }, 30000) // 30 seconds
-    }
-    return () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-      }
-    }
-  }, [selectedCompanyId, productionDate, quotationDate, invoiceBastDate, billTo, billToAddress, contactPerson, contactPosition, remarks, selectedBillingId, selectedSignatureId, pph, items, finalWorkImage, hasInteracted])
 
   const markInteracted = () => {
     if (!hasInteracted) {
@@ -496,14 +475,10 @@ export default function CreateErhaTicketPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = async (status: "draft" | "pending", isAutoSave: boolean = false) => {
+  const handleSubmit = async (status: "draft" | "pending") => {
     if (saving) return
-    // For auto-save, skip if required fields are missing
-    if (isAutoSave && (!selectedCompanyId || !productionDate || !quotationDate || !invoiceBastDate || !billTo.trim() || !billToAddress.trim() || !contactPerson.trim() || !contactPosition.trim() || !selectedBillingId || !selectedSignatureId)) {
-      return
-    }
 
-    if (!validateForm() && !isAutoSave) {
+    if (!validateForm()) {
       toast.error("Validation failed", {
         description: "Please fill in all required fields"
       })
@@ -537,9 +512,6 @@ export default function CreateErhaTicketPage() {
     }
 
     setSaving(true)
-    if (isAutoSave) {
-      setAutoSaveStatus("saving")
-    }
     try {
       const company = companies.find(c => c.id === selectedCompanyId)
       const billing = billings.find(b => b.id === selectedBillingId)
@@ -591,28 +563,16 @@ export default function CreateErhaTicketPage() {
         }))
       }
 
-      let response
-      if (createdTicketId) {
-        // Update existing draft
-        response = await fetch(`/api/erha/${createdTicketId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-      } else {
-        // Create new ticket
-        response = await fetch("/api/erha", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-      }
+      // Create new ticket
+      const response = await fetch("/api/erha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
 
       if (response.ok) {
-        const data = await response.json()
-        setCreatedTicketId(data.id) // Store the ID for subsequent auto-saves
-        
-        if (!isAutoSave) {
+        const data = await response.json()        
+        {
           const statusText = status === "pending" ? "saved as pending" : "saved as draft"
           toast.success("Erha Ticket saved successfully", {
             description: `Erha Ticket has been ${statusText}.`
@@ -623,29 +583,18 @@ export default function CreateErhaTicketPage() {
           
           // Redirect to view page
           router.push(`/special-case/erha/${data.id}/view`)
-        } else {
-          setAutoSaveStatus("saved")
-          setTimeout(() => setAutoSaveStatus("idle"), 3000)
         }
       } else {
         const errorData = await response.json()
-        if (!isAutoSave) {
-          toast.error("Failed to save erha ticket", {
-            description: errorData.error || "An error occurred while saving."
-          })
-        } else {
-          setAutoSaveStatus("error")
-        }
+        toast.error("Failed to save erha ticket", {
+          description: errorData.error || "An error occurred while saving."
+        })
       }
     } catch (error) {
       console.error("Error saving erha ticket:", error)
-      if (!isAutoSave) {
-        toast.error("Failed to save erha ticket", {
-          description: "An unexpected error occurred."
-        })
-      } else {
-        setAutoSaveStatus("error")
-      }
+      toast.error("Failed to save erha ticket", {
+        description: "An unexpected error occurred."
+      })
     } finally {
       setSaving(false)
     }
@@ -1164,14 +1113,12 @@ export default function CreateErhaTicketPage() {
 
               {/* Actions */}
               <div className="flex flex-wrap items-center justify-between gap-3">
-                {/* Auto-save status */}
-                <AutoSaveIndicator status={autoSaveStatus} />
-                <div className="flex flex-wrap gap-3 ml-auto">
+                {/* Auto-save status */}                <div className="flex flex-wrap gap-3 ml-auto">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => handleSubmit("draft")}
-                    disabled={saving || autoSaveStatus === "saving"}
+                    disabled={saving}
                   >
                     <Save className="mr-2 h-4 w-4" />
                     Save as Draft
