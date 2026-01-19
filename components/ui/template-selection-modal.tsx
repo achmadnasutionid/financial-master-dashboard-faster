@@ -135,18 +135,18 @@ export function TemplateSelectionModal({ open, onClose, onSelect }: TemplateSele
             </div>
           ) : (
             <>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
                 {/* Blank Quotation Card */}
                 <Card
-                  className="cursor-pointer transition-all hover:shadow-lg hover:border-primary border-2"
+                  className="cursor-pointer transition-all hover:shadow-lg hover:border-primary border-2 flex flex-col"
                   onClick={handleSelectBlank}
                 >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10">
+                  <CardHeader className="pb-2 flex-1">
+                    <div className="flex items-start gap-2">
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-primary/10">
                         <FileText className="h-4 w-4 text-primary" />
                       </div>
-                      <CardTitle className="text-base">Blank Quotation</CardTitle>
+                      <CardTitle className="text-base break-words leading-tight">Blank Quotation</CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent className="pb-3">
@@ -165,7 +165,7 @@ export function TemplateSelectionModal({ open, onClose, onSelect }: TemplateSele
                   return (
                     <Card
                       key={template.id}
-                      className={`cursor-pointer transition-all hover:shadow-lg relative ${
+                      className={`cursor-pointer transition-all hover:shadow-lg relative flex flex-col ${
                         isSelected 
                           ? "border-2 border-primary bg-primary/5" 
                           : "hover:border-primary"
@@ -179,16 +179,16 @@ export function TemplateSelectionModal({ open, onClose, onSelect }: TemplateSele
                         </div>
                       )}
                       
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center gap-2">
-                          <div className={`flex h-8 w-8 items-center justify-center rounded-md ${
+                      <CardHeader className="pb-2 flex-1">
+                        <div className="flex items-start gap-2">
+                          <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md ${
                             isSelected 
                               ? "bg-primary text-primary-foreground" 
                               : "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-100"
                           }`}>
                             {isSelected ? <Check className="h-4 w-4" /> : <Package className="h-4 w-4" />}
                           </div>
-                          <CardTitle className="text-base truncate flex-1 pr-6">{template.name}</CardTitle>
+                          <CardTitle className="text-base break-words leading-tight pr-6">{template.name}</CardTitle>
                         </div>
                       </CardHeader>
                       <CardContent className="pb-3">
