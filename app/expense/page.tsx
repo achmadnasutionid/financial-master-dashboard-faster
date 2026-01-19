@@ -57,10 +57,20 @@ interface Expense {
 function ExpensePageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  
+  // Initialize statusFilter from URL parameter immediately
+  const initialStatus = (() => {
+    const statusParam = searchParams.get("status")
+    if (statusParam && ["draft", "final"].includes(statusParam)) {
+      return statusParam
+    }
+    return "all"
+  })()
+  
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [statusFilter, setStatusFilter] = useState<string>(initialStatus)
   const [sortBy, setSortBy] = useState<string>("newest")
   const [searchQuery, setSearchQuery] = useState<string>("")
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
@@ -68,11 +78,14 @@ function ExpensePageContent() {
   const [isExporting, setIsExporting] = useState(false)
   const [availableYears, setAvailableYears] = useState<number[]>([])
 
-  // Set initial filter from URL query parameter
+  // Update filter if URL parameter changes
   useEffect(() => {
     const statusParam = searchParams.get("status")
-    if (statusParam && ["draft", "final"].includes(statusParam)) {
-      setStatusFilter(statusParam)
+    const newStatus = statusParam && ["draft", "final"].includes(statusParam) 
+      ? statusParam 
+      : "all"
+    if (newStatus !== statusFilter) {
+      setStatusFilter(newStatus)
     }
   }, [searchParams])
 

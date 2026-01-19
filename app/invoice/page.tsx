@@ -52,21 +52,34 @@ interface Invoice {
 function InvoicePageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  
+  // Initialize statusFilter from URL parameter immediately
+  const initialStatus = (() => {
+    const statusParam = searchParams.get("status")
+    if (statusParam && ["draft", "pending", "paid"].includes(statusParam)) {
+      return statusParam
+    }
+    return "all"
+  })()
+  
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [statusFilter, setStatusFilter] = useState<string>(initialStatus)
   const [sortBy, setSortBy] = useState<string>("newest")
   const [searchQuery, setSearchQuery] = useState<string>("")
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const [markingPaid, setMarkingPaid] = useState<string | null>(null)
   const [markPaidDialogId, setMarkPaidDialogId] = useState<string | null>(null)
 
-  // Set initial filter from URL query parameter
+  // Update filter if URL parameter changes
   useEffect(() => {
     const statusParam = searchParams.get("status")
-    if (statusParam && ["draft", "pending", "paid"].includes(statusParam)) {
-      setStatusFilter(statusParam)
+    const newStatus = statusParam && ["draft", "pending", "paid"].includes(statusParam) 
+      ? statusParam 
+      : "all"
+    if (newStatus !== statusFilter) {
+      setStatusFilter(newStatus)
     }
   }, [searchParams])
 
