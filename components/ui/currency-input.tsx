@@ -24,6 +24,8 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
         }}
         thousandSeparator="."
         decimalSeparator=","
+        decimalScale={0}
+        fixedDecimalScale={false}
         prefix="Rp "
         allowNegative={false}
         placeholder={placeholder}

@@ -338,6 +338,7 @@ export default function EditExpensePage() {
       const payload = {
         projectName: projectName.trim(),
         clientBudget: parseFloat(clientBudget) || 0,
+        paidAmount: parseFloat(paidAmount) || 0,
         notes: notes.trim() || null,
         status,
         totalItemBudgeted: items.reduce((sum, item) => sum + (parseFloat(item.budgeted) || 0), 0),
@@ -555,29 +556,18 @@ export default function EditExpensePage() {
 
                 <div className="space-y-2">
                   <Label>Paid Amount</Label>
-                  {hasInvoice ? (
-                    <>
-                      <div className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm">
-                        {formatCurrency(parseFloat(paidAmount) || 0)}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Auto-filled from invoice (total amount after tax)
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <CurrencyInput
-                        value={paidAmount}
-                        onValueChange={(value) => {
-                          setPaidAmount(value)
-                        }}
-                        placeholder="Rp 0"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Enter the amount paid by client
-                      </p>
-                    </>
-                  )}
+                  <CurrencyInput
+                    value={paidAmount}
+                    onValueChange={(value) => {
+                      setPaidAmount(value)
+                    }}
+                    placeholder="Rp 0"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {hasInvoice 
+                      ? "Auto-filled from invoice (editable if needed)" 
+                      : "Enter the amount paid by client"}
+                  </p>
                 </div>
 
                 <div className="space-y-2">

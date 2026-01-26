@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
+import { FloatingCalculator } from "@/components/ui/floating-calculator";
+import { FloatingCalendar } from "@/components/ui/floating-calendar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -51,6 +53,8 @@ export default function RootLayout({
         >
           {children}
           <Toaster position="top-right" richColors />
+          <FloatingCalculator />
+          <FloatingCalendar />
         </ThemeProvider>
       </body>
     </html>

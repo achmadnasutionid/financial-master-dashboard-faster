@@ -66,6 +66,7 @@ export async function PUT(
       data: {
         projectName: body.projectName,
         clientBudget: parseFloat(body.clientBudget),
+        paidAmount: parseFloat(body.paidAmount) || 0,
         notes: body.notes || null,
         status: body.status || "draft",
         totalItemBudgeted: parseFloat(body.totalItemBudgeted) || 0,
