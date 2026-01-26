@@ -427,7 +427,7 @@ export default function CreatePlanningPage() {
                                 </div>
                                 <div>
                                   <div
-                                    className={`flex h-9 items-center rounded-md border px-3 text-sm font-medium ${
+                                    className={`flex h-11 items-center rounded-md border px-3 text-sm font-medium ${
                                       profit >= 0 ? "text-green-600" : "text-red-600"
                                     }`}
                                   >
