@@ -41,14 +41,14 @@ export default function CreateExpensePage() {
   // Form fields
   const [projectName, setProjectName] = useState("")
   const [productionDate, setProductionDate] = useState<Date | null>(null)
-  const [clientBudget, setClientBudget] = useState("0")
-  const [paidAmount, setPaidAmount] = useState("0")
+  const [clientBudget, setClientBudget] = useState("")
+  const [paidAmount, setPaidAmount] = useState("")
   const [notes, setNotes] = useState("")
   const [items, setItems] = useState<ExpenseItem[]>([{
     id: Date.now().toString(),
     productName: "",
-    budgeted: "0",
-    actual: "0",
+    budgeted: "",
+    actual: "",
     difference: 0
   }])
   const [products, setProducts] = useState<string[]>([])
@@ -156,8 +156,8 @@ export default function CreateExpensePage() {
     const newItem: ExpenseItem = {
       id: Date.now().toString(),
       productName: "",
-      budgeted: "0",
-      actual: "0",
+      budgeted: "",
+      actual: "",
       difference: 0
     }
     setItems([...items, newItem])

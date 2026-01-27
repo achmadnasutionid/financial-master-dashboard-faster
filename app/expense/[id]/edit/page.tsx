@@ -87,8 +87,8 @@ export default function EditExpensePage() {
         setExpenseStatus(data.status)
         setProjectName(data.projectName)
         setProductionDate(data.productionDate ? new Date(data.productionDate) : null)
-        setClientBudget(data.clientBudget.toString())
-        setPaidAmount(data.paidAmount.toString())
+        setClientBudget(data.clientBudget > 0 ? data.clientBudget.toString() : "")
+        setPaidAmount(data.paidAmount > 0 ? data.paidAmount.toString() : "")
         setNotes(data.notes || "")
         setHasInvoice(!!data.invoiceId) // Check if expense has invoice reference
         
@@ -105,8 +105,8 @@ export default function EditExpensePage() {
         const loadedItems = data.items.map((item: any) => ({
           id: item.id,
           productName: item.productName,
-          budgeted: item.budgeted.toString(),
-          actual: item.actual.toString(),
+          budgeted: item.budgeted > 0 ? item.budgeted.toString() : "",
+          actual: item.actual > 0 ? item.actual.toString() : "",
           difference: item.difference
         }))
         setItems(loadedItems)
@@ -224,8 +224,8 @@ export default function EditExpensePage() {
     const newItem: ExpenseItem = {
       id: Date.now().toString(),
       productName: "",
-      budgeted: "0",
-      actual: "0",
+      budgeted: "",
+      actual: "",
       difference: 0
     }
     setItems([...items, newItem])
