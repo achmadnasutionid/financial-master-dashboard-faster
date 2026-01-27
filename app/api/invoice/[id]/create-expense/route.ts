@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { generateId } from "@/lib/id-generator"
 
 // POST - Create expense from invoice when marked as paid
 export async function POST(
@@ -48,26 +49,8 @@ export async function POST(
       )
     }
 
-    // Generate Expense ID
-    const year = new Date().getFullYear()
-    const lastExpense = await prisma.expense.findFirst({
-      where: {
-        expenseId: {
-          startsWith: `EXP-${year}-`
-        }
-      },
-      orderBy: {
-        expenseId: "desc"
-      }
-    })
-
-    let newNumber = 1
-    if (lastExpense) {
-      const lastNumber = parseInt(lastExpense.expenseId.split("-")[2])
-      newNumber = lastNumber + 1
-    }
-
-    const expenseId = `EXP-${year}-${newNumber.toString().padStart(4, "0")}`
+    // Generate Expense ID using centralized generator (prevents race conditions)
+    const expenseId = await generateId('EXP', 'expense')
 
     // Get planning data if invoice has planning reference
     let planningItems: any[] = []

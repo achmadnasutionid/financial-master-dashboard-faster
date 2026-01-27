@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { generateId } from "@/lib/id-generator"
 
 // POST - Generate quotation from planning
 export async function POST(
@@ -73,26 +74,8 @@ export async function POST(
       )
     }
 
-    // Generate Quotation ID
-    const year = new Date().getFullYear()
-    const lastQuotation = await prisma.quotation.findFirst({
-      where: {
-        quotationId: {
-          startsWith: `QTN-${year}-`
-        }
-      },
-      orderBy: {
-        quotationId: "desc"
-      }
-    })
-
-    let newNumber = 1
-    if (lastQuotation) {
-      const lastNumber = parseInt(lastQuotation.quotationId.split("-")[2])
-      newNumber = lastNumber + 1
-    }
-
-    const quotationId = `QTN-${year}-${newNumber.toString().padStart(4, "0")}`
+    // Generate Quotation ID using centralized generator (prevents race conditions)
+    const quotationId = await generateId('QTN', 'quotation')
 
     // Calculate total amount
     const subtotal = planning.items.reduce((sum, item) => sum + item.budget, 0)

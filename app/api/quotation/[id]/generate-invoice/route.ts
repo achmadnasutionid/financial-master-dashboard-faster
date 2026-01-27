@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { generateId } from "@/lib/id-generator"
 
 // POST - Generate invoice from quotation
 export async function POST(
@@ -45,26 +46,8 @@ export async function POST(
       )
     }
 
-    // Generate Invoice ID
-    const year = new Date().getFullYear()
-    const lastInvoice = await prisma.invoice.findFirst({
-      where: {
-        invoiceId: {
-          startsWith: `INV-${year}-`
-        }
-      },
-      orderBy: {
-        invoiceId: "desc"
-      }
-    })
-
-    let newNumber = 1
-    if (lastInvoice) {
-      const lastNumber = parseInt(lastInvoice.invoiceId.split("-")[2])
-      newNumber = lastNumber + 1
-    }
-
-    const invoiceId = `INV-${year}-${newNumber.toString().padStart(4, "0")}`
+    // Generate Invoice ID using centralized generator (prevents race conditions)
+    const invoiceId = await generateId('INV', 'invoice')
 
     // Get planning ID if quotation came from planning
     let planningId = null
