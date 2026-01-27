@@ -172,7 +172,7 @@ export default function CreateParagonTicketPage() {
   const addRemark = () => {
     markInteracted()
     setRemarks([...remarks, {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       text: "",
       isCompleted: false
     }])
@@ -282,7 +282,7 @@ export default function CreateParagonTicketPage() {
         ? {
             ...item,
             details: [...item.details, {
-              id: Date.now().toString(),
+              id: crypto.randomUUID(),
               detail: "",
               unitPrice: "",
               qty: "",

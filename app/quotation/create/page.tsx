@@ -193,7 +193,7 @@ export default function CreateQuotationPage() {
   const addRemark = () => {
     markInteracted()
     setRemarks([...remarks, {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       text: "",
       isCompleted: false
     }])
@@ -303,7 +303,7 @@ export default function CreateQuotationPage() {
         ? {
             ...item,
             details: [...item.details, {
-              id: Date.now().toString(),
+              id: crypto.randomUUID(),
               detail: "",
               unitPrice: "",
               qty: "",

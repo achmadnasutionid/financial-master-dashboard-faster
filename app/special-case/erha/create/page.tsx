@@ -182,7 +182,7 @@ export default function CreateErhaTicketPage() {
   const addRemark = () => {
     markInteracted()
     setRemarks([...remarks, {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       text: "",
       isCompleted: false
     }])
@@ -292,7 +292,7 @@ export default function CreateErhaTicketPage() {
         ? {
             ...item,
             details: [...item.details, {
-              id: Date.now().toString(),
+              id: crypto.randomUUID(),
               detail: "",
               unitPrice: "",
               qty: "",

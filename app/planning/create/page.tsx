@@ -93,7 +93,7 @@ export default function CreatePlanningPage() {
     setItems([
       ...items,
       {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         productName: "",
         budget: "",
         expense: "",

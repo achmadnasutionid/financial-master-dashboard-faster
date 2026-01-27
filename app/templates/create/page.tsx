@@ -70,7 +70,7 @@ export default function CreateTemplatePage() {
 
   // Items management
   const addItem = () => {
-    const newItemId = Date.now().toString()
+    const newItemId = crypto.randomUUID()
     setItems([...items, {
       id: newItemId,
       productName: "",

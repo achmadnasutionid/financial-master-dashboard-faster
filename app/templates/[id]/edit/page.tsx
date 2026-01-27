@@ -113,7 +113,7 @@ export default function EditTemplatePage() {
 
   // Items management (same as create page)
   const addItem = () => {
-    const newItemId = Date.now().toString()
+    const newItemId = crypto.randomUUID()
     setItems([...items, {
       id: newItemId,
       productName: "",

@@ -222,7 +222,7 @@ export default function EditExpensePage() {
 
   const addItem = () => {
     const newItem: ExpenseItem = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       productName: "",
       budgeted: "",
       actual: "",

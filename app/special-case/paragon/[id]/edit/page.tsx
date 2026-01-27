@@ -256,7 +256,7 @@ export default function EditParagonTicketPage() {
   // Remark management
   const addRemark = () => {
     setRemarks([...remarks, {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       text: "",
       isCompleted: false
     }])
@@ -359,7 +359,7 @@ export default function EditParagonTicketPage() {
         ? {
             ...item,
             details: [...item.details, {
-              id: Date.now().toString(),
+              id: crypto.randomUUID(),
               detail: "",
               unitPrice: "",
               qty: "",

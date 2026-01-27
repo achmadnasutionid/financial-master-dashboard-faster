@@ -45,7 +45,7 @@ export default function CreateExpensePage() {
   const [paidAmount, setPaidAmount] = useState("")
   const [notes, setNotes] = useState("")
   const [items, setItems] = useState<ExpenseItem[]>([{
-    id: Date.now().toString(),
+    id: crypto.randomUUID(),
     productName: "",
     budgeted: "",
     actual: "",
@@ -154,7 +154,7 @@ export default function CreateExpensePage() {
   const addItem = () => {
     markInteracted()
     const newItem: ExpenseItem = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       productName: "",
       budgeted: "",
       actual: "",
