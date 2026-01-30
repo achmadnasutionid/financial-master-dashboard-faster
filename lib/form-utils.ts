@@ -7,7 +7,7 @@ import { RefObject } from "react"
  */
 export function scrollToFirstError(
   errorObj: Record<string, string>,
-  errorRefMap: Record<string, RefObject<HTMLDivElement>>
+  errorRefMap: Record<string, RefObject<HTMLDivElement | null>>
 ) {
   // Find the first error field and scroll to it
   for (const [key, ref] of Object.entries(errorRefMap)) {
