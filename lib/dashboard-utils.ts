@@ -266,7 +266,10 @@ export function calculateProductExpenses(
           return expYear === year && exp.status === "final"
         })
 
-  const masterProductNames = products.map((p) => p.name)
+  // Exclude "PHOTOGRAPHER" from master products
+  const masterProductNames = products
+    .filter((p) => p.name.toUpperCase() !== "PHOTOGRAPHER")
+    .map((p) => p.name)
   const productTotals: { [key: string]: number } = {}
   const etcTotals: { [key: string]: number } = {}
 
@@ -274,6 +277,11 @@ export function calculateProductExpenses(
     exp.items.forEach((item) => {
       const actual = item.actual || 0
       const productName = item.productName
+
+      // Skip PHOTOGRAPHER items entirely
+      if (productName.toUpperCase() === "PHOTOGRAPHER") {
+        return
+      }
 
       if (masterProductNames.includes(productName)) {
         productTotals[productName] = (productTotals[productName] || 0) + actual
