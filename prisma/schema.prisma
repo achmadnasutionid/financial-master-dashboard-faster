@@ -119,6 +119,7 @@ model Quotation {
   companyEmail           String?
   productionDate         DateTime
   billTo                 String
+  billToEmail            String?
   notes                  String?
   billingName            String
   billingBankName        String
@@ -201,6 +202,7 @@ model Invoice {
   productionDate         DateTime
   paidDate               DateTime?
   billTo                 String
+  billToEmail            String?
   notes                  String?
   billingName            String
   billingBankName        String
