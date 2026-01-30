@@ -145,7 +145,7 @@ export async function GET() {
       const eventEnd = new Date(q.productionDate)
       eventEnd.setHours(23, 59, 59)
 
-      const summary = `🎬 ${escapeICSText(q.companyName)}`
+      const summary = `🎬 ${escapeICSText(q.billTo)}`
       const description = [
         `Type: Quotation`,
         `ID: ${q.quotationId}`,
@@ -175,7 +175,7 @@ export async function GET() {
       const eventEnd = new Date(t.productionDate)
       eventEnd.setHours(23, 59, 59)
 
-      const summary = `🏥 Paragon - ${escapeICSText(t.companyName)}`
+      const summary = `🏥 Paragon - ${escapeICSText(t.billTo)}`
       const description = [
         `Type: Paragon Ticket`,
         `ID: ${t.ticketId}`,
@@ -205,7 +205,7 @@ export async function GET() {
       const eventEnd = new Date(t.productionDate)
       eventEnd.setHours(23, 59, 59)
 
-      const summary = `💆 Erha - ${escapeICSText(t.companyName)}`
+      const summary = `💆 Erha - ${escapeICSText(t.billTo)}`
       const description = [
         `Type: Erha Ticket`,
         `ID: ${t.ticketId}`,
