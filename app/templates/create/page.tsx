@@ -13,6 +13,7 @@ import { CurrencyInput } from "@/components/ui/currency-input"
 import { Save, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { formatProductName } from "@/lib/utils"
+import { scrollToFirstError } from "@/lib/form-utils"
 
 interface ItemDetail {
   id: string

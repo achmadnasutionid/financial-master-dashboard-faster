@@ -199,6 +199,7 @@ model Invoice {
   companyTelp            String?
   companyEmail           String?
   productionDate         DateTime
+  paidDate               DateTime?
   billTo                 String
   notes                  String?
   billingName            String
@@ -229,6 +230,7 @@ model Invoice {
   @@index([status, updatedAt, deletedAt])
   @@index([companyName])
   @@index([planningId])
+  @@index([paidDate, status, deletedAt])
 }
 
 model InvoiceItem {

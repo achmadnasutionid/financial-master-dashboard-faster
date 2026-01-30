@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select"
 import { PPH_OPTIONS } from "@/lib/constants"
 import { formatProductName } from "@/lib/utils"
+import { scrollToFirstError } from "@/lib/form-utils"
 
 interface Company {
   id: string
@@ -85,6 +86,7 @@ export default function EditInvoicePage() {
   // Form fields
   const [selectedCompanyId, setSelectedCompanyId] = useState("")
   const [productionDate, setProductionDate] = useState<Date>()
+  const [paidDate, setPaidDate] = useState<Date>()
   const [billTo, setBillTo] = useState("")
   const [notes, setNotes] = useState("")
   const [remarks, setRemarks] = useState<Remark[]>([])
@@ -108,6 +110,13 @@ export default function EditInvoicePage() {
   const [InvoiceStatus, setInvoiceStatus] = useState<string>("")
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const initialDataRef = useRef<string>("")
+
+  // Refs for error scrolling
+  const companyRef = useRef<HTMLDivElement>(null)
+  const productionDateRef = useRef<HTMLDivElement>(null)
+  const billToRef = useRef<HTMLDivElement>(null)
+  const billingRef = useRef<HTMLDivElement>(null)
+  const signatureRef = useRef<HTMLDivElement>(null)
 
   // Fetch Invoice data
   useEffect(() => {
@@ -139,6 +148,12 @@ export default function EditInvoicePage() {
       // Parse production date safely
       const parsedDate = InvoiceData.productionDate ? new Date(InvoiceData.productionDate) : new Date()
       setProductionDate(isNaN(parsedDate.getTime()) ? new Date() : parsedDate)
+      
+      // Parse paid date safely
+      const parsedPaidDate = InvoiceData.paidDate ? new Date(InvoiceData.paidDate) : null
+      if (parsedPaidDate && !isNaN(parsedPaidDate.getTime())) {
+        setPaidDate(parsedPaidDate)
+      }
       
       setBillTo(InvoiceData.billTo)
       setNotes(InvoiceData.notes || "")
@@ -194,6 +209,7 @@ export default function EditInvoicePage() {
       initialDataRef.current = JSON.stringify({
         selectedCompanyId: company?.id,
         productionDate: parsedDate.toISOString(),
+        paidDate: parsedPaidDate?.toISOString(),
         billTo: InvoiceData.billTo,
         notes: InvoiceData.notes || "",
         selectedBillingId: billing?.id,
@@ -218,6 +234,7 @@ export default function EditInvoicePage() {
     const currentData = JSON.stringify({
       selectedCompanyId,
       productionDate: productionDate?.toISOString(),
+      paidDate: paidDate?.toISOString(),
       billTo,
       notes,
       selectedBillingId,
@@ -228,7 +245,7 @@ export default function EditInvoicePage() {
     })
     
     setHasUnsavedChanges(currentData !== initialDataRef.current)
-  }, [selectedCompanyId, productionDate, billTo, notes, selectedBillingId, selectedSignatureId, pph, remarks, items, loading])
+  }, [selectedCompanyId, productionDate, paidDate, billTo, notes, selectedBillingId, selectedSignatureId, pph, remarks, items, loading])
 
   // Unsaved changes dialog
   const {
@@ -487,6 +504,18 @@ export default function EditInvoicePage() {
     if (!selectedSignatureId) newErrors.signature = "Signature is required"
 
     setErrors(newErrors)
+    
+    // Scroll to first error
+    if (Object.keys(newErrors).length > 0) {
+      scrollToFirstError(newErrors, {
+        company: companyRef,
+        productionDate: productionDateRef,
+        billTo: billToRef,
+        billing: billingRef,
+        signature: signatureRef,
+      })
+    }
+    
     return Object.keys(newErrors).length === 0
   }
 
@@ -539,6 +568,7 @@ export default function EditInvoicePage() {
         companyTelp: company.telp,
         companyEmail: company.email,
         productionDate: productionDate!.toISOString(),
+        paidDate: paidDate ? paidDate.toISOString() : null,
         billTo: billTo.trim(),
         notes: notes.trim() || null,
         billingName: billing.name,
@@ -668,7 +698,7 @@ export default function EditInvoicePage() {
                 <h3 className="text-lg font-semibold">Basic Information</h3>
                 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={companyRef}>
                     <Label>Company <span className="text-destructive">*</span></Label>
                     <Select value={selectedCompanyId} onValueChange={(value) => {
                       setSelectedCompanyId(value)
@@ -690,19 +720,33 @@ export default function EditInvoicePage() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={productionDateRef}>
                     <Label>Production Date <span className="text-destructive">*</span></Label>
                     <DatePicker date={productionDate} onDateChange={(date) => {
                       setProductionDate(date)
+                      // Auto-calculate paidDate when productionDate changes
+                      if (date) {
+                        const newPaidDate = new Date(date)
+                        newPaidDate.setDate(newPaidDate.getDate() + 7)
+                        setPaidDate(newPaidDate)
+                      }
                       if (errors.productionDate) validateField("productionDate", date || null)
                     }} error={!!errors.productionDate} />
                     {errors.productionDate && (
                       <p className="text-sm text-destructive">{errors.productionDate}</p>
                     )}
                   </div>
+
+                  <div className="space-y-2">
+                    <Label>Paid Date (Payment Due)</Label>
+                    <DatePicker date={paidDate} onDateChange={(date) => {
+                      setPaidDate(date || undefined)
+                    }} />
+                    <p className="text-xs text-muted-foreground">Auto-set to 7 days after production date</p>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2" ref={billToRef}>
                   <Label>Bill To <span className="text-destructive">*</span></Label>
                   <Input
                     value={billTo}
@@ -783,7 +827,7 @@ export default function EditInvoicePage() {
                 <h3 className="text-lg font-semibold">Payment Information</h3>
                 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={billingRef}>
                     <Label>Billing <span className="text-destructive">*</span></Label>
                     <Select value={selectedBillingId} onValueChange={(value) => {
                       setSelectedBillingId(value)
@@ -805,7 +849,7 @@ export default function EditInvoicePage() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={signatureRef}>
                     <Label>Signature <span className="text-destructive">*</span></Label>
                     <Select value={selectedSignatureId} onValueChange={(value) => {
                       setSelectedSignatureId(value)

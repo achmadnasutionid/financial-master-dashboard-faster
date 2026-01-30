@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { PPH_OPTIONS } from "@/lib/constants"
+import { scrollToFirstError } from "@/lib/form-utils"
 import { compressFinalWorkScreenshot } from "@/lib/image-utils"
 import { formatProductName } from "@/lib/utils"
 
@@ -111,6 +112,16 @@ export default function CreateParagonTicketPage() {
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<any>({})
   const [hasInteracted, setHasInteracted] = useState(false)
+
+  // Refs for error scrolling
+  const companyRef = useRef<HTMLDivElement>(null)
+  const productionDateRef = useRef<HTMLDivElement>(null)
+  const quotationDateRef = useRef<HTMLDivElement>(null)
+  const invoiceBastDateRef = useRef<HTMLDivElement>(null)
+  const billToRef = useRef<HTMLDivElement>(null)
+  const contactPersonRef = useRef<HTMLDivElement>(null)
+  const contactPositionRef = useRef<HTMLDivElement>(null)
+  const signatureRef = useRef<HTMLDivElement>(null)
 
   // Fetch master data
   useEffect(() => {
@@ -446,6 +457,21 @@ export default function CreateParagonTicketPage() {
     if (!selectedSignatureId) newErrors.signature = "Signature is required"
 
     setErrors(newErrors)
+    
+    // Scroll to first error
+    if (Object.keys(newErrors).length > 0) {
+      scrollToFirstError(newErrors, {
+        company: companyRef,
+        productionDate: productionDateRef,
+        quotationDate: quotationDateRef,
+        invoiceBastDate: invoiceBastDateRef,
+        billTo: billToRef,
+        contactPerson: contactPersonRef,
+        contactPosition: contactPositionRef,
+        signature: signatureRef,
+      })
+    }
+    
     return Object.keys(newErrors).length === 0
   }
 

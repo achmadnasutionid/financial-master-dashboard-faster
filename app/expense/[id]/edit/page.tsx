@@ -26,6 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { scrollToFirstError } from "@/lib/form-utils"
 
 interface ExpenseItem {
   id: string
@@ -66,6 +67,10 @@ export default function EditExpensePage() {
   })
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const initialDataRef = useRef<string>("")
+
+  // Refs for error scrolling
+  const projectNameRef = useRef<HTMLDivElement>(null)
+  const productionDateRef = useRef<HTMLDivElement>(null)
 
   // Fetch expense data and products
   useEffect(() => {
@@ -286,6 +291,15 @@ export default function EditExpensePage() {
     if (!productionDate) newErrors.productionDate = "Production date is required"
 
     setErrors(newErrors)
+    
+    // Scroll to first error
+    if (Object.keys(newErrors).length > 0) {
+      scrollToFirstError(newErrors, {
+        projectName: projectNameRef,
+        productionDate: productionDateRef,
+      })
+    }
+    
     return Object.keys(newErrors).length === 0
   }
 

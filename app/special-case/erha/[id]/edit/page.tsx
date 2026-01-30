@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { PPH_OPTIONS } from "@/lib/constants"
+import { scrollToFirstError } from "@/lib/form-utils"
 import { compressFinalWorkScreenshot } from "@/lib/image-utils"
 import { formatProductName } from "@/lib/utils"
 
@@ -114,6 +115,18 @@ export default function EditErhaTicketPage() {
   const [ticketNumber, setTicketNumber] = useState<string>("")
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const initialDataRef = useRef<string>("")
+
+  // Refs for error scrolling
+  const companyRef = useRef<HTMLDivElement>(null)
+  const productionDateRef = useRef<HTMLDivElement>(null)
+  const quotationDateRef = useRef<HTMLDivElement>(null)
+  const invoiceBastDateRef = useRef<HTMLDivElement>(null)
+  const billToRef = useRef<HTMLDivElement>(null)
+  const billToAddressRef = useRef<HTMLDivElement>(null)
+  const contactPersonRef = useRef<HTMLDivElement>(null)
+  const contactPositionRef = useRef<HTMLDivElement>(null)
+  const billingRef = useRef<HTMLDivElement>(null)
+  const signatureRef = useRef<HTMLDivElement>(null)
 
   // Fetch master data and ticket data
   useEffect(() => {
@@ -564,6 +577,23 @@ export default function EditErhaTicketPage() {
     if (!selectedSignatureId) newErrors.signature = "Signature is required"
 
     setErrors(newErrors)
+    
+    // Scroll to first error
+    if (Object.keys(newErrors).length > 0) {
+      scrollToFirstError(newErrors, {
+        company: companyRef,
+        productionDate: productionDateRef,
+        quotationDate: quotationDateRef,
+        invoiceBastDate: invoiceBastDateRef,
+        billTo: billToRef,
+        billToAddress: billToAddressRef,
+        contactPerson: contactPersonRef,
+        contactPosition: contactPositionRef,
+        billing: billingRef,
+        signature: signatureRef,
+      })
+    }
+    
     return Object.keys(newErrors).length === 0
   }
 

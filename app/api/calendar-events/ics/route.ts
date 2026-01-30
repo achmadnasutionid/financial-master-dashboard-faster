@@ -100,6 +100,32 @@ export async function GET() {
       }
     })
 
+    // Fetch pending invoices (for daily reminder)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0) // Start of today
+    
+    const pendingInvoices = await prisma.invoice.findMany({
+      where: {
+        status: "pending",
+        deletedAt: null,
+        paidDate: {
+          lte: today, // Payment date has passed or is today
+        }
+      },
+      select: {
+        id: true,
+        invoiceId: true,
+        companyName: true,
+        billTo: true,
+        totalAmount: true,
+        paidDate: true,
+        productionDate: true,
+      },
+      orderBy: {
+        paidDate: "asc"
+      }
+    })
+
     // Generate ICS content
     const now = new Date()
     const icsLines = [
@@ -202,6 +228,55 @@ export async function GET() {
         'END:VEVENT'
       )
     })
+
+    // Add pending invoice reminder (daily event for TODAY only)
+    if (pendingInvoices.length > 0) {
+      const todayDateStr = today.toISOString().split('T')[0].replace(/-/g, '')
+      const reminderStart = new Date(today)
+      reminderStart.setHours(15, 0, 0, 0) // 3 PM today
+      
+      const reminderEnd = new Date(today)
+      reminderEnd.setHours(16, 0, 0, 0) // 4 PM today (1 hour duration)
+
+      // Build description with all pending invoices
+      const invoiceList = pendingInvoices.map(inv => {
+        const daysOverdue = inv.paidDate 
+          ? Math.floor((today.getTime() - new Date(inv.paidDate).getTime()) / (1000 * 60 * 60 * 24))
+          : 0
+        const overdueText = daysOverdue > 0 ? ` (${daysOverdue} days overdue)` : ' (Due today)'
+        
+        return `• ${inv.invoiceId} - ${inv.companyName} - ${formatCurrency(inv.totalAmount)}${overdueText}`
+      }).join('\\n')
+
+      const summary = `💰 ${pendingInvoices.length} Pending Invoice${pendingInvoices.length > 1 ? 's' : ''} - Payment Reminder`
+      const description = [
+        `You have ${pendingInvoices.length} pending invoice(s) that need attention:`,
+        ``,
+        invoiceList,
+        ``,
+        `Please follow up on these payments.`,
+      ].join('\\n')
+
+      icsLines.push(
+        'BEGIN:VEVENT',
+        `UID:pending-invoices-${todayDateStr}@master-dashboard`,
+        `DTSTAMP:${formatICSDate(now)}`,
+        `DTSTART:${formatICSDate(reminderStart)}`,
+        `DTEND:${formatICSDate(reminderEnd)}`,
+        `SUMMARY:${escapeICSText(summary)}`,
+        `DESCRIPTION:${escapeICSText(description)}`,
+        `CATEGORIES:Invoice,Reminder,Pending`,
+        `STATUS:CONFIRMED`,
+        `PRIORITY:1`,
+        // Add alarm/reminder - 10 minutes before (at 2:50 PM)
+        'BEGIN:VALARM',
+        'TRIGGER:-PT10M',
+        'ACTION:DISPLAY',
+        `DESCRIPTION:${escapeICSText(`${pendingInvoices.length} pending invoice(s) need your attention`)}`,
+        'END:VALARM',
+        'END:VEVENT'
+      )
+    }
 
     icsLines.push('END:VCALENDAR')
 

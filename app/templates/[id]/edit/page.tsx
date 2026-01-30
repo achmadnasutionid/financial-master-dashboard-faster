@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Save, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { formatProductName } from "@/lib/utils"
+import { scrollToFirstError } from "@/lib/form-utils"
 
 interface ItemDetail {
   id: string

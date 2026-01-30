@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select"
 import { PPH_OPTIONS } from "@/lib/constants"
 import { formatProductName } from "@/lib/utils"
+import { scrollToFirstError } from "@/lib/form-utils"
 
 interface Company {
   id: string
@@ -83,6 +84,7 @@ export default function CreateInvoicePage() {
   // Form fields
   const [selectedCompanyId, setSelectedCompanyId] = useState("")
   const [productionDate, setProductionDate] = useState<Date>()
+  const [paidDate, setPaidDate] = useState<Date>()
   const [billTo, setBillTo] = useState("")
   const [notes, setNotes] = useState("")
   const [remarks, setRemarks] = useState<Remark[]>([
@@ -113,6 +115,13 @@ export default function CreateInvoicePage() {
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<any>({})
   const [hasInteracted, setHasInteracted] = useState(false)
+
+  // Refs for error scrolling
+  const companyRef = useRef<HTMLDivElement>(null)
+  const productionDateRef = useRef<HTMLDivElement>(null)
+  const billToRef = useRef<HTMLDivElement>(null)
+  const billingRef = useRef<HTMLDivElement>(null)
+  const signatureRef = useRef<HTMLDivElement>(null)
 
   // Fetch master data
   useEffect(() => {
@@ -406,6 +415,18 @@ export default function CreateInvoicePage() {
     if (!selectedSignatureId) newErrors.signature = "Signature is required"
 
     setErrors(newErrors)
+    
+    // Scroll to first error
+    if (Object.keys(newErrors).length > 0) {
+      scrollToFirstError(newErrors, {
+        company: companyRef,
+        productionDate: productionDateRef,
+        billTo: billToRef,
+        billing: billingRef,
+        signature: signatureRef,
+      })
+    }
+    
     return Object.keys(newErrors).length === 0
   }
 
@@ -459,6 +480,7 @@ export default function CreateInvoicePage() {
         companyTelp: company?.telp || null,
         companyEmail: company?.email || null,
         productionDate: productionDate?.toISOString() || new Date().toISOString(),
+        paidDate: paidDate ? paidDate.toISOString() : null,
         billTo: billTo.trim(),
         notes: notes.trim() || null,
         billingName: billing?.name || "",
@@ -552,7 +574,7 @@ export default function CreateInvoicePage() {
                 <h3 className="text-lg font-semibold">Basic Information</h3>
                 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={companyRef}>
                     <Label>Company <span className="text-destructive">*</span></Label>
                     <Select value={selectedCompanyId} onValueChange={(value) => {
                       markInteracted()
@@ -575,20 +597,35 @@ export default function CreateInvoicePage() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={productionDateRef}>
                     <Label>Production Date <span className="text-destructive">*</span></Label>
                     <DatePicker date={productionDate} onDateChange={(date) => {
                       markInteracted()
                       setProductionDate(date)
+                      // Auto-calculate paidDate when productionDate changes
+                      if (date) {
+                        const newPaidDate = new Date(date)
+                        newPaidDate.setDate(newPaidDate.getDate() + 7)
+                        setPaidDate(newPaidDate)
+                      }
                       if (errors.productionDate) validateField("productionDate", date || null)
                     }} error={!!errors.productionDate} />
                     {errors.productionDate && (
                       <p className="text-sm text-destructive">{errors.productionDate}</p>
                     )}
                   </div>
+
+                  <div className="space-y-2">
+                    <Label>Paid Date (Payment Due)</Label>
+                    <DatePicker date={paidDate} onDateChange={(date) => {
+                      markInteracted()
+                      setPaidDate(date || undefined)
+                    }} />
+                    <p className="text-xs text-muted-foreground">Auto-set to 7 days after production date</p>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2" ref={billToRef}>
                   <Label>Bill To <span className="text-destructive">*</span></Label>
                   <Input
                     value={billTo}
@@ -670,7 +707,7 @@ export default function CreateInvoicePage() {
                 <h3 className="text-lg font-semibold">Payment Information</h3>
                 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={billingRef}>
                     <Label>Billing <span className="text-destructive">*</span></Label>
                     <Select value={selectedBillingId} onValueChange={(value) => {
                       markInteracted()
@@ -693,7 +730,7 @@ export default function CreateInvoicePage() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={signatureRef}>
                     <Label>Signature <span className="text-destructive">*</span></Label>
                     <Select value={selectedSignatureId} onValueChange={(value) => {
                       markInteracted()

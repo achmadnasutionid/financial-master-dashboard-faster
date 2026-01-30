@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select"
 import { PPH_OPTIONS } from "@/lib/constants"
 import { formatProductName } from "@/lib/utils"
+import { scrollToFirstError } from "@/lib/form-utils"
 
 interface Company {
   id: string
@@ -118,6 +119,13 @@ export default function CreateQuotationPage() {
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<any>({})
   const [hasInteracted, setHasInteracted] = useState(false)
+
+  // Refs for error scrolling
+  const companyRef = useRef<HTMLDivElement>(null)
+  const productionDateRef = useRef<HTMLDivElement>(null)
+  const billToRef = useRef<HTMLDivElement>(null)
+  const billingRef = useRef<HTMLDivElement>(null)
+  const signatureRef = useRef<HTMLDivElement>(null)
 
   // Fetch master data
   useEffect(() => {
@@ -443,6 +451,18 @@ export default function CreateQuotationPage() {
     if (!selectedSignatureId) newErrors.signature = "Signature is required"
 
     setErrors(newErrors)
+    
+    // Scroll to first error
+    if (Object.keys(newErrors).length > 0) {
+      scrollToFirstError(newErrors, {
+        company: companyRef,
+        productionDate: productionDateRef,
+        billTo: billToRef,
+        billing: billingRef,
+        signature: signatureRef,
+      })
+    }
+    
     return Object.keys(newErrors).length === 0
   }
 
@@ -589,7 +609,7 @@ export default function CreateQuotationPage() {
                 <h3 className="text-lg font-semibold">Basic Information</h3>
                 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={companyRef}>
                     <Label>Company <span className="text-destructive">*</span></Label>
                     <Select value={selectedCompanyId} onValueChange={(value) => {
                       markInteracted()
@@ -612,7 +632,7 @@ export default function CreateQuotationPage() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={productionDateRef}>
                     <Label>Production Date <span className="text-destructive">*</span></Label>
                     <DatePicker date={productionDate} onDateChange={(date) => {
                       markInteracted()
@@ -625,7 +645,7 @@ export default function CreateQuotationPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2" ref={billToRef}>
                   <Label>Bill To <span className="text-destructive">*</span></Label>
                   <Input
                     value={billTo}
@@ -707,7 +727,7 @@ export default function CreateQuotationPage() {
                 <h3 className="text-lg font-semibold">Payment Information</h3>
                 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={billingRef}>
                     <Label>Billing <span className="text-destructive">*</span></Label>
                     <Select value={selectedBillingId} onValueChange={(value) => {
                       markInteracted()
@@ -730,7 +750,7 @@ export default function CreateQuotationPage() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={signatureRef}>
                     <Label>Signature <span className="text-destructive">*</span></Label>
                     <Select value={selectedSignatureId} onValueChange={(value) => {
                       markInteracted()

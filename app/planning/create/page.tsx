@@ -32,6 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { scrollToFirstError } from "@/lib/form-utils"
 
 interface PlanningItem {
   id: string
@@ -53,6 +54,10 @@ export default function CreatePlanningPage() {
   const [errors, setErrors] = useState<any>({})
   const [hasInteracted, setHasInteracted] = useState(false)
   const [showFinalizeDialog, setShowFinalizeDialog] = useState(false)
+
+  // Refs for error scrolling
+  const projectNameRef = useRef<HTMLDivElement>(null)
+  const clientNameRef = useRef<HTMLDivElement>(null)
 
   // Fetch products for dropdown
   useEffect(() => {
@@ -173,6 +178,15 @@ export default function CreatePlanningPage() {
     if (!clientName.trim()) newErrors.clientName = "Client name is required"
 
     setErrors(newErrors)
+    
+    // Scroll to first error
+    if (Object.keys(newErrors).length > 0) {
+      scrollToFirstError(newErrors, {
+        projectName: projectNameRef,
+        clientName: clientNameRef,
+      })
+    }
+    
     return Object.keys(newErrors).length === 0
   }
 
@@ -284,7 +298,7 @@ export default function CreatePlanningPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Project Information</h3>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={projectNameRef}>
                     <Label htmlFor="projectName">
                       Project Name <span className="text-destructive">*</span>
                     </Label>
@@ -304,7 +318,7 @@ export default function CreatePlanningPage() {
                       <p className="text-sm text-destructive">{errors.projectName}</p>
                     )}
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={clientNameRef}>
                     <Label htmlFor="clientName">
                       Client Name <span className="text-destructive">*</span>
                     </Label>

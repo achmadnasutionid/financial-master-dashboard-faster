@@ -58,6 +58,10 @@ export async function POST(
       planningId = planning.id
     }
 
+    // Calculate paidDate: productionDate + 7 days
+    const paidDate = new Date(quotation.productionDate)
+    paidDate.setDate(paidDate.getDate() + 7)
+
     // Create invoice by copying all quotation data
     const invoice = await prisma.invoice.create({
       data: {
@@ -71,6 +75,7 @@ export async function POST(
         companyTelp: quotation.companyTelp,
         companyEmail: quotation.companyEmail,
         productionDate: quotation.productionDate,
+        paidDate: paidDate,
         billTo: quotation.billTo,
         notes: quotation.notes,
         billingName: quotation.billingName,

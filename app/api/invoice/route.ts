@@ -55,6 +55,17 @@ export async function POST(request: Request) {
     // For drafts, provide defaults for required fields if not provided
     const isDraft = body.status === "draft"
 
+    // Calculate paidDate: productionDate + 7 days (if productionDate is provided)
+    let paidDate = null
+    if (body.productionDate) {
+      paidDate = new Date(body.productionDate)
+      paidDate.setDate(paidDate.getDate() + 7)
+    }
+    // If paidDate is explicitly provided in body, use that instead
+    if (body.paidDate) {
+      paidDate = new Date(body.paidDate)
+    }
+
     // Create invoice with items and details
     const invoice = await prisma.invoice.create({
       data: {
@@ -67,6 +78,7 @@ export async function POST(request: Request) {
         companyTelp: body.companyTelp || null,
         companyEmail: body.companyEmail || null,
         productionDate: body.productionDate ? new Date(body.productionDate) : new Date(),
+        paidDate: paidDate,
         billTo: body.billTo || (isDraft ? "" : body.billTo),
         notes: body.notes || null,
         billingName: body.billingName || (isDraft ? "" : body.billingName),

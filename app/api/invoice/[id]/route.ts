@@ -67,6 +67,9 @@ export async function PUT(
 
     // Use transaction for atomic updates with UPSERT pattern
     const invoice = await prisma.$transaction(async (tx) => {
+      // Calculate paidDate if needed
+      let paidDate = body.paidDate ? new Date(body.paidDate) : null
+      
       // Update main invoice data
       const updated = await tx.invoice.update({
         where: { id },
@@ -79,6 +82,7 @@ export async function PUT(
           companyTelp: body.companyTelp || null,
           companyEmail: body.companyEmail || null,
           productionDate: new Date(body.productionDate),
+          paidDate: paidDate,
           billTo: body.billTo,
           notes: body.notes || null,
           billingName: body.billingName,
