@@ -254,11 +254,6 @@ function QuotationPageContent() {
     }).format(amount)
   }
 
-  // Calculate profit (photographer) total from items
-  const getProfitTotal = (items: Quotation["items"]) => {
-    const photographerItem = items.find(item => item.productName.toUpperCase() === "PHOTOGRAPHER")
-    return photographerItem ? photographerItem.total : null
-  }
 
   // Filter quotations based on search query (debounced for performance)
   const filteredQuotations = quotations.filter((quotation) => {
@@ -423,9 +418,6 @@ function QuotationPageContent() {
                   <div className="text-xs font-semibold text-muted-foreground uppercase text-right" style={{ width: '125px' }}>
                     Total
                   </div>
-                  <div className="text-xs font-semibold text-muted-foreground uppercase text-right" style={{ width: '125px' }}>
-                    Profit
-                  </div>
                 </div>
                 <div style={{ width: '152px' }} className="text-xs font-semibold text-muted-foreground uppercase text-center">
                   Actions
@@ -434,7 +426,6 @@ function QuotationPageContent() {
 
               {/* Data Rows */}
               {paginatedQuotations.map((quotation) => {
-                const profitTotal = getProfitTotal(quotation.items)
                 return (
                   <Card key={quotation.id} className="transition-all hover:shadow-md">
                     <CardContent className="p-4">
@@ -450,7 +441,7 @@ function QuotationPageContent() {
                           </span>
                         </div>
 
-                        {/* Middle: Status, Production Date, Total Amount, Profit Total */}
+                        {/* Middle: Status, Production Date, Total Amount */}
                         <div className="hidden lg:flex items-center gap-4">
                           <div style={{ width: '100px' }}>
                             <span
@@ -470,9 +461,6 @@ function QuotationPageContent() {
                           </div>
                           <div className="text-sm font-semibold text-right" style={{ width: '125px' }}>
                             {formatCurrency(quotation.totalAmount)}
-                          </div>
-                          <div className="text-sm font-medium text-right" style={{ width: '125px' }}>
-                            {profitTotal ? formatCurrency(profitTotal) : "-"}
                           </div>
                         </div>
 

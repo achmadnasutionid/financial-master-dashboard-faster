@@ -249,11 +249,6 @@ function InvoicePageContent() {
     }).format(amount)
   }
 
-  // Calculate profit (photographer) total from items
-  const getProfitTotal = (items: Invoice["items"]) => {
-    const photographerItem = items.find(item => item.productName.toUpperCase() === "PHOTOGRAPHER")
-    return photographerItem ? photographerItem.total : null
-  }
 
   // Filter invoices based on search query (debounced for performance)
   const filteredInvoices = invoices.filter((invoice) => {
@@ -418,9 +413,6 @@ function InvoicePageContent() {
                   <div className="text-xs font-semibold text-muted-foreground uppercase text-right" style={{ width: '125px' }}>
                     Total
                   </div>
-                  <div className="text-xs font-semibold text-muted-foreground uppercase text-right" style={{ width: '125px' }}>
-                    Profit
-                  </div>
                 </div>
                 <div style={{ width: '152px' }} className="text-xs font-semibold text-muted-foreground uppercase text-center">
                   Actions
@@ -429,7 +421,6 @@ function InvoicePageContent() {
 
               {/* Data Rows */}
               {paginatedInvoices.map((Invoice) => {
-                const profitTotal = getProfitTotal(Invoice.items)
                 return (
                   <Card key={Invoice.id} className="transition-all hover:shadow-md">
                     <CardContent className="p-4">
@@ -445,7 +436,7 @@ function InvoicePageContent() {
                           </span>
                         </div>
 
-                        {/* Middle: Status, Production Date, Total Amount, Profit Total */}
+                        {/* Middle: Status, Production Date, Total Amount */}
                         <div className="hidden lg:flex items-center gap-4">
                           <div style={{ width: '100px' }}>
                             <span
@@ -465,9 +456,6 @@ function InvoicePageContent() {
                           </div>
                           <div className="text-sm font-semibold text-right" style={{ width: '125px' }}>
                             {formatCurrency(Invoice.totalAmount)}
-                          </div>
-                          <div className="text-sm font-medium text-right" style={{ width: '125px' }}>
-                            {profitTotal ? formatCurrency(profitTotal) : "-"}
                           </div>
                         </div>
 
