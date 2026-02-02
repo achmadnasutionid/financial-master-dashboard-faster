@@ -657,7 +657,7 @@ export default function EditInvoicePage() {
     
     setDeleting(true)
     try {
-      const response = await fetch(`/api/invoice/${invoiceId}`, {
+      const response = await fetch(`/api/invoice/${InvoiceId}`, {
         method: "DELETE"
       })
 
