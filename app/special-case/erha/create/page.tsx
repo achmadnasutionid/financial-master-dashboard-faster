@@ -165,7 +165,7 @@ export default function CreateErhaTicketPage() {
     handleLeaveWithoutSaving
   } = useUnsavedChanges({
     hasUnsavedChanges: hasInteracted,
-    onSaveAsDraft: async () => {
+    onSave: async () => {
       await handleSubmit("draft")
     },
     enabled: true
@@ -1165,7 +1165,7 @@ export default function CreateErhaTicketPage() {
       <UnsavedChangesDialog
         open={showUnsavedDialog}
         onOpenChange={setShowUnsavedDialog}
-        onSaveAsDraft={handleSaveAndLeave}
+        onSave={handleSaveAndLeave}
         onLeave={handleLeaveWithoutSaving}
         isSaving={isSavingDraft}
       />

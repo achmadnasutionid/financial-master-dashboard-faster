@@ -253,8 +253,9 @@ export default function EditParagonTicketPage() {
     handleLeaveWithoutSaving
   } = useUnsavedChanges({
     hasUnsavedChanges,
-    onSaveAsDraft: async () => {
-      await handleSubmit("draft")
+    onSave: async () => {
+      // Save with current status, don't force to draft
+      await handleSubmit((currentStatus as "draft" | "final") || "draft")
     },
     enabled: !loading
   })
@@ -1206,7 +1207,7 @@ export default function EditParagonTicketPage() {
       <UnsavedChangesDialog
         open={showUnsavedDialog}
         onOpenChange={setShowUnsavedDialog}
-        onSaveAsDraft={handleSaveAndLeave}
+        onSave={handleSaveAndLeave}
         onLeave={handleLeaveWithoutSaving}
         isSaving={isSavingDraft}
       />

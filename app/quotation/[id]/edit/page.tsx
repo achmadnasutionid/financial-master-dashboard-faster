@@ -260,8 +260,9 @@ export default function EditQuotationPage() {
     handleLeaveWithoutSaving
   } = useUnsavedChanges({
     hasUnsavedChanges,
-    onSaveAsDraft: async () => {
-      await handleSubmit("draft")
+    onSave: async () => {
+      // Save with current status, don't force to draft
+      await handleSubmit((quotationStatus as "draft" | "pending") || "draft")
     },
     enabled: !loading
   })
@@ -1118,7 +1119,7 @@ export default function EditQuotationPage() {
       <UnsavedChangesDialog
         open={showUnsavedDialog}
         onOpenChange={setShowUnsavedDialog}
-        onSaveAsDraft={handleSaveAndLeave}
+        onSave={handleSaveAndLeave}
         onLeave={handleLeaveWithoutSaving}
         isSaving={isSavingDraft}
       />

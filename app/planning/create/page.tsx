@@ -87,7 +87,7 @@ export default function CreatePlanningPage() {
     handleLeaveWithoutSaving
   } = useUnsavedChanges({
     hasUnsavedChanges: hasInteracted,
-    onSaveAsDraft: async () => {
+    onSave: async () => {
       await handleSubmit("draft")
     },
     enabled: true
@@ -569,7 +569,7 @@ export default function CreatePlanningPage() {
       <UnsavedChangesDialog
         open={showUnsavedDialog}
         onOpenChange={setShowUnsavedDialog}
-        onSaveAsDraft={handleSaveAndLeave}
+        onSave={handleSaveAndLeave}
         onLeave={handleLeaveWithoutSaving}
         isSaving={isSavingDraft}
       />

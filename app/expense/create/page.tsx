@@ -98,7 +98,7 @@ export default function CreateExpensePage() {
     handleLeaveWithoutSaving
   } = useUnsavedChanges({
     hasUnsavedChanges: hasInteracted,
-    onSaveAsDraft: async () => {
+    onSave: async () => {
       await saveExpense("draft")
     },
     enabled: true
@@ -713,7 +713,7 @@ export default function CreateExpensePage() {
       <UnsavedChangesDialog
         open={showUnsavedDialog}
         onOpenChange={setShowUnsavedDialog}
-        onSaveAsDraft={handleSaveAndLeave}
+        onSave={handleSaveAndLeave}
         onLeave={handleLeaveWithoutSaving}
         isSaving={isSavingDraft}
       />

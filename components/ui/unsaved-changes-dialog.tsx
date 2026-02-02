@@ -14,7 +14,7 @@ import {
 interface UnsavedChangesDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSaveAsDraft: () => void
+  onSave: () => void
   onLeave: () => void
   isSaving?: boolean
 }
@@ -22,7 +22,7 @@ interface UnsavedChangesDialogProps {
 export function UnsavedChangesDialog({
   open,
   onOpenChange,
-  onSaveAsDraft,
+  onSave,
   onLeave,
   isSaving = false
 }: UnsavedChangesDialogProps) {
@@ -32,15 +32,15 @@ export function UnsavedChangesDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
           <AlertDialogDescription>
-            You have unsaved changes. Do you want to save as draft before leaving?
+            You have unsaved changes. Do you want to save them before leaving?
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onLeave} disabled={isSaving}>
             Leave Without Saving
           </AlertDialogCancel>
-          <AlertDialogAction onClick={onSaveAsDraft} disabled={isSaving}>
-            {isSaving ? "Saving..." : "Save as Draft"}
+          <AlertDialogAction onClick={onSave} disabled={isSaving}>
+            {isSaving ? "Saving..." : "Save Changes"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

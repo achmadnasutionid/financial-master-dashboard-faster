@@ -155,8 +155,9 @@ export default function EditPlanningPage() {
     handleLeaveWithoutSaving
   } = useUnsavedChanges({
     hasUnsavedChanges,
-    onSaveAsDraft: async () => {
-      await handleSubmit("draft")
+    onSave: async () => {
+      // Save with current status, don't force to draft
+      await handleSubmit((planningStatus as "draft" | "final") || "draft")
     },
     enabled: !loading
   })
@@ -717,7 +718,7 @@ export default function EditPlanningPage() {
       <UnsavedChangesDialog
         open={showUnsavedDialog}
         onOpenChange={setShowUnsavedDialog}
-        onSaveAsDraft={handleSaveAndLeave}
+        onSave={handleSaveAndLeave}
         onLeave={handleLeaveWithoutSaving}
         isSaving={isSavingDraft}
       />

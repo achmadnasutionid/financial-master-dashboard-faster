@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation"
 
 interface UseUnsavedChangesOptions {
   hasUnsavedChanges: boolean
-  onSaveAsDraft: () => Promise<void> | void
+  onSave: () => Promise<void> | void
   enabled?: boolean
 }
 
 export function useUnsavedChanges({
   hasUnsavedChanges,
-  onSaveAsDraft,
+  onSave,
   enabled = true
 }: UseUnsavedChangesOptions) {
   const router = useRouter()
@@ -46,11 +46,11 @@ export function useUnsavedChanges({
   const handleSaveAndLeave = async () => {
     setIsSaving(true)
     try {
-      await onSaveAsDraft()
+      await onSave()
       // Navigation will happen after save completes (in the save function)
       setShowDialog(false)
     } catch (error) {
-      console.error("Failed to save draft:", error)
+      console.error("Failed to save:", error)
     } finally {
       setIsSaving(false)
     }
