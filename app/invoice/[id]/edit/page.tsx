@@ -281,7 +281,7 @@ export default function EditInvoicePage() {
       })
       setLoading(false)
     })
-  }, [InvoiceId, router])
+  }, [InvoiceId])
 
   // Track changes
   useEffect(() => {

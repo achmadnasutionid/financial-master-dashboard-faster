@@ -120,7 +120,7 @@ export default function EditPlanningPage() {
         })
         setLoading(false)
       })
-  }, [planningId, router])
+  }, [planningId])
 
   // Fetch products for dropdown
   useEffect(() => {

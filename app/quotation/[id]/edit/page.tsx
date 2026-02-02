@@ -271,7 +271,7 @@ export default function EditQuotationPage() {
       })
       setLoading(false)
     })
-  }, [quotationId, router])
+  }, [quotationId])
 
   // Track changes
   useEffect(() => {

@@ -143,7 +143,7 @@ export default function EditExpensePage() {
         toast.error("Failed to load expense")
         setLoading(false)
       })
-  }, [expenseId, router])
+  }, [expenseId])
 
   // Track changes
   useEffect(() => {
