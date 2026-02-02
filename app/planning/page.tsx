@@ -109,6 +109,23 @@ function PlanningPageContent() {
     fetchPlannings()
   }, [statusFilter, sortBy])
 
+  // Refetch when page becomes visible (e.g., after navigation back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchPlannings()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', fetchPlannings)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', fetchPlannings)
+    }
+  }, [statusFilter, sortBy])
+
   // Fetch master data when dialog opens
   useEffect(() => {
     if (showQuotationDialog) {

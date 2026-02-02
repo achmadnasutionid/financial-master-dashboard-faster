@@ -127,6 +127,23 @@ function ExpensePageContent() {
     fetchExpenses()
   }, [statusFilter, sortBy])
 
+  // Refetch when page becomes visible (e.g., after navigation back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchExpenses()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', fetchExpenses)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', fetchExpenses)
+    }
+  }, [statusFilter, sortBy])
+
   useEffect(() => {
     fetchAvailableYears()
   }, [])
