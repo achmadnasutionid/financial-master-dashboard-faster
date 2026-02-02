@@ -89,6 +89,12 @@ interface Remark {
   isCompleted: boolean
 }
 
+interface CustomSignature {
+  id: string
+  name: string
+  position: string
+}
+
 export default function EditInvoicePage() {
   const router = useRouter()
   const params = useParams()
@@ -105,6 +111,8 @@ export default function EditInvoicePage() {
   const [selectedSignatureId, setSelectedSignatureId] = useState("")
   const [pph, setPph] = useState("2") // Auto-select PPH 23 2%
   const [items, setItems] = useState<Item[]>([])
+  const [customSignatures, setCustomSignatures] = useState<CustomSignature[]>([])
+  const [showSignatures, setShowSignatures] = useState(false)
   const [summaryOrder, setSummaryOrder] = useState<string[]>(["subtotal", "pph", "total"])
   
   // Master data
@@ -190,6 +198,19 @@ export default function EditInvoicePage() {
           text: remark.text,
           isCompleted: remark.isCompleted
         })))
+      }
+      
+      // Load custom signatures
+      if (InvoiceData.signatures && Array.isArray(InvoiceData.signatures)) {
+        const loadedSignatures = InvoiceData.signatures.map((sig: any) => ({
+          id: sig.id,
+          name: sig.name,
+          position: sig.position
+        }))
+        setCustomSignatures(loadedSignatures)
+        if (loadedSignatures.length > 0) {
+          setShowSignatures(true)
+        }
       }
       
       // Load items with details
@@ -278,6 +299,32 @@ export default function EditInvoicePage() {
     },
     enabled: !loading
   })
+
+  const addCustomSignature = () => {
+    setHasUnsavedChanges(true)
+    setShowSignatures(true)
+    setCustomSignatures([...customSignatures, {
+      id: crypto.randomUUID(),
+      name: "",
+      position: ""
+    }])
+  }
+
+  const removeCustomSignature = (id: string) => {
+    setHasUnsavedChanges(true)
+    const newSignatures = customSignatures.filter(sig => sig.id !== id)
+    setCustomSignatures(newSignatures)
+    if (newSignatures.length === 0) {
+      setShowSignatures(false)
+    }
+  }
+
+  const updateCustomSignature = (id: string, field: 'name' | 'position', value: string) => {
+    setHasUnsavedChanges(true)
+    setCustomSignatures(customSignatures.map(sig =>
+      sig.id === id ? { ...sig, [field]: value } : sig
+    ))
+  }
 
   // Remark management
   const addRemark = () => {
@@ -603,6 +650,13 @@ export default function EditInvoicePage() {
           id: remark.id,
           text: remark.text,
           isCompleted: remark.isCompleted
+        })),
+        customSignatures: customSignatures.filter(s => s.name.trim() && s.position.trim()).map((sig, index) => ({
+          id: sig.id,
+          name: sig.name.trim(),
+          position: sig.position.trim(),
+          imageData: "", // No image - will be signed manually by client
+          order: index
         })),
         items: items.map(item => ({
           id: item.id,
@@ -935,6 +989,48 @@ export default function EditInvoicePage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* Additional Signatures */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Additional Signatures</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addCustomSignature}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Signature
+                  </Button>
+                </div>
+                {customSignatures.length > 0 && (
+                  <div className="space-y-2">
+                    {customSignatures.map((sig) => (
+                      <div key={sig.id} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+                        <Input
+                          value={sig.name}
+                          onChange={(e) => updateCustomSignature(sig.id, 'name', e.target.value)}
+                          placeholder="Name"
+                        />
+                        <Input
+                          value={sig.position}
+                          onChange={(e) => updateCustomSignature(sig.id, 'position', e.target.value)}
+                          placeholder="Position"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeCustomSignature(sig.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Items Section - Same as create page */}
