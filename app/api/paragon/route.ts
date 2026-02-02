@@ -1,30 +1,76 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
-// GET all paragon tickets
+// GET all paragon tickets (optimized with pagination)
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get("status")
     const sortBy = searchParams.get("sortBy")
+    const search = searchParams.get("search") || ""
+    
+    // Pagination parameters
+    const page = parseInt(searchParams.get("page") || "1")
+    const limit = parseInt(searchParams.get("limit") || "50")
+    const skip = (page - 1) * limit
 
-    const where = status ? { status } : {}
+    // Build where clause
+    const where: any = status ? { status } : {}
+    
+    // Add search filter (if provided)
+    if (search) {
+      where.OR = [
+        { ticketId: { contains: search, mode: 'insensitive' } },
+        { quotationId: { contains: search, mode: 'insensitive' } },
+        { invoiceId: { contains: search, mode: 'insensitive' } },
+        { companyName: { contains: search, mode: 'insensitive' } },
+        { billTo: { contains: search, mode: 'insensitive' } }
+      ]
+    }
+
     const orderBy = sortBy === "oldest" ? { createdAt: "asc" as const } : { createdAt: "desc" as const }
 
-    const tickets = await prisma.paragonTicket.findMany({
-      where,
-      orderBy,
-      include: {
-        items: {
-          include: {
-            details: true
+    // Fetch data with pagination - optimized for list view
+    const [tickets, total] = await Promise.all([
+      prisma.paragonTicket.findMany({
+        where,
+        orderBy,
+        select: {
+          id: true,
+          ticketId: true,
+          quotationId: true,
+          invoiceId: true,
+          companyName: true,
+          billTo: true,
+          productionDate: true,
+          totalAmount: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          // Only fetch item summaries, not full details
+          items: {
+            select: {
+              productName: true,
+              total: true
+            }
           }
         },
-        remarks: true
+        take: limit,
+        skip: skip
+      }),
+      prisma.paragonTicket.count({ where })
+    ])
+
+    // Return paginated response
+    return NextResponse.json({
+      data: tickets,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
       }
     })
-
-    return NextResponse.json(tickets)
   } catch (error) {
     console.error("Error fetching paragon tickets:", error)
     return NextResponse.json(

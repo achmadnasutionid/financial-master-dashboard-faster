@@ -2,34 +2,73 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { generateId } from "@/lib/id-generator"
 
-// GET all plannings with optional filters
+// GET all plannings with optional filters (optimized with pagination)
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get("status")
     const sortBy = searchParams.get("sortBy") || "newest"
     const includeDeleted = searchParams.get("includeDeleted") === "true"
+    const search = searchParams.get("search") || ""
+    
+    // Pagination parameters
+    const page = parseInt(searchParams.get("page") || "1")
+    const limit = parseInt(searchParams.get("limit") || "50")
+    const skip = (page - 1) * limit
 
+    // Build where clause
     const where: any = {}
     if (status && status !== "all") {
       where.status = status
     }
-    // Filter out soft-deleted records by default
     if (!includeDeleted) {
       where.deletedAt = null
     }
+    
+    // Add search filter (if provided)
+    if (search) {
+      where.OR = [
+        { planningId: { contains: search, mode: 'insensitive' } },
+        { projectName: { contains: search, mode: 'insensitive' } },
+        { clientName: { contains: search, mode: 'insensitive' } }
+      ]
+    }
 
-    const plannings = await prisma.planning.findMany({
-      where,
-      include: {
-        items: true
-      },
-      orderBy: {
-        updatedAt: sortBy === "oldest" ? "asc" : "desc"
+    // Fetch data with pagination - optimized for list view
+    const [plannings, total] = await Promise.all([
+      prisma.planning.findMany({
+        where,
+        select: {
+          id: true,
+          planningId: true,
+          projectName: true,
+          clientName: true,
+          clientBudget: true,
+          status: true,
+          generatedQuotationId: true,
+          createdAt: true,
+          updatedAt: true,
+          // Don't fetch items in list view - only in detail view
+        },
+        orderBy: {
+          updatedAt: sortBy === "oldest" ? "asc" : "desc"
+        },
+        take: limit,
+        skip: skip
+      }),
+      prisma.planning.count({ where })
+    ])
+
+    // Return paginated response
+    return NextResponse.json({
+      data: plannings,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
       }
     })
-
-    return NextResponse.json(plannings)
   } catch (error) {
     console.error("Error fetching plannings:", error)
     return NextResponse.json(

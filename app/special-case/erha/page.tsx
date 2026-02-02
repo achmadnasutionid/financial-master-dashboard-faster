@@ -73,10 +73,14 @@ function ErhaTicketPageContent() {
       const params = new URLSearchParams()
       if (statusFilter !== "all") params.append("status", statusFilter)
       params.append("sortBy", sortBy)
+      params.append("page", "1") // Always fetch page 1 since we do client-side pagination
+      params.append("limit", "1000") // Fetch enough for client-side filtering
 
       const response = await fetch(`/api/erha?${params}`, { cache: 'no-store' })
       if (response.ok) {
-        const data = await response.json()
+        const result = await response.json()
+        // Handle both old format (array) and new format (object with data)
+        const data = Array.isArray(result) ? result : result.data
         setTickets(data)
       }
     } catch (error) {

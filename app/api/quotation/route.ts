@@ -2,39 +2,81 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { generateId } from "@/lib/id-generator"
 
-// GET all quotations
+// GET all quotations (optimized with pagination)
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get("status")
     const sortBy = searchParams.get("sortBy") || "newest"
     const includeDeleted = searchParams.get("includeDeleted") === "true"
+    const search = searchParams.get("search") || ""
+    
+    // Pagination parameters
+    const page = parseInt(searchParams.get("page") || "1")
+    const limit = parseInt(searchParams.get("limit") || "50")
+    const skip = (page - 1) * limit
 
+    // Build where clause
     const where: any = {}
     if (status && status !== "all") {
       where.status = status
     }
-    // Filter out soft-deleted records by default
     if (!includeDeleted) {
       where.deletedAt = null
     }
+    
+    // Add search filter (if provided)
+    if (search) {
+      where.OR = [
+        { quotationId: { contains: search, mode: 'insensitive' } },
+        { companyName: { contains: search, mode: 'insensitive' } },
+        { billTo: { contains: search, mode: 'insensitive' } }
+      ]
+    }
 
-    const quotations = await prisma.quotation.findMany({
-      where,
-      include: {
-        items: {
-          include: {
-            details: true
+    // Fetch data with pagination - optimized for list view
+    const [quotations, total] = await Promise.all([
+      prisma.quotation.findMany({
+        where,
+        select: {
+          id: true,
+          quotationId: true,
+          companyName: true,
+          billTo: true,
+          productionDate: true,
+          totalAmount: true,
+          status: true,
+          generatedInvoiceId: true,
+          createdAt: true,
+          updatedAt: true,
+          // Only fetch item summaries, not full details
+          items: {
+            select: {
+              productName: true,
+              total: true
+            }
           }
+          // Don't fetch remarks in list view
         },
-        remarks: true
-      },
-      orderBy: {
-        updatedAt: sortBy === "oldest" ? "asc" : "desc"
+        orderBy: {
+          updatedAt: sortBy === "oldest" ? "asc" : "desc"
+        },
+        take: limit,
+        skip: skip
+      }),
+      prisma.quotation.count({ where })
+    ])
+
+    // Return paginated response
+    return NextResponse.json({
+      data: quotations,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
       }
     })
-
-    return NextResponse.json(quotations)
   } catch (error) {
     console.error("Error fetching quotations:", error)
     return NextResponse.json(
