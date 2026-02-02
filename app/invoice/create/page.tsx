@@ -29,6 +29,7 @@ import { PPH_OPTIONS } from "@/lib/constants"
 import { formatProductName } from "@/lib/utils"
 import { scrollToFirstError } from "@/lib/form-utils"
 import { ReorderableSummary } from "@/components/ui/reorderable-summary"
+import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { ReorderableRemarks } from "@/components/ui/reorderable-remarks"
 
 interface Company {
@@ -107,6 +108,8 @@ export default function CreateInvoicePage() {
     { id: "9", text: "* Big Print (Billboard, OOH Outdoor, LED Screen Outdoor, Megatron, Umbull, dll) 50% + tnc berlanjut", isCompleted: false },
     { id: "10", text: "* Additional overseas media placement (digital and printed) will be charged .(bisa di edit) % of total", isCompleted: false },
   ])
+  const [termsAndConditions, setTermsAndConditions] = useState("")
+  const [showTerms, setShowTerms] = useState(false)
   const [selectedBillingId, setSelectedBillingId] = useState("")
   const [selectedSignatureId, setSelectedSignatureId] = useState("")
   const [pph, setPph] = useState("2") // Auto-select PPH 23 2%
@@ -533,6 +536,7 @@ export default function CreateInvoicePage() {
         pph,
         totalAmount: calculateTotalAmount(),
         summaryOrder: summaryOrder.join(","),
+        termsAndConditions: showTerms ? termsAndConditions : null,
         status,
         items: items.map(item => ({
           productName: item.productName,
@@ -723,6 +727,44 @@ export default function CreateInvoicePage() {
                       onToggleRemark={toggleRemarkCompleted}
                       onRemoveRemark={removeRemark}
                     />
+                  )}
+                </div>
+
+                {/* Terms & Conditions (S&K) */}
+                <div className="space-y-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowTerms(!showTerms)}
+                    className="w-full"
+                  >
+                    {showTerms ? (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                          <path d="m18 15-6-6-6 6"/>
+                        </svg>
+                        Hide S&K
+                      </>
+                    ) : (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                          <path d="m6 9 6 6 6-6"/>
+                        </svg>
+                        Add S&K
+                      </>
+                    )}
+                  </Button>
+                  {showTerms && (
+                    <div className="space-y-2">
+                      <Label>Detailed Terms & Conditions (S&K)</Label>
+                      <RichTextEditor
+                        content={termsAndConditions}
+                        onChange={setTermsAndConditions}
+                        placeholder="Enter detailed terms and conditions..."
+                        minHeight="300px"
+                      />
+                    </div>
                   )}
                 </div>
               </div>
