@@ -60,6 +60,8 @@ export default function EditPlanningPage() {
   const [planningNumber, setPlanningNumber] = useState<string>("")
   const [planningStatus, setPlanningStatus] = useState<string>("")
   const [showFinalizeDialog, setShowFinalizeDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   // Refs for error scrolling
   const projectNameRef = useRef<HTMLDivElement>(null)
@@ -348,6 +350,36 @@ export default function EditPlanningPage() {
     }
   }
 
+  const handleDelete = async () => {
+    if (deleting) return
+    
+    setDeleting(true)
+    try {
+      const response = await fetch(`/api/planning/${planningId}`, {
+        method: "DELETE"
+      })
+
+      if (response.ok) {
+        toast.success("Planning deleted successfully")
+        setHasUnsavedChanges(false) // Clear unsaved changes to avoid dialog
+        router.push("/planning")
+      } else {
+        const data = await response.json()
+        toast.error("Failed to delete planning", {
+          description: data.error || "An error occurred while deleting."
+        })
+      }
+    } catch (error) {
+      console.error("Error deleting planning:", error)
+      toast.error("Failed to delete planning", {
+        description: "An unexpected error occurred."
+      })
+    } finally {
+      setDeleting(false)
+      setShowDeleteDialog(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col">
@@ -617,24 +649,38 @@ export default function EditPlanningPage() {
               )}
 
               {/* Actions */}
-              <div className="flex flex-wrap items-center justify-end gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                {/* Delete Button - Left side */}
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={() => handleSubmit("draft")}
-                  disabled={saving}
+                  variant="destructive"
+                  onClick={() => setShowDeleteDialog(true)}
+                  disabled={deleting || saving}
                 >
-                  <Save className="mr-2 h-4 w-4" />
-                  Save as Draft
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
                 </Button>
-                <Button
-                  type="button"
-                  onClick={() => setShowFinalizeDialog(true)}
-                  disabled={saving}
-                >
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Finalize Planning
-                </Button>
+
+                {/* Save Buttons - Right side */}
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSubmit("draft")}
+                    disabled={saving}
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    Save as Draft
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => setShowFinalizeDialog(true)}
+                    disabled={saving}
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Finalize Planning
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -675,6 +721,29 @@ export default function EditPlanningPage() {
         onLeave={handleLeaveWithoutSaving}
         isSaving={isSavingDraft}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Planning?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the planning{" "}
+              <strong>{planningNumber}</strong> and all its associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {deleting ? "Deleting..." : "Yes, Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

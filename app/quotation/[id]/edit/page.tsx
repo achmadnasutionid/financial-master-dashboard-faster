@@ -19,6 +19,16 @@ import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog"
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -109,6 +119,8 @@ export default function EditQuotationPage() {
   const [quotationStatus, setQuotationStatus] = useState<string>("")
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const initialDataRef = useRef<string>("")
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   // Refs for error scrolling
   const companyRef = useRef<HTMLDivElement>(null)
@@ -630,6 +642,36 @@ export default function EditQuotationPage() {
     }
   }
 
+  const handleDelete = async () => {
+    if (deleting) return
+    
+    setDeleting(true)
+    try {
+      const response = await fetch(`/api/quotation/${quotationId}`, {
+        method: "DELETE"
+      })
+
+      if (response.ok) {
+        toast.success("Quotation deleted successfully")
+        setHasUnsavedChanges(false) // Clear unsaved changes to avoid dialog
+        router.push("/quotation")
+      } else {
+        const data = await response.json()
+        toast.error("Failed to delete quotation", {
+          description: data.error || "An error occurred while deleting."
+        })
+      }
+    } catch (error) {
+      console.error("Error deleting quotation:", error)
+      toast.error("Failed to delete quotation", {
+        description: "An unexpected error occurred."
+      })
+    } finally {
+      setDeleting(false)
+      setShowDeleteDialog(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col">
@@ -1031,26 +1073,40 @@ export default function EditQuotationPage() {
               )}
 
               {/* Actions */}
-              <div className="flex flex-wrap items-center justify-end gap-3">
-                {quotationStatus === "draft" && (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                {/* Delete Button - Left side */}
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => setShowDeleteDialog(true)}
+                  disabled={deleting || saving}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
+
+                {/* Save Buttons - Right side */}
+                <div className="flex flex-wrap gap-3">
+                  {quotationStatus === "draft" && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleSubmit("draft")}
+                      disabled={saving}
+                    >
+                      <Save className="mr-2 h-4 w-4" />
+                      Save as Draft
+                    </Button>
+                  )}
                   <Button
                     type="button"
-                    variant="outline"
-                    onClick={() => handleSubmit("draft")}
+                    onClick={() => handleSubmit("pending")}
                     disabled={saving}
                   >
                     <Save className="mr-2 h-4 w-4" />
-                    Save as Draft
+                    Save as Pending
                   </Button>
-                )}
-                <Button
-                  type="button"
-                  onClick={() => handleSubmit("pending")}
-                  disabled={saving}
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  Save as Pending
-                </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1066,6 +1122,29 @@ export default function EditQuotationPage() {
         onLeave={handleLeaveWithoutSaving}
         isSaving={isSavingDraft}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Quotation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the quotation{" "}
+              <strong>{quotationNumber}</strong> and all its associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {deleting ? "Deleting..." : "Yes, Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

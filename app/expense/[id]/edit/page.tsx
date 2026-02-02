@@ -60,6 +60,8 @@ export default function EditExpensePage() {
   const [errors, setErrors] = useState<any>({})
   const [showFinalizeDialog, setShowFinalizeDialog] = useState(false)
   const [showExceedDialog, setShowExceedDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [exceedInfo, setExceedInfo] = useState<{totalBudgeted: number, totalActual: number, paidAmount: number}>({
     totalBudgeted: 0,
     totalActual: 0,
@@ -396,6 +398,36 @@ export default function EditExpensePage() {
       toast.error("Failed to update expense")
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (deleting) return
+    
+    setDeleting(true)
+    try {
+      const response = await fetch(`/api/expense/${expenseId}`, {
+        method: "DELETE"
+      })
+
+      if (response.ok) {
+        toast.success("Expense deleted successfully")
+        setHasUnsavedChanges(false) // Clear unsaved changes to avoid dialog
+        router.push("/expense")
+      } else {
+        const data = await response.json()
+        toast.error("Failed to delete expense", {
+          description: data.error || "An error occurred while deleting."
+        })
+      }
+    } catch (error) {
+      console.error("Error deleting expense:", error)
+      toast.error("Failed to delete expense", {
+        description: "An unexpected error occurred."
+      })
+    } finally {
+      setDeleting(false)
+      setShowDeleteDialog(false)
     }
   }
 
@@ -739,24 +771,38 @@ export default function EditExpensePage() {
               )}
 
               {/* Actions */}
-              <div className="flex flex-wrap items-center justify-end gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                {/* Delete Button - Left side */}
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={() => handleSubmit("draft")}
-                  disabled={saving}
+                  variant="destructive"
+                  onClick={() => setShowDeleteDialog(true)}
+                  disabled={deleting || saving}
                 >
-                  <Save className="mr-2 h-4 w-4" />
-                  Save as Draft
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
                 </Button>
-                <Button
-                  type="button"
-                  onClick={() => setShowFinalizeDialog(true)}
-                  disabled={saving}
-                >
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Finalize Expense
-                </Button>
+
+                {/* Save Buttons - Right side */}
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSubmit("draft")}
+                    disabled={saving}
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    Save as Draft
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => setShowFinalizeDialog(true)}
+                    disabled={saving}
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Finalize Expense
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -854,6 +900,29 @@ export default function EditExpensePage() {
         onLeave={handleLeaveWithoutSaving}
         isSaving={isSavingDraft}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Expense?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the expense{" "}
+              <strong>{expenseNumber}</strong> and all its associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {deleting ? "Deleting..." : "Yes, Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
