@@ -368,7 +368,7 @@ export default function ViewInvoicePage() {
               )}
               
               {/* Separator */}
-              <div className="h-10 w-px bg-border" />
+              <div className="h-12 w-px bg-border" />
               
               {/* Delete button - always shown at far right */}
               <Button
