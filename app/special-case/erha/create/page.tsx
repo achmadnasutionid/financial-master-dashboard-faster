@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog"
+import { ReorderableRemarks } from "@/components/ui/reorderable-remarks"
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
 import {
   Select,
@@ -801,33 +802,13 @@ export default function CreateErhaTicketPage() {
                     </Button>
                   </div>
                   {remarks.length > 0 && (
-                    <div className="space-y-2">
-                      {remarks.map((remark) => (
-                        <div key={remark.id} className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={remark.isCompleted}
-                            onChange={() => toggleRemarkCompleted(remark.id)}
-                            className="h-4 w-4 rounded border-input"
-                          />
-                          <Input
-                            value={remark.text}
-                            onChange={(e) => updateRemarkText(remark.id, e.target.value)}
-                            placeholder="Enter remark"
-                            disabled={remark.isCompleted}
-                            className={remark.isCompleted ? "line-through text-muted-foreground" : ""}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeRemark(remark.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
+                    <ReorderableRemarks
+                      remarks={remarks}
+                      onRemarksChange={setRemarks}
+                      onUpdateRemark={updateRemarkText}
+                      onToggleRemark={toggleRemarkCompleted}
+                      onRemoveRemark={removeRemark}
+                    />
                   )}
                 </div>
               </div>
