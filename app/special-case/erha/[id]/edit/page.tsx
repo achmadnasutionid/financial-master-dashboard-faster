@@ -19,6 +19,16 @@ import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog"
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -114,6 +124,8 @@ export default function EditErhaTicketPage() {
   const [errors, setErrors] = useState<any>({})
   const [ticketNumber, setTicketNumber] = useState<string>("")
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const initialDataRef = useRef<string>("")
 
   // Refs for error scrolling
@@ -711,6 +723,36 @@ export default function EditErhaTicketPage() {
     }
   }
 
+  const handleDelete = async () => {
+    if (deleting) return
+    
+    setDeleting(true)
+    try {
+      const response = await fetch(`/api/special-case/erha/${ticketId}`, {
+        method: "DELETE"
+      })
+
+      if (response.ok) {
+        toast.success("Erha ticket deleted successfully")
+        setHasUnsavedChanges(false) // Clear unsaved changes to avoid dialog
+        router.push("/special-case/erha")
+      } else {
+        const data = await response.json()
+        toast.error("Failed to delete ticket", {
+          description: data.error || "An error occurred while deleting."
+        })
+      }
+    } catch (error) {
+      console.error("Error deleting ticket:", error)
+      toast.error("Failed to delete ticket", {
+        description: "An unexpected error occurred."
+      })
+    } finally {
+      setDeleting(false)
+      setShowDeleteDialog(false)
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <PageHeader 
@@ -1236,24 +1278,38 @@ export default function EditErhaTicketPage() {
               )}
 
               {/* Actions */}
-              <div className="flex flex-wrap items-center justify-end gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                {/* Delete Button - Left side */}
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={() => handleSubmit("draft")}
-                  disabled={saving}
+                  variant="destructive"
+                  onClick={() => setShowDeleteDialog(true)}
+                  disabled={deleting || saving}
                 >
-                  <Save className="mr-2 h-4 w-4" />
-                  Save as Draft
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
                 </Button>
-                <Button
-                  type="button"
-                  onClick={() => handleSubmit("final")}
-                  disabled={saving}
-                >
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Finalize Ticket
-                </Button>
+
+                {/* Save Buttons - Right side */}
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSubmit("draft")}
+                    disabled={saving}
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    Save as Draft
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => handleSubmit("final")}
+                    disabled={saving}
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Finalize Ticket
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1270,6 +1326,29 @@ export default function EditErhaTicketPage() {
         onLeave={handleLeaveWithoutSaving}
         isSaving={isSavingDraft}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Erha Ticket?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the ticket{" "}
+              <strong>{ticketNumber}</strong> and all its associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {deleting ? "Deleting..." : "Yes, Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
