@@ -256,6 +256,59 @@ export async function PUT(
         }
       })
 
+      // Get existing signature IDs from database
+      const existingSignatures = await tx.quotationSignature.findMany({
+        where: { quotationId: id },
+        select: { id: true }
+      })
+      const existingSignatureIds = new Set(existingSignatures.map(sig => sig.id))
+
+      // Collect incoming signature IDs
+      const incomingSignatureIds = new Set(
+        body.customSignatures?.map((sig: any) => sig.id).filter(Boolean) || []
+      )
+
+      // UPSERT signatures (OPTIMIZED - batch operations)
+      const signaturesToUpdate = (body.customSignatures || []).filter((sig: any) => sig.id && existingSignatureIds.has(sig.id))
+      const signaturesToCreate = (body.customSignatures || []).filter((sig: any) => !sig.id || !existingSignatureIds.has(sig.id))
+      
+      // Update all existing signatures in parallel (with order)
+      const updateSignaturePromises = signaturesToUpdate.map((sig: any) =>
+        tx.quotationSignature.update({
+          where: { id: sig.id },
+          data: {
+            name: sig.name,
+            position: sig.position,
+            imageData: sig.imageData || "",
+            order: (body.customSignatures || []).findIndex((s: any) => s.id === sig.id)
+          }
+        })
+      )
+      
+      // Create new signatures using createMany for better performance (with order)
+      const createSignaturePromise = signaturesToCreate.length > 0
+        ? tx.quotationSignature.createMany({
+            data: signaturesToCreate.map((sig: any) => ({
+              quotationId: id,
+              name: sig.name,
+              position: sig.position,
+              imageData: sig.imageData || "",
+              order: (body.customSignatures || []).findIndex((s: any) => s === sig)
+            }))
+          })
+        : Promise.resolve()
+      
+      // Execute all signature operations in parallel
+      await Promise.all([...updateSignaturePromises, createSignaturePromise])
+
+      // Delete removed signatures
+      await tx.quotationSignature.deleteMany({
+        where: {
+          quotationId: id,
+          id: { notIn: Array.from(incomingSignatureIds).filter((id): id is string => typeof id === 'string') }
+        }
+      })
+
       // Return updated quotation with relations
       return tx.quotation.findUnique({
         where: { id },
@@ -266,7 +319,12 @@ export async function PUT(
             },
             orderBy: { order: 'asc' }
           },
-          remarks: true
+          remarks: {
+            orderBy: { order: 'asc' }
+          },
+          signatures: {
+            orderBy: { order: 'asc' }
+          }
         }
       })
     })

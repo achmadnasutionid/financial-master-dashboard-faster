@@ -875,33 +875,32 @@ export default function EditQuotationPage() {
                 {/* Remarks Section */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
+                    <Label>Remarks</Label>
                     <div className="flex items-center gap-2">
-                      <Label>Remarks</Label>
                       <Button
                         type="button"
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         onClick={resetRemarksToDefault}
-                        className="h-8"
+                        className="h-8 w-8"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
                           <path d="M21 3v5h-5"/>
                           <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
                           <path d="M8 16H3v5"/>
                         </svg>
-                        Reset to Default
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addRemark}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Remark
                       </Button>
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={addRemark}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Remark
-                    </Button>
                   </div>
                   {remarks.length > 0 && (
                     <div className="space-y-2">

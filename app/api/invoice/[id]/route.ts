@@ -260,6 +260,59 @@ export async function PUT(
         }
       })
 
+      // Get existing signature IDs from database
+      const existingSignatures = await tx.invoiceSignature.findMany({
+        where: { invoiceId: id },
+        select: { id: true }
+      })
+      const existingSignatureIds = new Set(existingSignatures.map(sig => sig.id))
+
+      // Collect incoming signature IDs
+      const incomingSignatureIds = new Set(
+        body.customSignatures?.map((sig: any) => sig.id).filter(Boolean) || []
+      )
+
+      // UPSERT signatures (OPTIMIZED - batch operations)
+      const signaturesToUpdate = (body.customSignatures || []).filter((sig: any) => sig.id && existingSignatureIds.has(sig.id))
+      const signaturesToCreate = (body.customSignatures || []).filter((sig: any) => !sig.id || !existingSignatureIds.has(sig.id))
+      
+      // Update all existing signatures in parallel (with order)
+      const updateSignaturePromises = signaturesToUpdate.map((sig: any) =>
+        tx.invoiceSignature.update({
+          where: { id: sig.id },
+          data: {
+            name: sig.name,
+            position: sig.position,
+            imageData: sig.imageData || "",
+            order: (body.customSignatures || []).findIndex((s: any) => s.id === sig.id)
+          }
+        })
+      )
+      
+      // Create new signatures using createMany for better performance (with order)
+      const createSignaturePromise = signaturesToCreate.length > 0
+        ? tx.invoiceSignature.createMany({
+            data: signaturesToCreate.map((sig: any) => ({
+              invoiceId: id,
+              name: sig.name,
+              position: sig.position,
+              imageData: sig.imageData || "",
+              order: (body.customSignatures || []).findIndex((s: any) => s === sig)
+            }))
+          })
+        : Promise.resolve()
+      
+      // Execute all signature operations in parallel
+      await Promise.all([...updateSignaturePromises, createSignaturePromise])
+
+      // Delete removed signatures
+      await tx.invoiceSignature.deleteMany({
+        where: {
+          invoiceId: id,
+          id: { notIn: Array.from(incomingSignatureIds).filter((id): id is string => typeof id === 'string') }
+        }
+      })
+
       // Return updated invoice with relations
       return tx.invoice.findUnique({
         where: { id },
@@ -270,7 +323,12 @@ export async function PUT(
             },
             orderBy: { order: 'asc' }
           },
-          remarks: true
+          remarks: {
+            orderBy: { order: 'asc' }
+          },
+          signatures: {
+            orderBy: { order: 'asc' }
+          }
         }
       })
     })
