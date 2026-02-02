@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
 import {
   DndContext,
   closestCenter,
@@ -106,9 +105,6 @@ export function ReorderableRemarks({
   onToggleRemark,
   onRemoveRemark,
 }: ReorderableRemarksProps) {
-  const [isEditing, setIsEditing] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -127,78 +123,8 @@ export function ReorderableRemarks({
     }
   }
 
-  // Close edit mode when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsEditing(false)
-      }
-    }
-
-    if (isEditing) {
-      document.addEventListener("mousedown", handleClickOutside)
-      return () => document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [isEditing])
-
-  if (!isEditing) {
-    return (
-      <div ref={containerRef} className="space-y-2">
-        <div className="flex items-center justify-between mb-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setIsEditing(true)}
-            className="text-xs"
-          >
-            <GripVertical className="h-4 w-4 mr-1" />
-            Reorder Remarks
-          </Button>
-        </div>
-        <div className="space-y-2">
-          {remarks.map((remark) => (
-            <div key={remark.id} className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={remark.isCompleted}
-                onChange={() => onToggleRemark(remark.id)}
-                className="h-4 w-4 cursor-pointer"
-              />
-              <Input
-                value={remark.text}
-                onChange={(e) => onUpdateRemark(remark.id, e.target.value)}
-                className={remark.isCompleted ? "line-through flex-1" : "flex-1"}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => onRemoveRemark(remark.id)}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-              >
-                Remove
-              </Button>
-            </div>
-          ))}
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div ref={containerRef} className="space-y-2 border rounded-lg p-4 bg-gray-50">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-medium">Drag to reorder remarks</span>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setIsEditing(false)}
-        >
-          Done
-        </Button>
-      </div>
+    <div className="space-y-2">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
