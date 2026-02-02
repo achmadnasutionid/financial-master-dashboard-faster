@@ -6,6 +6,17 @@ function formatICSDate(date: Date): string {
   return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
 }
 
+// Helper function to format date in local timezone for ICS (YYYYMMDDTHHMMSS)
+function formatICSDateLocal(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  return `${year}${month}${day}T${hours}${minutes}${seconds}`
+}
+
 // Helper function to escape ICS text
 function escapeICSText(text: string): string {
   return text
@@ -137,6 +148,16 @@ export async function GET() {
       'X-WR-CALNAME:Production Schedule',
       'X-WR-TIMEZONE:Asia/Jakarta',
       'X-WR-CALDESC:Production schedule from Master Dashboard',
+      // Add timezone definition for Asia/Jakarta
+      'BEGIN:VTIMEZONE',
+      'TZID:Asia/Jakarta',
+      'BEGIN:STANDARD',
+      'DTSTART:19700101T000000',
+      'TZOFFSETFROM:+0700',
+      'TZOFFSETTO:+0700',
+      'TZNAME:WIB',
+      'END:STANDARD',
+      'END:VTIMEZONE',
     ]
 
     // Add quotation events
@@ -229,14 +250,14 @@ export async function GET() {
       )
     })
 
-    // Add pending invoice reminder (daily event for TODAY only)
+    // Add pending invoice reminder (daily event at 3 PM)
     if (pendingInvoices.length > 0) {
       const todayDateStr = today.toISOString().split('T')[0].replace(/-/g, '')
       const reminderStart = new Date(today)
-      reminderStart.setHours(15, 0, 0, 0) // 3 PM today
+      reminderStart.setHours(15, 0, 0, 0) // 3 PM local time
       
       const reminderEnd = new Date(today)
-      reminderEnd.setHours(16, 0, 0, 0) // 4 PM today (1 hour duration)
+      reminderEnd.setHours(16, 0, 0, 0) // 4 PM local time (1 hour duration)
 
       // Build description with all pending invoices
       const invoiceList = pendingInvoices.map(inv => {
@@ -249,22 +270,24 @@ export async function GET() {
       }).join('\\n')
 
       const summary = `💰 ${pendingInvoices.length} Pending Invoice${pendingInvoices.length > 1 ? 's' : ''} - Payment Reminder`
-      const description = [
+      const descriptionLines = [
         `You have ${pendingInvoices.length} pending invoice(s) that need attention:`,
         ``,
         invoiceList,
         ``,
         `Please follow up on these payments.`,
-      ].join('\\n')
+      ]
+      // Join with \n first, then escape the entire string
+      const description = escapeICSText(descriptionLines.join('\n'))
 
       icsLines.push(
         'BEGIN:VEVENT',
         `UID:pending-invoices-${todayDateStr}@master-dashboard`,
         `DTSTAMP:${formatICSDate(now)}`,
-        `DTSTART:${formatICSDate(reminderStart)}`,
-        `DTEND:${formatICSDate(reminderEnd)}`,
+        `DTSTART;TZID=Asia/Jakarta:${formatICSDateLocal(reminderStart)}`,
+        `DTEND;TZID=Asia/Jakarta:${formatICSDateLocal(reminderEnd)}`,
         `SUMMARY:${escapeICSText(summary)}`,
-        `DESCRIPTION:${escapeICSText(description)}`,
+        `DESCRIPTION:${description}`,
         `CATEGORIES:Invoice,Reminder,Pending`,
         `STATUS:CONFIRMED`,
         `PRIORITY:1`,
