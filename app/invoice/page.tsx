@@ -71,6 +71,12 @@ function InvoicePageContent() {
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const [markingPaid, setMarkingPaid] = useState<string | null>(null)
   const [markPaidDialogId, setMarkPaidDialogId] = useState<string | null>(null)
+  
+  // Server-side pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const ITEMS_PER_PAGE = 20
 
   // Update filter if URL parameter changes
   useEffect(() => {
@@ -88,15 +94,22 @@ function InvoicePageContent() {
       const params = new URLSearchParams()
       if (statusFilter !== "all") params.append("status", statusFilter)
       params.append("sortBy", sortBy)
-      params.append("page", "1") // Always fetch page 1 since we do client-side pagination
-      params.append("limit", "1000") // Fetch enough for client-side filtering
+      params.append("page", currentPage.toString())
+      params.append("limit", ITEMS_PER_PAGE.toString())
+      if (debouncedSearchQuery.trim()) params.append("search", debouncedSearchQuery.trim())
 
       const response = await fetch(`/api/invoice?${params}`, { cache: 'no-store' })
       if (response.ok) {
         const result = await response.json()
-        // Handle both old format (array) and new format (object with data)
-        const data = Array.isArray(result) ? result : result.data
-        setInvoices(data)
+        if (Array.isArray(result)) {
+          setInvoices(result)
+          setTotalPages(1)
+          setTotalItems(result.length)
+        } else {
+          setInvoices(result.data || [])
+          setTotalPages(result.pagination?.totalPages || 1)
+          setTotalItems(result.pagination?.total || 0)
+        }
       }
     } catch (error) {
       console.error("Error fetching invoices:", error)
@@ -106,8 +119,9 @@ function InvoicePageContent() {
   }
 
   useEffect(() => {
+    setLoading(true)
     fetchInvoices()
-  }, [statusFilter, sortBy])
+  }, [statusFilter, sortBy, currentPage, debouncedSearchQuery])
 
   // Refetch when page becomes visible (e.g., after navigation back)
   useEffect(() => {
@@ -128,9 +142,12 @@ function InvoicePageContent() {
     }
   }, [statusFilter, sortBy])
 
+  // Reset to page 1 when search/filter changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [debouncedSearchQuery, statusFilter])
+
   const [isDeleting, setIsDeleting] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
-  const ITEMS_PER_PAGE = 12
 
   const handleDelete = async () => {
     if (!deleteId || isDeleting) return
@@ -253,58 +270,6 @@ function InvoicePageContent() {
     }).format(amount)
   }
 
-
-  // Filter invoices based on search query (debounced for performance)
-  const filteredInvoices = invoices.filter((invoice) => {
-    if (!debouncedSearchQuery.trim()) return true
-    
-    const query = debouncedSearchQuery.toLowerCase()
-    const invoiceId = invoice.invoiceId.toLowerCase()
-    const companyName = invoice.companyName.toLowerCase()
-    const billTo = invoice.billTo.toLowerCase()
-    
-    // Priority: exact match or starts with query
-    if (invoiceId === query || companyName.startsWith(query) || billTo.startsWith(query)) {
-      return true
-    }
-    
-    // Then include partial matches
-    return invoiceId.includes(query) || companyName.includes(query) || billTo.includes(query)
-  })
-
-  // Sort filtered results: exact/starts-with matches first
-  const sortedFilteredInvoices = [...filteredInvoices].sort((a, b) => {
-    if (!debouncedSearchQuery.trim()) return 0
-    
-    const query = debouncedSearchQuery.toLowerCase()
-    
-    const getScore = (invoice: Invoice) => {
-      const invoiceId = invoice.invoiceId.toLowerCase()
-      const companyName = invoice.companyName.toLowerCase()
-      const billTo = invoice.billTo.toLowerCase()
-      
-      if (invoiceId === query) return 3
-      if (companyName === query || billTo === query) return 2
-      if (invoiceId.startsWith(query) || companyName.startsWith(query) || billTo.startsWith(query)) return 1
-      return 0
-    }
-    
-    return getScore(b) - getScore(a)
-  })
-
-  // Pagination logic
-  const totalItems = sortedFilteredInvoices.length
-  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE)
-  const paginatedInvoices = sortedFilteredInvoices.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  )
-
-  // Reset to page 1 when search/filter changes
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [debouncedSearchQuery, statusFilter])
-
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col">
@@ -389,7 +354,7 @@ function InvoicePageContent() {
           </div>
 
           {/* Invoice List */}
-          {sortedFilteredInvoices.length === 0 ? (
+          {invoices.length === 0 ? (
             <Card>
               <CardContent className="py-0">
                 <EmptyState
@@ -424,7 +389,7 @@ function InvoicePageContent() {
               </div>
 
               {/* Data Rows */}
-              {paginatedInvoices.map((Invoice) => {
+              {invoices.map((Invoice) => {
                 return (
                   <Card key={Invoice.id} className="transition-all hover:shadow-md">
                     <CardContent className="p-4">

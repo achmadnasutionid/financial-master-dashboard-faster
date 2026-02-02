@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Pencil, Trash2, Eye, Search, CheckCircle, FileText, Loader2 } from "lucide-react"
 import { ListCardSkeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
-import { Pagination, usePagination } from "@/components/ui/pagination"
+import { Pagination } from "@/components/ui/pagination"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
@@ -73,6 +73,12 @@ function QuotationPageContent() {
   const [generatingInvoice, setGeneratingInvoice] = useState<string | null>(null)
   const [acceptDialogId, setAcceptDialogId] = useState<string | null>(null)
   const [generateInvoiceDialogId, setGenerateInvoiceDialogId] = useState<string | null>(null)
+  
+  // Server-side pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const ITEMS_PER_PAGE = 20
 
   // Update filter if URL parameter changes
   useEffect(() => {
@@ -90,15 +96,23 @@ function QuotationPageContent() {
       const params = new URLSearchParams()
       if (statusFilter !== "all") params.append("status", statusFilter)
       params.append("sortBy", sortBy)
-      params.append("page", "1") // Always fetch page 1 since we do client-side pagination
-      params.append("limit", "1000") // Fetch enough for client-side filtering
+      params.append("page", currentPage.toString())
+      params.append("limit", ITEMS_PER_PAGE.toString())
+      if (debouncedSearchQuery.trim()) params.append("search", debouncedSearchQuery.trim())
 
       const response = await fetch(`/api/quotation?${params}`, { cache: 'no-store' })
       if (response.ok) {
         const result = await response.json()
         // Handle both old format (array) and new format (object with data)
-        const data = Array.isArray(result) ? result : result.data
-        setQuotations(data)
+        if (Array.isArray(result)) {
+          setQuotations(result)
+          setTotalPages(1)
+          setTotalItems(result.length)
+        } else {
+          setQuotations(result.data || [])
+          setTotalPages(result.pagination?.totalPages || 1)
+          setTotalItems(result.pagination?.total || 0)
+        }
       }
     } catch (error) {
       console.error("Error fetching quotations:", error)
@@ -108,8 +122,9 @@ function QuotationPageContent() {
   }
 
   useEffect(() => {
+    setLoading(true)
     fetchQuotations()
-  }, [statusFilter, sortBy])
+  }, [statusFilter, sortBy, currentPage, debouncedSearchQuery])
 
   // Refetch when page becomes visible (e.g., after navigation back)
   useEffect(() => {
@@ -130,9 +145,12 @@ function QuotationPageContent() {
     }
   }, [statusFilter, sortBy])
 
+  // Reset to page 1 when search/filter changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [debouncedSearchQuery, statusFilter])
+
   const [isDeleting, setIsDeleting] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
-  const ITEMS_PER_PAGE = 12
 
   const handleDelete = async () => {
     if (!deleteId || isDeleting) return
@@ -258,58 +276,6 @@ function QuotationPageContent() {
     }).format(amount)
   }
 
-
-  // Filter quotations based on search query (debounced for performance)
-  const filteredQuotations = quotations.filter((quotation) => {
-    if (!debouncedSearchQuery.trim()) return true
-    
-    const query = debouncedSearchQuery.toLowerCase()
-    const quotationId = quotation.quotationId.toLowerCase()
-    const companyName = quotation.companyName.toLowerCase()
-    const billTo = quotation.billTo.toLowerCase()
-    
-    // Priority: exact match or starts with query
-    if (quotationId === query || companyName.startsWith(query) || billTo.startsWith(query)) {
-      return true
-    }
-    
-    // Then include partial matches
-    return quotationId.includes(query) || companyName.includes(query) || billTo.includes(query)
-  })
-
-  // Sort filtered results: exact/starts-with matches first
-  const sortedFilteredQuotations = [...filteredQuotations].sort((a, b) => {
-    if (!debouncedSearchQuery.trim()) return 0
-    
-    const query = debouncedSearchQuery.toLowerCase()
-    
-    const getScore = (quotation: Quotation) => {
-      const quotationId = quotation.quotationId.toLowerCase()
-      const companyName = quotation.companyName.toLowerCase()
-      const billTo = quotation.billTo.toLowerCase()
-      
-      if (quotationId === query) return 3
-      if (companyName === query || billTo === query) return 2
-      if (quotationId.startsWith(query) || companyName.startsWith(query) || billTo.startsWith(query)) return 1
-      return 0
-    }
-    
-    return getScore(b) - getScore(a)
-  })
-
-  // Pagination logic
-  const totalItems = sortedFilteredQuotations.length
-  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE)
-  const paginatedQuotations = sortedFilteredQuotations.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  )
-
-  // Reset to page 1 when search/filter changes
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [debouncedSearchQuery, statusFilter])
-
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col">
@@ -394,7 +360,7 @@ function QuotationPageContent() {
           </div>
 
           {/* Quotation List */}
-          {sortedFilteredQuotations.length === 0 ? (
+          {quotations.length === 0 ? (
             <Card>
               <CardContent className="py-0">
                 <EmptyState
@@ -429,7 +395,7 @@ function QuotationPageContent() {
               </div>
 
               {/* Data Rows */}
-              {paginatedQuotations.map((quotation) => {
+              {quotations.map((quotation) => {
                 return (
                   <Card key={quotation.id} className="transition-all hover:shadow-md">
                     <CardContent className="p-4">

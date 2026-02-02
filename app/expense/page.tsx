@@ -77,6 +77,12 @@ function ExpensePageContent() {
   const [exportYear, setExportYear] = useState<string>("")
   const [isExporting, setIsExporting] = useState(false)
   const [availableYears, setAvailableYears] = useState<number[]>([])
+  
+  // Server-side pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const ITEMS_PER_PAGE = 20
 
   // Update filter if URL parameter changes
   useEffect(() => {
@@ -94,15 +100,22 @@ function ExpensePageContent() {
       const params = new URLSearchParams()
       if (statusFilter !== "all") params.append("status", statusFilter)
       params.append("sortBy", sortBy)
-      params.append("page", "1") // Always fetch page 1 since we do client-side pagination
-      params.append("limit", "1000") // Fetch enough for client-side filtering
+      params.append("page", currentPage.toString())
+      params.append("limit", ITEMS_PER_PAGE.toString())
+      if (debouncedSearchQuery.trim()) params.append("search", debouncedSearchQuery.trim())
 
       const response = await fetch(`/api/expense?${params}`, { cache: 'no-store' })
       if (response.ok) {
         const result = await response.json()
-        // Handle both old format (array) and new format (object with data)
-        const data = Array.isArray(result) ? result : result.data
-        setExpenses(data)
+        if (Array.isArray(result)) {
+          setExpenses(result)
+          setTotalPages(1)
+          setTotalItems(result.length)
+        } else {
+          setExpenses(result.data || [])
+          setTotalPages(result.pagination?.totalPages || 1)
+          setTotalItems(result.pagination?.total || 0)
+        }
       }
     } catch (error) {
       console.error("Error fetching expenses:", error)
@@ -128,8 +141,14 @@ function ExpensePageContent() {
   }
 
   useEffect(() => {
+    setLoading(true)
     fetchExpenses()
-  }, [statusFilter, sortBy])
+  }, [statusFilter, sortBy, currentPage, debouncedSearchQuery])
+
+  // Reset to page 1 when search/filter changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [debouncedSearchQuery, statusFilter])
 
   // Refetch when page becomes visible (e.g., after navigation back)
   useEffect(() => {
@@ -153,8 +172,6 @@ function ExpensePageContent() {
   }, [])
 
   const [isDeleting, setIsDeleting] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
-  const ITEMS_PER_PAGE = 12
 
   const handleDelete = async () => {
     if (!deleteId || isDeleting) return
@@ -233,39 +250,6 @@ function ExpensePageContent() {
       maximumFractionDigits: 0,
     }).format(amount)
   }
-
-  // Filter expenses based on search query (debounced for performance)
-  const filteredExpenses = expenses.filter((expense) => {
-    if (!debouncedSearchQuery.trim()) return true
-    
-    const query = debouncedSearchQuery.toLowerCase()
-    const expenseId = expense.expenseId.toLowerCase()
-    const projectName = expense.projectName.toLowerCase()
-    
-    return expenseId.includes(query) || projectName.includes(query)
-  })
-
-  // Sort filtered results
-  const sortedFilteredExpenses = [...filteredExpenses].sort((a, b) => {
-    if (sortBy === "newest") {
-      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    } else {
-      return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
-    }
-  })
-
-  // Pagination logic
-  const totalItems = sortedFilteredExpenses.length
-  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE)
-  const paginatedExpenses = sortedFilteredExpenses.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  )
-
-  // Reset to page 1 when search/filter changes
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [debouncedSearchQuery, statusFilter])
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -359,7 +343,7 @@ function ExpensePageContent() {
                 <ListCardSkeleton key={i} />
               ))}
             </div>
-          ) : sortedFilteredExpenses.length === 0 ? (
+          ) : expenses.length === 0 ? (
             <Card>
               <CardContent className="py-0">
                 <EmptyState
@@ -397,7 +381,7 @@ function ExpensePageContent() {
               </div>
 
               {/* Data Rows */}
-              {paginatedExpenses.map((expense) => {
+              {expenses.map((expense) => {
                 const totalPaid = expense.paidAmount
                 const totalActual = expense.items.reduce((sum, item) => sum + item.actual, 0)
                 const totalDifference = totalPaid - totalActual
