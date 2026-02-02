@@ -186,6 +186,44 @@ const formatCurrency = (amount: number) => {
   }).format(amount)
 }
 
+// Helper to parse HTML and convert to formatted text blocks
+const parseHTMLToTextBlocks = (html: string) => {
+  const blocks: { text: string; style?: any }[] = []
+  
+  // Split by paragraph tags
+  const paragraphs = html.split(/<\/p>|<\/h2>|<\/li>/).filter(p => p.trim())
+  
+  paragraphs.forEach(para => {
+    let text = para
+      .replace(/<p[^>]*>/gi, '')
+      .replace(/<h2[^>]*>/gi, '')
+      .replace(/<li[^>]*>/gi, '• ')
+      .replace(/<ul[^>]*>/gi, '')
+      .replace(/<ol[^>]*>/gi, '')
+      .replace(/<\/ul>/gi, '')
+      .replace(/<\/ol>/gi, '')
+      .replace(/<strong[^>]*>/gi, '')
+      .replace(/<\/strong>/gi, '')
+      .replace(/<em[^>]*>/gi, '')
+      .replace(/<\/em>/gi, '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/<[^>]*>/g, '')
+      .trim()
+    
+    if (text) {
+      // Check if it's a heading
+      const isHeading = para.includes('<h2')
+      blocks.push({ 
+        text, 
+        style: isHeading ? { fontWeight: 'bold', fontSize: 9 } : {}
+      })
+    }
+  })
+  
+  return blocks
+}
+
 export const QuotationPDF: React.FC<QuotationPDFProps> = ({ data }) => {
   // Ensure items is an array with valid structure
   const safeItems = (data.items || []).map(item => ({
@@ -616,10 +654,14 @@ export const QuotationPDF: React.FC<QuotationPDFProps> = ({ data }) => {
 
         {/* Detailed Terms & Conditions (S&K) */}
         {data.termsAndConditions && (
-          <View style={{ marginBottom: 15 }} wrap={false}>
+          <View style={{ marginBottom: 15 }}>
             <Text style={styles.sectionTitle}>Detailed S&K</Text>
-            <View style={{ fontSize: 8, lineHeight: 1.4 }}>
-              <Text>{data.termsAndConditions.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ')}</Text>
+            <View style={{ fontSize: 8, lineHeight: 1.5 }}>
+              {parseHTMLToTextBlocks(data.termsAndConditions).map((block, index) => (
+                <Text key={index} style={{ marginBottom: 4, ...block.style }}>
+                  {block.text}
+                </Text>
+              ))}
             </View>
           </View>
         )}
