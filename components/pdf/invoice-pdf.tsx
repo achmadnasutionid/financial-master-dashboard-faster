@@ -654,10 +654,14 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ data }) => {
 
         {/* Detailed Terms & Conditions (S&K) */}
         {data.termsAndConditions && (
-          <View style={{ marginBottom: 15 }} wrap={false}>
+          <View style={{ marginBottom: 15 }}>
             <Text style={styles.sectionTitle}>Detailed S&K</Text>
-            <View style={{ fontSize: 8, lineHeight: 1.4 }}>
-              <Text>{data.termsAndConditions.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ')}</Text>
+            <View style={{ fontSize: 8, lineHeight: 1.5 }}>
+              {parseHTMLToTextBlocks(data.termsAndConditions).map((block, index) => (
+                <Text key={index} style={{ marginBottom: 4, ...block.style }}>
+                  {block.text}
+                </Text>
+              ))}
             </View>
           </View>
         )}

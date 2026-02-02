@@ -188,38 +188,45 @@ const formatCurrency = (amount: number) => {
 
 // Helper to parse HTML and convert to formatted text blocks
 const parseHTMLToTextBlocks = (html: string) => {
+  if (!html || typeof html !== 'string') return []
+  
   const blocks: { text: string; style?: any }[] = []
   
-  // Split by paragraph tags
-  const paragraphs = html.split(/<\/p>|<\/h2>|<\/li>/).filter(p => p.trim())
-  
-  paragraphs.forEach(para => {
-    let text = para
-      .replace(/<p[^>]*>/gi, '')
-      .replace(/<h2[^>]*>/gi, '')
-      .replace(/<li[^>]*>/gi, '• ')
-      .replace(/<ul[^>]*>/gi, '')
-      .replace(/<ol[^>]*>/gi, '')
-      .replace(/<\/ul>/gi, '')
-      .replace(/<\/ol>/gi, '')
-      .replace(/<strong[^>]*>/gi, '')
-      .replace(/<\/strong>/gi, '')
-      .replace(/<em[^>]*>/gi, '')
-      .replace(/<\/em>/gi, '')
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/<[^>]*>/g, '')
-      .trim()
+  try {
+    // Split by paragraph tags
+    const paragraphs = html.split(/<\/p>|<\/h2>|<\/li>/).filter(p => p.trim())
     
-    if (text) {
-      // Check if it's a heading
-      const isHeading = para.includes('<h2')
-      blocks.push({ 
-        text, 
-        style: isHeading ? { fontWeight: 'bold', fontSize: 9 } : {}
-      })
-    }
-  })
+    paragraphs.forEach(para => {
+      let text = para
+        .replace(/<p[^>]*>/gi, '')
+        .replace(/<h2[^>]*>/gi, '')
+        .replace(/<li[^>]*>/gi, '• ')
+        .replace(/<ul[^>]*>/gi, '')
+        .replace(/<ol[^>]*>/gi, '')
+        .replace(/<\/ul>/gi, '')
+        .replace(/<\/ol>/gi, '')
+        .replace(/<strong[^>]*>/gi, '')
+        .replace(/<\/strong>/gi, '')
+        .replace(/<em[^>]*>/gi, '')
+        .replace(/<\/em>/gi, '')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/<[^>]*>/g, '')
+        .trim()
+      
+      if (text) {
+        // Check if it's a heading
+        const isHeading = para.includes('<h2')
+        blocks.push({ 
+          text, 
+          style: isHeading ? { fontWeight: 'bold', fontSize: 9 } : {}
+        })
+      }
+    })
+  } catch (error) {
+    console.error('Error parsing HTML:', error)
+    return [{ text: html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' '), style: {} }]
+  }
   
   return blocks
 }
