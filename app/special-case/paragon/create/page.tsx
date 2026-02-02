@@ -18,6 +18,7 @@ import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog"
 import { ReorderableRemarks } from "@/components/ui/reorderable-remarks"
+import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
 import {
   Select,
@@ -98,6 +99,8 @@ export default function CreateParagonTicketPage() {
       isCompleted: false
     }
   ])
+  const [termsAndConditions, setTermsAndConditions] = useState("")
+  const [showTerms, setShowTerms] = useState(false)
   const [selectedSignatureId, setSelectedSignatureId] = useState("")
   const [pph, setPph] = useState("2") // Auto-select PPH 23 2%
   const [items, setItems] = useState<Item[]>([])
@@ -537,6 +540,7 @@ export default function CreateParagonTicketPage() {
         finalWorkImageData: finalWorkImage || null,
         pph,
         totalAmount: calculateTotalAmount(),
+        termsAndConditions: showTerms ? termsAndConditions : null,
         status,
         items: items.map(item => ({
           productName: item.productName,
@@ -753,6 +757,44 @@ export default function CreateParagonTicketPage() {
                       onToggleRemark={toggleRemarkCompleted}
                       onRemoveRemark={removeRemark}
                     />
+                  )}
+                </div>
+
+                {/* Terms & Conditions (S&K) */}
+                <div className="space-y-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowTerms(!showTerms)}
+                    className="w-full"
+                  >
+                    {showTerms ? (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                          <path d="m18 15-6-6-6 6"/>
+                        </svg>
+                        Hide S&K
+                      </>
+                    ) : (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                          <path d="m6 9 6 6 6-6"/>
+                        </svg>
+                        Add S&K
+                      </>
+                    )}
+                  </Button>
+                  {showTerms && (
+                    <div className="space-y-2">
+                      <Label>Detailed Terms & Conditions (S&K)</Label>
+                      <RichTextEditor
+                        content={termsAndConditions}
+                        onChange={setTermsAndConditions}
+                        placeholder="Enter detailed terms and conditions..."
+                        minHeight="300px"
+                      />
+                    </div>
                   )}
                 </div>
               </div>

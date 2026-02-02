@@ -18,6 +18,7 @@ import { toast } from "sonner"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog"
 import { ReorderableRemarks } from "@/components/ui/reorderable-remarks"
+import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
 import {
   Select,
@@ -104,6 +105,8 @@ export default function CreateErhaTicketPage() {
     { id: "9", text: "* Big Print (Billboard, OOH Outdoor, LED Screen Outdoor, Megatron, Umbull, dll) 50% + tnc berlanjut", isCompleted: false },
     { id: "10", text: "* Additional overseas media placement (digital and printed) will be charged .(bisa di edit) % of total", isCompleted: false },
   ])
+  const [termsAndConditions, setTermsAndConditions] = useState("")
+  const [showTerms, setShowTerms] = useState(false)
   const [selectedBillingId, setSelectedBillingId] = useState("")
   const [selectedSignatureId, setSelectedSignatureId] = useState("")
   const [pph, setPph] = useState("2") // Auto-select PPH 23 2%
