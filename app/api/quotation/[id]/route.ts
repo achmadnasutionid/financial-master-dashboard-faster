@@ -111,53 +111,69 @@ export async function PUT(
         body.remarks?.map((remark: any) => remark.id).filter(Boolean) || []
       )
 
-      // UPSERT items and details
-      for (const item of body.items || []) {
-        if (item.id && existingItemIds.has(item.id)) {
-          // Update existing item (only if it exists in database)
-          await tx.quotationItem.update({
-            where: { id: item.id },
-            data: {
-              productName: item.productName,
-              total: parseFloat(item.total),
-            }
+      // UPSERT items and details (OPTIMIZED - batch operations)
+      // Separate items into update vs create batches
+      const itemsToUpdate = (body.items || []).filter((item: any) => item.id && existingItemIds.has(item.id))
+      const itemsToCreate = (body.items || []).filter((item: any) => !item.id || !existingItemIds.has(item.id))
+      
+      // Collect all details to be deleted for updated items
+      const itemIdsToDeleteDetails = itemsToUpdate.map((item: any) => item.id)
+      
+      // Step 1: Update all existing items in parallel
+      const updatePromises = itemsToUpdate.map((item: any) =>
+        tx.quotationItem.update({
+          where: { id: item.id },
+          data: {
+            productName: item.productName,
+            total: parseFloat(item.total),
+          }
+        })
+      )
+      
+      // Step 2: Delete all old details for updated items (single query)
+      const deleteDetailsPromise = itemIdsToDeleteDetails.length > 0
+        ? tx.quotationItemDetail.deleteMany({
+            where: { quotationItemId: { in: itemIdsToDeleteDetails } }
           })
-
-          // Delete all existing details for this item
-          await tx.quotationItemDetail.deleteMany({
-            where: { quotationItemId: item.id }
-          })
-
-          // Create new details
-          for (const detail of item.details || []) {
-            await tx.quotationItemDetail.create({
-              data: {
-                quotationItemId: item.id,
+        : Promise.resolve()
+      
+      // Step 3: Create new items with details in parallel
+      const createItemPromises = itemsToCreate.map((item: any) =>
+        tx.quotationItem.create({
+          data: {
+            quotationId: id,
+            productName: item.productName,
+            total: parseFloat(item.total),
+            details: {
+              create: item.details?.map((detail: any) => ({
                 detail: detail.detail,
                 unitPrice: parseFloat(detail.unitPrice),
                 qty: parseFloat(detail.qty),
                 amount: parseFloat(detail.amount)
-              }
-            })
-          }
-        } else {
-          // Create new item with details (either no ID or ID doesn't exist in DB)
-          await tx.quotationItem.create({
-            data: {
-              quotationId: id,
-              productName: item.productName,
-              total: parseFloat(item.total),
-              details: {
-                create: item.details?.map((detail: any) => ({
-                  detail: detail.detail,
-                  unitPrice: parseFloat(detail.unitPrice),
-                  qty: parseFloat(detail.qty),
-                  amount: parseFloat(detail.amount)
-                })) || []
-              }
+              })) || []
             }
-          })
-        }
+          }
+        })
+      )
+      
+      // Execute all updates, deletes, and creates in parallel
+      await Promise.all([...updatePromises, deleteDetailsPromise, ...createItemPromises])
+      
+      // Step 4: Bulk create new details for updated items
+      const allNewDetails = itemsToUpdate.flatMap((item: any) =>
+        (item.details || []).map((detail: any) => ({
+          quotationItemId: item.id,
+          detail: detail.detail,
+          unitPrice: parseFloat(detail.unitPrice),
+          qty: parseFloat(detail.qty),
+          amount: parseFloat(detail.amount)
+        }))
+      )
+      
+      if (allNewDetails.length > 0) {
+        await tx.quotationItemDetail.createMany({
+          data: allNewDetails
+        })
       }
 
       // Delete removed items (items not in incoming data)
@@ -175,28 +191,34 @@ export async function PUT(
       })
       const existingRemarkIds = new Set(existingRemarks.map(remark => remark.id))
 
-      // UPSERT remarks
-      for (const remark of body.remarks || []) {
-        if (remark.id && existingRemarkIds.has(remark.id)) {
-          // Update existing remark (only if it exists in database)
-          await tx.quotationRemark.update({
-            where: { id: remark.id },
-            data: {
-              text: remark.text,
-              isCompleted: remark.isCompleted || false
-            }
-          })
-        } else {
-          // Create new remark (either no ID or ID doesn't exist in DB)
-          await tx.quotationRemark.create({
-            data: {
+      // UPSERT remarks (OPTIMIZED - batch operations)
+      const remarksToUpdate = (body.remarks || []).filter((remark: any) => remark.id && existingRemarkIds.has(remark.id))
+      const remarksToCreate = (body.remarks || []).filter((remark: any) => !remark.id || !existingRemarkIds.has(remark.id))
+      
+      // Update all existing remarks in parallel
+      const updateRemarkPromises = remarksToUpdate.map((remark: any) =>
+        tx.quotationRemark.update({
+          where: { id: remark.id },
+          data: {
+            text: remark.text,
+            isCompleted: remark.isCompleted || false
+          }
+        })
+      )
+      
+      // Create new remarks using createMany for better performance
+      const createRemarkPromise = remarksToCreate.length > 0
+        ? tx.quotationRemark.createMany({
+            data: remarksToCreate.map((remark: any) => ({
               quotationId: id,
               text: remark.text,
               isCompleted: remark.isCompleted || false
-            }
+            }))
           })
-        }
-      }
+        : Promise.resolve()
+      
+      // Execute all remark operations in parallel
+      await Promise.all([...updateRemarkPromises, createRemarkPromise])
 
       // Delete removed remarks
       await tx.quotationRemark.deleteMany({
