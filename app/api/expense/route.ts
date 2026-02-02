@@ -54,8 +54,13 @@ export async function GET(request: Request) {
             select: {
               productionDate: true
             }
+          },
+          // Include items for calculation in list view
+          items: {
+            select: {
+              actual: true
+            }
           }
-          // Don't fetch items in list view - only in detail view
         },
         orderBy: {
           updatedAt: sortBy === "oldest" ? "asc" : "desc"
