@@ -18,7 +18,7 @@ export async function GET(
           orderBy: { order: 'asc' }
         },
         remarks: {
-          orderBy: { createdAt: 'asc' }
+          orderBy: { order: 'asc' }
         },
         signatures: {
           orderBy: { order: 'asc' }
@@ -221,24 +221,26 @@ export async function PUT(
       const remarksToUpdate = (body.remarks || []).filter((remark: any) => remark.id && existingRemarkIds.has(remark.id))
       const remarksToCreate = (body.remarks || []).filter((remark: any) => !remark.id || !existingRemarkIds.has(remark.id))
       
-      // Update all existing remarks in parallel
+      // Update all existing remarks in parallel (with order)
       const updateRemarkPromises = remarksToUpdate.map((remark: any) =>
         tx.quotationRemark.update({
           where: { id: remark.id },
           data: {
             text: remark.text,
-            isCompleted: remark.isCompleted || false
+            isCompleted: remark.isCompleted || false,
+            order: (body.remarks || []).findIndex((r: any) => r.id === remark.id)
           }
         })
       )
       
-      // Create new remarks using createMany for better performance
+      // Create new remarks using createMany for better performance (with order)
       const createRemarkPromise = remarksToCreate.length > 0
         ? tx.quotationRemark.createMany({
             data: remarksToCreate.map((remark: any) => ({
               quotationId: id,
               text: remark.text,
-              isCompleted: remark.isCompleted || false
+              isCompleted: remark.isCompleted || false,
+              order: (body.remarks || []).findIndex((r: any) => r === remark)
             }))
           })
         : Promise.resolve()
