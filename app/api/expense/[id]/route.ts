@@ -11,7 +11,9 @@ export async function GET(
     const expense = await prisma.expense.findUnique({
       where: { id },
       include: {
-        items: true
+        items: {
+          orderBy: { order: 'asc' }
+        }
       }
     })
 
@@ -49,7 +51,9 @@ export async function PUT(
           status: body.status
         },
         include: {
-          items: true
+          items: {
+            orderBy: { order: 'asc' }
+          }
         }
       })
       
@@ -72,16 +76,19 @@ export async function PUT(
         totalItemBudgeted: parseFloat(body.totalItemBudgeted) || 0,
         totalItemDifferences: parseFloat(body.totalItemDifferences) || 0,
         items: {
-          create: body.items?.map((item: any) => ({
+          create: body.items?.map((item: any, index: number) => ({
             productName: item.productName,
             budgeted: parseFloat(item.budgeted),
             actual: parseFloat(item.actual),
-            difference: parseFloat(item.budgeted) - parseFloat(item.actual)
+            difference: parseFloat(item.budgeted) - parseFloat(item.actual),
+            order: index
           })) || []
         }
       },
       include: {
-        items: true
+        items: {
+          orderBy: { order: 'asc' }
+        }
       }
     })
 

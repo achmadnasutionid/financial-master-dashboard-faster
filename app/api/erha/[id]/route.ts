@@ -57,7 +57,8 @@ export async function PUT(
           items: {
             include: {
               details: true
-            }
+            },
+            orderBy: { order: 'asc' }
           },
           remarks: true
         }
@@ -76,7 +77,8 @@ export async function PUT(
           items: {
             include: {
               details: true
-            }
+            },
+            orderBy: { order: 'asc' }
           },
           remarks: true
         }
@@ -125,9 +127,10 @@ export async function PUT(
         totalAmount: parseFloat(body.totalAmount),
         status: body.status,
         items: {
-          create: body.items?.map((item: any) => ({
+          create: body.items?.map((item: any, index: number) => ({
             productName: item.productName,
             total: parseFloat(item.total),
+            order: index,
             details: {
               create: item.details?.map((detail: any) => ({
                 detail: detail.detail,

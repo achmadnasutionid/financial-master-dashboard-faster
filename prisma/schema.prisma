@@ -100,11 +100,13 @@ model PlanningItem {
   productName String
   budget      Float
   expense     Float
+  order       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   planning    Planning @relation(fields: [planningId], references: [id], onDelete: Cascade)
 
   @@index([planningId])
+  @@index([planningId, order])
 }
 
 model Quotation {
@@ -314,12 +316,14 @@ model ExpenseItem {
   budgeted    Float
   actual      Float
   difference  Float
+  order       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   expense     Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
 
   @@index([expenseId])
   @@index([productName])
+  @@index([expenseId, order])
 }
 
 model ParagonTicket {
@@ -365,12 +369,14 @@ model ParagonTicketItem {
   ticketId    String
   productName String
   total       Float
+  order       Int                       @default(0)
   createdAt   DateTime                  @default(now())
   updatedAt   DateTime                  @updatedAt
   ticket      ParagonTicket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   details     ParagonTicketItemDetail[]
 
   @@index([ticketId])
+  @@index([ticketId, order])
 }
 
 model ParagonTicketItemDetail {
@@ -449,12 +455,14 @@ model ErhaTicketItem {
   ticketId    String
   productName String
   total       Float
+  order       Int                    @default(0)
   createdAt   DateTime               @default(now())
   updatedAt   DateTime               @updatedAt
   ticket      ErhaTicket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   details     ErhaTicketItemDetail[]
 
   @@index([ticketId])
+  @@index([ticketId, order])
 }
 
 model ErhaTicketItemDetail {

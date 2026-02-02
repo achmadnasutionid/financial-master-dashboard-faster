@@ -11,7 +11,9 @@ export async function GET(
     const planning = await prisma.planning.findUnique({
       where: { id },
       include: {
-        items: true
+        items: {
+          orderBy: { order: 'asc' }
+        }
       }
     })
 
@@ -64,15 +66,18 @@ export async function PUT(
         notes: notes?.trim() || null,
         status: status || "draft",
         items: {
-          create: items?.map((item: any) => ({
+          create: items?.map((item: any, index: number) => ({
             productName: item.productName,
             budget: parseFloat(item.budget),
-            expense: parseFloat(item.expense)
+            expense: parseFloat(item.expense),
+            order: index
           })) || []
         }
       },
       include: {
-        items: true
+        items: {
+          orderBy: { order: 'asc' }
+        }
       }
     })
 
