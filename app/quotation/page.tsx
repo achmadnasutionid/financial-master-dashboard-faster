@@ -419,7 +419,7 @@ function QuotationPageContent() {
                     Total
                   </div>
                 </div>
-                <div style={{ width: '152px' }} className="text-xs font-semibold text-muted-foreground uppercase text-center">
+                <div style={{ width: '220px' }} className="text-xs font-semibold text-muted-foreground uppercase text-center">
                   Actions
                 </div>
               </div>
@@ -465,7 +465,7 @@ function QuotationPageContent() {
                         </div>
 
                         {/* Right: Action Buttons */}
-                        <div className="flex items-center gap-1 justify-end" style={{ width: '152px' }}>
+                        <div className="flex items-center gap-1 justify-end" style={{ width: '220px' }}>
                           {quotation.status === "pending" && (
                             <Button
                               variant="ghost"

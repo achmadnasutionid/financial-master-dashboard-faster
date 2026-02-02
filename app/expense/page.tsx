@@ -387,7 +387,7 @@ function ExpensePageContent() {
                     Difference
                   </div>
                 </div>
-                <div style={{ width: '152px' }} className="text-xs font-semibold text-muted-foreground uppercase text-center">
+                <div style={{ width: '220px' }} className="text-xs font-semibold text-muted-foreground uppercase text-center">
                   Actions
                 </div>
               </div>
@@ -438,7 +438,7 @@ function ExpensePageContent() {
                         </div>
 
                         {/* Right: Action Buttons */}
-                        <div className="flex items-center gap-1 justify-end" style={{ width: '152px' }}>
+                        <div className="flex items-center gap-1 justify-end" style={{ width: '220px' }}>
                           <Link href={`/expense/${expense.id}/view`}>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
                               <Eye className="h-4 w-4" />
