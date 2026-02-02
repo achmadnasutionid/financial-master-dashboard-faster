@@ -114,6 +114,8 @@ export default function EditParagonTicketPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const initialDataRef = useRef<string>("")
+  const lastUpdatedAtRef = useRef<string>("")
+  const [showStaleDataDialog, setShowStaleDataDialog] = useState(false)
   
   // Refs for error scrolling
   const companyRef = useRef<HTMLDivElement>(null)
@@ -187,6 +189,9 @@ export default function EditParagonTicketPage() {
       
       setLoading(false)
       
+      // Store the updatedAt timestamp for stale data detection
+      lastUpdatedAtRef.current = ticketData.updatedAt
+      
       // Store initial data snapshot for change detection
       const loadedItems = ticketData.items.map((item: any) => ({
         id: item.id,
@@ -242,6 +247,32 @@ export default function EditParagonTicketPage() {
     
     setHasUnsavedChanges(currentData !== initialDataRef.current)
   }, [selectedCompanyId, productionDate, quotationDate, invoiceBastDate, billTo, contactPerson, contactPosition, selectedSignatureId, pph, items, remarks, finalWorkImage, loading])
+
+  // Check for stale data when user returns to tab
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && !loading && ticketId && lastUpdatedAtRef.current) {
+        try {
+          const response = await fetch(`/api/paragon/${ticketId}`)
+          if (response.ok) {
+            const latestData = await response.json()
+            if (latestData.updatedAt !== lastUpdatedAtRef.current) {
+              setShowStaleDataDialog(true)
+            }
+          }
+        } catch (error) {
+          console.error("Error checking for updates:", error)
+        }
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [ticketId, loading])
+
+  const handleReloadData = () => {
+    setShowStaleDataDialog(false)
+    window.location.reload()
+  }
 
   // Unsaved changes dialog
   const {
@@ -1230,6 +1261,31 @@ export default function EditParagonTicketPage() {
               className="bg-red-600 text-white hover:bg-red-700"
             >
               {deleting ? "Deleting..." : "Yes, Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Stale Data Warning Dialog */}
+      <AlertDialog open={showStaleDataDialog} onOpenChange={setShowStaleDataDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Data Has Been Updated</AlertDialogTitle>
+            <AlertDialogDescription>
+              This ticket has been modified since you opened it. Your current changes may overwrite recent updates.
+              <br /><br />
+              <strong>Would you like to reload the latest data?</strong>
+              <br />
+              <span className="text-red-600 text-sm">Warning: Reloading will discard your current unsaved changes.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continue Editing (Not Recommended)</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleReloadData}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Reload Latest Data
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

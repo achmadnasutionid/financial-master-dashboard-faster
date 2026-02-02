@@ -211,15 +211,18 @@ export async function POST(request: Request) {
             })) || []
           },
           remarks: {
-            create: body.remarks?.map((remark: any) => ({
+            create: body.remarks?.map((remark: any, index: number) => ({
               text: remark.text || "",
-              isCompleted: remark.isCompleted || false
+              isCompleted: remark.isCompleted || false,
+              order: index
             })) || []
           }
         },
         include: {
           items: { include: { details: true } },
-          remarks: true
+          remarks: {
+          orderBy: { order: 'asc' }
+        }
         }
       })
     })

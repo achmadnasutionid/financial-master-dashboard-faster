@@ -17,7 +17,9 @@ export async function GET(
           },
           orderBy: { order: 'asc' }
         },
-        remarks: true
+        remarks: {
+          orderBy: { order: 'asc' }
+        }
       }
     })
 
@@ -61,7 +63,9 @@ export async function PUT(
             },
             orderBy: { order: 'asc' }
           },
-          remarks: true
+          remarks: {
+          orderBy: { order: 'asc' }
+        }
         }
       })
       return NextResponse.json(ticket)
@@ -81,7 +85,9 @@ export async function PUT(
             },
             orderBy: { order: 'asc' }
           },
-          remarks: true
+          remarks: {
+          orderBy: { order: 'asc' }
+        }
         }
       })
       return NextResponse.json(ticket)
@@ -136,9 +142,10 @@ export async function PUT(
           }))
         },
         remarks: {
-          create: body.remarks?.map((remark: any) => ({
+          create: body.remarks?.map((remark: any, index: number) => ({
             text: remark.text,
-            isCompleted: remark.isCompleted || false
+            isCompleted: remark.isCompleted || false,
+            order: index
           }))
         }
       },
@@ -149,7 +156,9 @@ export async function PUT(
           },
           orderBy: { order: 'asc' }
         },
-        remarks: true
+        remarks: {
+          orderBy: { order: 'asc' }
+        }
       }
     })
 

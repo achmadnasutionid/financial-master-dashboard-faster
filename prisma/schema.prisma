@@ -440,11 +440,13 @@ model ParagonTicketRemark {
   ticketId    String
   text        String
   isCompleted Boolean       @default(false)
+  order       Int           @default(0)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   ticket      ParagonTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId])
+  @@index([ticketId, order])
 }
 
 model ErhaTicket {
@@ -528,11 +530,13 @@ model ErhaTicketRemark {
   ticketId    String
   text        String
   isCompleted Boolean    @default(false)
+  order       Int        @default(0)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   ticket      ErhaTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId])
+  @@index([ticketId, order])
 }
 
 model GearExpense {

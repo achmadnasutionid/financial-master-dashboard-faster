@@ -69,6 +69,8 @@ export default function EditExpensePage() {
   })
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const initialDataRef = useRef<string>("")
+  const lastUpdatedAtRef = useRef<string>("")
+  const [showStaleDataDialog, setShowStaleDataDialog] = useState(false)
 
   // Refs for error scrolling
   const projectNameRef = useRef<HTMLDivElement>(null)
@@ -123,6 +125,9 @@ export default function EditExpensePage() {
         
         setLoading(false)
         
+        // Store the updatedAt timestamp for stale data detection
+        lastUpdatedAtRef.current = data.updatedAt
+        
         // Store initial data snapshot for change detection
         initialDataRef.current = JSON.stringify({
           projectName: data.projectName,
@@ -160,6 +165,32 @@ export default function EditExpensePage() {
     
     setHasUnsavedChanges(currentData !== initialDataRef.current)
   }, [projectName, productionDate, clientBudget, paidAmount, notes, items, loading])
+
+  // Check for stale data when user returns to tab
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && !loading && expenseId && lastUpdatedAtRef.current) {
+        try {
+          const response = await fetch(`/api/expense/${expenseId}`)
+          if (response.ok) {
+            const latestData = await response.json()
+            if (latestData.updatedAt !== lastUpdatedAtRef.current) {
+              setShowStaleDataDialog(true)
+            }
+          }
+        } catch (error) {
+          console.error("Error checking for updates:", error)
+        }
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [expenseId, loading])
+
+  const handleReloadData = () => {
+    setShowStaleDataDialog(false)
+    window.location.reload()
+  }
 
   // Unsaved changes dialog
   const {
@@ -920,6 +951,31 @@ export default function EditExpensePage() {
               className="bg-red-600 text-white hover:bg-red-700"
             >
               {deleting ? "Deleting..." : "Yes, Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Stale Data Warning Dialog */}
+      <AlertDialog open={showStaleDataDialog} onOpenChange={setShowStaleDataDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Data Has Been Updated</AlertDialogTitle>
+            <AlertDialogDescription>
+              This expense has been modified since you opened it. Your current changes may overwrite recent updates.
+              <br /><br />
+              <strong>Would you like to reload the latest data?</strong>
+              <br />
+              <span className="text-red-600 text-sm">Warning: Reloading will discard your current unsaved changes.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continue Editing (Not Recommended)</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleReloadData}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Reload Latest Data
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

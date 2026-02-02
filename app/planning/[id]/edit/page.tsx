@@ -54,6 +54,8 @@ export default function EditPlanningPage() {
   const [items, setItems] = useState<PlanningItem[]>([])
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const initialDataRef = useRef<string>("")
+  const lastUpdatedAtRef = useRef<string>("")
+  const [showStaleDataDialog, setShowStaleDataDialog] = useState(false)
   const [products, setProducts] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<any>({})
@@ -98,6 +100,9 @@ export default function EditPlanningPage() {
           }))
         )
         setLoading(false)
+        
+        // Store the updatedAt timestamp for stale data detection
+        lastUpdatedAtRef.current = data.updatedAt
         
         // Store initial data snapshot for change detection
         initialDataRef.current = JSON.stringify({
@@ -144,6 +149,32 @@ export default function EditPlanningPage() {
     
     setHasUnsavedChanges(currentData !== initialDataRef.current)
   }, [projectName, clientName, clientBudget, notes, items, loading])
+
+  // Check for stale data when user returns to tab
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && !loading && planningId && lastUpdatedAtRef.current) {
+        try {
+          const response = await fetch(`/api/planning/${planningId}`)
+          if (response.ok) {
+            const latestData = await response.json()
+            if (latestData.updatedAt !== lastUpdatedAtRef.current) {
+              setShowStaleDataDialog(true)
+            }
+          }
+        } catch (error) {
+          console.error("Error checking for updates:", error)
+        }
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [planningId, loading])
+
+  const handleReloadData = () => {
+    setShowStaleDataDialog(false)
+    window.location.reload()
+  }
 
   // Unsaved changes dialog
   const {
@@ -741,6 +772,31 @@ export default function EditPlanningPage() {
               className="bg-red-600 text-white hover:bg-red-700"
             >
               {deleting ? "Deleting..." : "Yes, Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Stale Data Warning Dialog */}
+      <AlertDialog open={showStaleDataDialog} onOpenChange={setShowStaleDataDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Data Has Been Updated</AlertDialogTitle>
+            <AlertDialogDescription>
+              This planning has been modified since you opened it. Your current changes may overwrite recent updates.
+              <br /><br />
+              <strong>Would you like to reload the latest data?</strong>
+              <br />
+              <span className="text-red-600 text-sm">Warning: Reloading will discard your current unsaved changes.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continue Editing (Not Recommended)</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleReloadData}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Reload Latest Data
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
