@@ -99,6 +99,7 @@ export async function PUT(
           pph: body.pph,
           totalAmount: parseFloat(body.totalAmount),
           summaryOrder: body.summaryOrder || "subtotal,pph,total",
+          termsAndConditions: body.termsAndConditions || null,
           status: body.status || "draft",
         }
       })

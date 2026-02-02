@@ -137,6 +137,7 @@ model Quotation {
   pph                    String
   totalAmount            Float
   summaryOrder           String?           @default("subtotal,pph,total")
+  termsAndConditions     String?
   status                 String            @default("draft")
   generatedInvoiceId     String?
   deletedAt              DateTime?
@@ -241,6 +242,7 @@ model Invoice {
   pph                    String
   totalAmount            Float
   summaryOrder           String?           @default("subtotal,pph,total")
+  termsAndConditions     String?
   status                 String          @default("draft")
   generatedExpenseId     String?
   deletedAt              DateTime?

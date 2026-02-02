@@ -40,6 +40,7 @@ import { formatProductName } from "@/lib/utils"
 import { scrollToFirstError } from "@/lib/form-utils"
 import { ReorderableSummary } from "@/components/ui/reorderable-summary"
 import { ReorderableRemarks } from "@/components/ui/reorderable-remarks"
+import { RichTextEditor } from "@/components/ui/rich-text-editor"
 
 interface Company {
   id: string
@@ -121,6 +122,8 @@ export default function EditInvoicePage() {
   const [billTo, setBillTo] = useState("")
   const [notes, setNotes] = useState("")
   const [remarks, setRemarks] = useState<Remark[]>([])
+  const [termsAndConditions, setTermsAndConditions] = useState("")
+  const [showTerms, setShowTerms] = useState(false)
   const [selectedBillingId, setSelectedBillingId] = useState("")
   const [selectedSignatureId, setSelectedSignatureId] = useState("")
   const [pph, setPph] = useState("2") // Auto-select PPH 23 2%
@@ -220,6 +223,10 @@ export default function EditInvoicePage() {
       } else {
         setRemarks([])
       }
+      
+      // Load terms and conditions
+      setTermsAndConditions(InvoiceData.termsAndConditions || "")
+      setShowTerms(!!InvoiceData.termsAndConditions)
       
       // Load custom signatures
       if (InvoiceData.signatures && Array.isArray(InvoiceData.signatures)) {
@@ -703,6 +710,7 @@ export default function EditInvoicePage() {
         pph,
         totalAmount: calculateTotalAmount(),
         summaryOrder: summaryOrder.join(","),
+        termsAndConditions: showTerms ? termsAndConditions : null,
         status,
         remarks: remarks.map(remark => ({
           id: remark.id,
@@ -971,6 +979,32 @@ export default function EditInvoicePage() {
                       onToggleRemark={toggleRemarkCompleted}
                       onRemoveRemark={removeRemark}
                     />
+                  )}
+                </div>
+
+                {/* Terms & Conditions (S&K) */}
+                <div className="space-y-4">
+                  <div className="flex justify-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowTerms(!showTerms)}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      {showTerms ? "Hide S&K" : "Add S&K"}
+                    </Button>
+                  </div>
+                  {showTerms && (
+                    <div className="space-y-2">
+                      <Label>Detailed Terms & Conditions (S&K)</Label>
+                      <RichTextEditor
+                        content={termsAndConditions}
+                        onChange={setTermsAndConditions}
+                        placeholder="Enter detailed terms and conditions..."
+                        minHeight="300px"
+                      />
+                    </div>
                   )}
                 </div>
               </div>

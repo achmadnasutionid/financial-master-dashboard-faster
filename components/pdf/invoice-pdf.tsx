@@ -161,6 +161,7 @@ interface InvoicePDFProps {
       text: string
       isCompleted: boolean
     }>
+    termsAndConditions?: string
     items: Array<{
       productName: string
       total: number
@@ -610,6 +611,16 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ data }) => {
                 </Text>
               </View>
             ))}
+          </View>
+        )}
+
+        {/* Detailed Terms & Conditions (S&K) */}
+        {data.termsAndConditions && (
+          <View style={{ marginBottom: 15 }} wrap={false}>
+            <Text style={styles.sectionTitle}>Detailed S&K</Text>
+            <View style={{ fontSize: 8, lineHeight: 1.4 }}>
+              <Text>{data.termsAndConditions.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ')}</Text>
+            </View>
           </View>
         )}
 
