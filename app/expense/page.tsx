@@ -95,7 +95,7 @@ function ExpensePageContent() {
     }
   }, [searchParams])
 
-  const fetchExpenses = async () => {
+  const fetchExpenses = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (statusFilter !== "all") params.append("status", statusFilter)
@@ -122,7 +122,7 @@ function ExpensePageContent() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter, sortBy, currentPage, debouncedSearchQuery, ITEMS_PER_PAGE])
 
   const fetchAvailableYears = async () => {
     try {
@@ -143,7 +143,7 @@ function ExpensePageContent() {
   useEffect(() => {
     setLoading(true)
     fetchExpenses()
-  }, [statusFilter, sortBy, currentPage, debouncedSearchQuery])
+  }, [fetchExpenses])
 
   // Reset to page 1 when search/filter changes
   useEffect(() => {
@@ -165,7 +165,7 @@ function ExpensePageContent() {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', fetchExpenses)
     }
-  }, [statusFilter, sortBy])
+  }, [fetchExpenses])
 
   useEffect(() => {
     fetchAvailableYears()

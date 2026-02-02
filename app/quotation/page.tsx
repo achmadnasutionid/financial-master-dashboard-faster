@@ -91,7 +91,7 @@ function QuotationPageContent() {
     }
   }, [searchParams])
 
-  const fetchQuotations = async () => {
+  const fetchQuotations = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (statusFilter !== "all") params.append("status", statusFilter)
@@ -119,12 +119,12 @@ function QuotationPageContent() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter, sortBy, currentPage, debouncedSearchQuery, ITEMS_PER_PAGE])
 
   useEffect(() => {
     setLoading(true)
     fetchQuotations()
-  }, [statusFilter, sortBy, currentPage, debouncedSearchQuery])
+  }, [fetchQuotations])
 
   // Refetch when page becomes visible (e.g., after navigation back)
   useEffect(() => {
@@ -143,7 +143,7 @@ function QuotationPageContent() {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', fetchQuotations)
     }
-  }, [statusFilter, sortBy])
+  }, [fetchQuotations])
 
   // Reset to page 1 when search/filter changes
   useEffect(() => {

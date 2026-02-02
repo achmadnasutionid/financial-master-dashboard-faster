@@ -90,7 +90,7 @@ function ParagonTicketPageContent() {
     }
   }, [searchParams])
 
-  const fetchTickets = async () => {
+  const fetchTickets = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (statusFilter !== "all") params.append("status", statusFilter)
@@ -117,12 +117,12 @@ function ParagonTicketPageContent() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter, sortBy, currentPage, debouncedSearchQuery, ITEMS_PER_PAGE])
 
   useEffect(() => {
     setLoading(true)
     fetchTickets()
-  }, [statusFilter, sortBy, currentPage, debouncedSearchQuery])
+  }, [fetchTickets])
 
   // Reset to page 1 when search/filter changes
   useEffect(() => {
@@ -144,7 +144,7 @@ function ParagonTicketPageContent() {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', fetchTickets)
     }
-  }, [statusFilter, sortBy])
+  }, [fetchTickets])
 
   const [isDeleting, setIsDeleting] = useState(false)
 

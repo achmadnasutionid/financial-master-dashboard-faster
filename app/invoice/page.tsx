@@ -89,7 +89,7 @@ function InvoicePageContent() {
     }
   }, [searchParams])
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (statusFilter !== "all") params.append("status", statusFilter)
@@ -116,12 +116,12 @@ function InvoicePageContent() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter, sortBy, currentPage, debouncedSearchQuery, ITEMS_PER_PAGE])
 
   useEffect(() => {
     setLoading(true)
     fetchInvoices()
-  }, [statusFilter, sortBy, currentPage, debouncedSearchQuery])
+  }, [fetchInvoices])
 
   // Refetch when page becomes visible (e.g., after navigation back)
   useEffect(() => {
@@ -140,7 +140,7 @@ function InvoicePageContent() {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', fetchInvoices)
     }
-  }, [statusFilter, sortBy])
+  }, [fetchInvoices])
 
   // Reset to page 1 when search/filter changes
   useEffect(() => {

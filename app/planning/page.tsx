@@ -93,7 +93,7 @@ function PlanningPageContent() {
   const [billings, setBillings] = useState<any[]>([])
   const [signatures, setSignatures] = useState<any[]>([])
 
-  const fetchPlannings = async () => {
+  const fetchPlannings = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (statusFilter !== "all") params.append("status", statusFilter)
@@ -120,12 +120,12 @@ function PlanningPageContent() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter, sortBy, currentPage, debouncedSearchQuery, ITEMS_PER_PAGE])
 
   useEffect(() => {
     setLoading(true)
     fetchPlannings()
-  }, [statusFilter, sortBy, currentPage, debouncedSearchQuery])
+  }, [fetchPlannings])
 
   // Reset to page 1 when search/filter changes
   useEffect(() => {
@@ -147,7 +147,7 @@ function PlanningPageContent() {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', fetchPlannings)
     }
-  }, [statusFilter, sortBy])
+  }, [fetchPlannings])
 
   // Fetch master data when dialog opens
   useEffect(() => {
