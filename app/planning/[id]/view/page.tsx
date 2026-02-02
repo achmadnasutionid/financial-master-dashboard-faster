@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { useFetch } from "@/hooks/use-fetch"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
-import { Download, MessageCircle, FileText, Copy } from "lucide-react"
+import { Download, MessageCircle, FileText, Copy, Edit } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
 import { PDFDownloadLink, pdf } from "@react-pdf/renderer"
 import { PlanningPDF } from "@/components/pdf/planning-pdf"
@@ -262,46 +262,60 @@ export default function ViewPlanningPage() {
                 Client: {planning.clientName} | Status: {planning.status.toUpperCase()}
               </p>
             </div>
-            {planning.status === "final" && (
-              <div className="flex gap-2">
+            <div className="flex gap-2">
+              {/* Edit button - shown for draft */}
+              {planning.status === "draft" && (
                 <Button
                   variant="outline"
-                  onClick={handleViewQuotation}
+                  onClick={() => router.push(`/planning/${planningId}/edit`)}
                 >
-                  <FileText className="mr-2 h-4 w-4" />
-                  {planning.generatedQuotationId ? "View Quotation" : "Generate Quotation"}
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleCopy}
-                  disabled={copying}
-                >
-                  <Copy className="mr-2 h-4 w-4" />
-                  {copying ? "Copying..." : "Copy"}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleWhatsApp}
-                >
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  WhatsApp
-                </Button>
-                <PDFDownloadLink
-                  document={<PlanningPDF data={planning} />}
-                  fileName={`${planning.planningId}_${planning.projectName.replace(
-                    /\s+/g,
-                    "_"
-                  )}.pdf`}
-                >
-                  {({ loading }) => (
-                    <Button disabled={loading}>
-                      <Download className="mr-2 h-4 w-4" />
-                      {loading ? "Preparing..." : "Download PDF"}
-                    </Button>
-                  )}
-                </PDFDownloadLink>
-              </div>
-            )}
+              )}
+              
+              {/* Generate/View Quotation button - shown for final */}
+              {planning.status === "final" && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleViewQuotation}
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    {planning.generatedQuotationId ? "View Quotation" : "Generate Quotation"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleCopy}
+                    disabled={copying}
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    {copying ? "Copying..." : "Copy"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleWhatsApp}
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    WhatsApp
+                  </Button>
+                  <PDFDownloadLink
+                    document={<PlanningPDF data={planning} />}
+                    fileName={`${planning.planningId}_${planning.projectName.replace(
+                      /\s+/g,
+                      "_"
+                    )}.pdf`}
+                  >
+                    {({ loading }) => (
+                      <Button disabled={loading}>
+                        <Download className="mr-2 h-4 w-4" />
+                        {loading ? "Preparing..." : "Download PDF"}
+                      </Button>
+                    )}
+                  </PDFDownloadLink>
+                </>
+              )}
+            </div>
           </div>
 
           {/* PDF Viewer */}

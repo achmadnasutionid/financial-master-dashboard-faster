@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { useFetch } from "@/hooks/use-fetch"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
-import { Download, MessageCircle, Copy } from "lucide-react"
+import { Download, MessageCircle, Copy, Edit } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
 import { PDFDownloadLink, pdf } from "@react-pdf/renderer"
 import { ExpensePDF } from "@/components/pdf/expense-pdf"
@@ -177,39 +177,53 @@ export default function ViewExpensePage() {
                 </span>
               </p>
             </div>
-            {expense.status === "final" && (
-              <div className="flex gap-2">
+            <div className="flex gap-2">
+              {/* Edit button - shown for draft */}
+              {expense.status === "draft" && (
                 <Button
                   variant="outline"
-                  onClick={handleCopy}
-                  disabled={copying}
+                  onClick={() => router.push(`/expense/${expenseId}/edit`)}
                 >
-                  <Copy className="mr-2 h-4 w-4" />
-                  {copying ? "Copying..." : "Copy"}
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleWhatsApp}
-                >
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  WhatsApp
-                </Button>
-                <PDFDownloadLink
-                  document={<ExpensePDF data={expense} />}
-                  fileName={`${expense.expenseId}_${expense.projectName.replace(
-                    /\s+/g,
-                    "_"
-                  )}.pdf`}
-                >
-                  {({ loading }) => (
-                    <Button disabled={loading}>
-                      <Download className="mr-2 h-4 w-4" />
-                      {loading ? "Preparing..." : "Download PDF"}
-                    </Button>
-                  )}
-                </PDFDownloadLink>
-              </div>
-            )}
+              )}
+              
+              {/* Copy, WhatsApp, and Download buttons - shown for final */}
+              {expense.status === "final" && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleCopy}
+                    disabled={copying}
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    {copying ? "Copying..." : "Copy"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleWhatsApp}
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    WhatsApp
+                  </Button>
+                  <PDFDownloadLink
+                    document={<ExpensePDF data={expense} />}
+                    fileName={`${expense.expenseId}_${expense.projectName.replace(
+                      /\s+/g,
+                      "_"
+                    )}.pdf`}
+                  >
+                    {({ loading }) => (
+                      <Button disabled={loading}>
+                        <Download className="mr-2 h-4 w-4" />
+                        {loading ? "Preparing..." : "Download PDF"}
+                      </Button>
+                    )}
+                  </PDFDownloadLink>
+                </>
+              )}
+            </div>
           </div>
 
           {/* PDF Viewer */}

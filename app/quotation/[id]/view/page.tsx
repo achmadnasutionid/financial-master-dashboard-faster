@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { useFetch } from "@/hooks/use-fetch"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
-import { Download, MessageCircle, FileText, CheckCircle, Copy } from "lucide-react"
+import { Download, MessageCircle, FileText, CheckCircle, Copy, Edit } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
 import { PDFDownloadLink, pdf } from "@react-pdf/renderer"
 import { QuotationPDF } from "@/components/pdf/quotation-pdf"
@@ -287,62 +287,80 @@ export default function ViewQuotationPage() {
                 Status: {quotation.status.toUpperCase()}
               </p>
             </div>
-            {quotation.status !== "draft" && (
-              <div className="flex gap-2">
-                {quotation.status === "pending" && (
-                  <Button
-                    onClick={() => setShowAcceptDialog(true)}
-                    disabled={accepting}
-                  >
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    {accepting ? "Accepting..." : "Accept Quotation"}
-                  </Button>
-                )}
-                {quotation.status === "accepted" && (
+            <div className="flex gap-2">
+              {/* Edit button - shown for draft and pending */}
+              {(quotation.status === "draft" || quotation.status === "pending") && (
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/quotation/${quotationId}/edit`)}
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+              )}
+              
+              {/* Accept button - shown only for pending */}
+              {quotation.status === "pending" && (
+                <Button
+                  onClick={() => setShowAcceptDialog(true)}
+                  disabled={accepting}
+                >
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  {accepting ? "Accepting..." : "Accept Quotation"}
+                </Button>
+              )}
+              
+              {/* Generate/View Invoice button - shown only for accepted */}
+              {quotation.status === "accepted" && (
+                <Button
+                  variant="outline"
+                  onClick={handleViewInvoice}
+                  disabled={generatingInvoice}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  {quotation.generatedInvoiceId
+                    ? "View Invoice"
+                    : generatingInvoice
+                    ? "Generating..."
+                    : "Generate Invoice"}
+                </Button>
+              )}
+              
+              {/* Copy and Download buttons - shown for all non-draft statuses */}
+              {quotation.status !== "draft" && (
+                <>
                   <Button
                     variant="outline"
-                    onClick={handleViewInvoice}
-                    disabled={generatingInvoice}
+                    onClick={handleCopy}
+                    disabled={copying}
                   >
-                    <FileText className="mr-2 h-4 w-4" />
-                    {quotation.generatedInvoiceId
-                      ? "View Invoice"
-                      : generatingInvoice
-                      ? "Generating..."
-                      : "Generate Invoice"}
+                    <Copy className="mr-2 h-4 w-4" />
+                    {copying ? "Copying..." : "Copy"}
                   </Button>
-                )}
-                <Button
-                  variant="outline"
-                  onClick={handleCopy}
-                  disabled={copying}
-                >
-                  <Copy className="mr-2 h-4 w-4" />
-                  {copying ? "Copying..." : "Copy"}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleWhatsApp}
-                >
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  WhatsApp
-                </Button>
-                <PDFDownloadLink
-                  document={<QuotationPDF data={quotation} />}
-                  fileName={`${quotation.quotationId}_${quotation.billTo.replace(
-                    /\s+/g,
-                    "_"
-                  )}.pdf`}
-                >
-                  {({ loading }) => (
-                    <Button disabled={loading}>
-                      <Download className="mr-2 h-4 w-4" />
-                      {loading ? "Preparing..." : "Download PDF"}
-                    </Button>
-                  )}
-                </PDFDownloadLink>
-              </div>
-            )}
+                  <Button
+                    variant="outline"
+                    onClick={handleWhatsApp}
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    WhatsApp
+                  </Button>
+                  <PDFDownloadLink
+                    document={<QuotationPDF data={quotation} />}
+                    fileName={`${quotation.quotationId}_${quotation.billTo.replace(
+                      /\s+/g,
+                      "_"
+                    )}.pdf`}
+                  >
+                    {({ loading }) => (
+                      <Button disabled={loading}>
+                        <Download className="mr-2 h-4 w-4" />
+                        {loading ? "Preparing..." : "Download PDF"}
+                      </Button>
+                    )}
+                  </PDFDownloadLink>
+                </>
+              )}
+            </div>
           </div>
 
           {/* PDF Viewer */}

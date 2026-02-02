@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { useFetch } from "@/hooks/use-fetch"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
-import { Download, MessageCircle, CheckCircle, FileText, Copy } from "lucide-react"
+import { Download, MessageCircle, CheckCircle, FileText, Copy, Edit } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
 import { PDFDownloadLink, pdf } from "@react-pdf/renderer"
 import { InvoicePDF } from "@/components/pdf/invoice-pdf"
@@ -262,57 +262,75 @@ export default function ViewInvoicePage() {
                 Status: {Invoice.status.toUpperCase()}
               </p>
             </div>
-            {Invoice.status !== "draft" && (
-              <div className="flex gap-2">
-                {Invoice.status === "pending" && (
-                  <Button
-                    onClick={() => setShowMarkPaidDialog(true)}
-                    disabled={markingPaid}
-                  >
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    {markingPaid ? "Marking..." : "Mark as Paid"}
-                  </Button>
-                )}
-                {Invoice.status === "paid" && Invoice.generatedExpenseId && (
+            <div className="flex gap-2">
+              {/* Edit button - shown for draft and pending */}
+              {(Invoice.status === "draft" || Invoice.status === "pending") && (
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/invoice/${InvoiceId}/edit`)}
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+              )}
+              
+              {/* Mark as Paid button - shown only for pending */}
+              {Invoice.status === "pending" && (
+                <Button
+                  onClick={() => setShowMarkPaidDialog(true)}
+                  disabled={markingPaid}
+                >
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  {markingPaid ? "Marking..." : "Mark as Paid"}
+                </Button>
+              )}
+              
+              {/* View Expense button - shown only for paid with expense */}
+              {Invoice.status === "paid" && Invoice.generatedExpenseId && (
+                <Button
+                  variant="outline"
+                  onClick={handleViewExpense}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  View Expense
+                </Button>
+              )}
+              
+              {/* Copy, WhatsApp, and Download buttons - shown for all non-draft statuses */}
+              {Invoice.status !== "draft" && (
+                <>
                   <Button
                     variant="outline"
-                    onClick={handleViewExpense}
+                    onClick={handleCopy}
+                    disabled={copying}
                   >
-                    <FileText className="mr-2 h-4 w-4" />
-                    View Expense
+                    <Copy className="mr-2 h-4 w-4" />
+                    {copying ? "Copying..." : "Copy"}
                   </Button>
-                )}
-                <Button
-                  variant="outline"
-                  onClick={handleCopy}
-                  disabled={copying}
-                >
-                  <Copy className="mr-2 h-4 w-4" />
-                  {copying ? "Copying..." : "Copy"}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleWhatsApp}
-                >
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  WhatsApp
-                </Button>
-                <PDFDownloadLink
-                  document={<InvoicePDF data={Invoice} />}
-                  fileName={`${Invoice.invoiceId}_${Invoice.billTo.replace(
-                    /\s+/g,
-                    "_"
-                  )}.pdf`}
-                >
-                  {({ loading }) => (
-                    <Button disabled={loading}>
-                      <Download className="mr-2 h-4 w-4" />
-                      {loading ? "Preparing..." : "Download PDF"}
-                    </Button>
-                  )}
-                </PDFDownloadLink>
-              </div>
-            )}
+                  <Button
+                    variant="outline"
+                    onClick={handleWhatsApp}
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    WhatsApp
+                  </Button>
+                  <PDFDownloadLink
+                    document={<InvoicePDF data={Invoice} />}
+                    fileName={`${Invoice.invoiceId}_${Invoice.billTo.replace(
+                      /\s+/g,
+                      "_"
+                    )}.pdf`}
+                  >
+                    {({ loading }) => (
+                      <Button disabled={loading}>
+                        <Download className="mr-2 h-4 w-4" />
+                        {loading ? "Preparing..." : "Download PDF"}
+                      </Button>
+                    )}
+                  </PDFDownloadLink>
+                </>
+              )}
+            </div>
           </div>
 
           {/* PDF Viewer */}

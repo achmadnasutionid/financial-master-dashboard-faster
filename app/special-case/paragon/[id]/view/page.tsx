@@ -8,7 +8,7 @@ import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
 import { PDFDownloadLink, pdf } from "@react-pdf/renderer"
 import { LazyPDFViewer } from "@/components/pdf/lazy-pdf-viewer"
-import { Download, MessageCircle, FileText, Receipt, ClipboardCheck, CheckCircle, Upload, Copy } from "lucide-react"
+import { Download, MessageCircle, FileText, Receipt, ClipboardCheck, CheckCircle, Upload, Copy, Edit } from "lucide-react"
 import { ParagonQuotationPDF } from "@/components/pdf/paragon-quotation-pdf"
 import { ParagonInvoicePDF } from "@/components/pdf/paragon-invoice-pdf"
 import { ParagonBASTPDF } from "@/components/pdf/paragon-bast-pdf"
@@ -323,6 +323,18 @@ export default function ViewParagonTicketPage() {
             </p>
             
             <div className="flex flex-wrap gap-2">
+              {/* Edit Button - Only show for draft status */}
+              {ticket.status === 'draft' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`/special-case/paragon/${params.id}/edit`)}
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+              )}
+              
               {/* Upload Screenshot Button - Only show on BAST view if status is draft */}
               {viewType === 'bast' && ticket.status === 'draft' && (
                 <>

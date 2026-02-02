@@ -8,7 +8,7 @@ import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
 import { PDFDownloadLink } from "@react-pdf/renderer"
 import { LazyPDFViewer } from "@/components/pdf/lazy-pdf-viewer"
-import { FileText, Receipt, ClipboardCheck, CheckCircle, Upload, Download, Copy } from "lucide-react"
+import { FileText, Receipt, ClipboardCheck, CheckCircle, Upload, Download, Copy, Edit } from "lucide-react"
 import { ErhaQuotationPDF } from "@/components/pdf/erha-quotation-pdf"
 import { ErhaInvoicePDF } from "@/components/pdf/erha-invoice-pdf"
 import { ErhaBASTPDF } from "@/components/pdf/erha-bast-pdf"
@@ -286,6 +286,18 @@ export default function ViewErhaTicketPage() {
             </p>
             
             <div className="flex flex-wrap gap-2">
+              {/* Edit Button - Only show for draft status */}
+              {ticket.status === 'draft' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`/special-case/erha/${params.id}/edit`)}
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+              )}
+              
               {/* Upload Screenshot Button - Only show on BAST view if status is draft */}
               {viewType === 'bast' && ticket.status === 'draft' && (
                 <>
