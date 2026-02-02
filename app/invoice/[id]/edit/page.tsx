@@ -38,6 +38,7 @@ import {
 import { PPH_OPTIONS } from "@/lib/constants"
 import { formatProductName } from "@/lib/utils"
 import { scrollToFirstError } from "@/lib/form-utils"
+import { ReorderableSummary } from "@/components/ui/reorderable-summary"
 
 interface Company {
   id: string
@@ -104,6 +105,7 @@ export default function EditInvoicePage() {
   const [selectedSignatureId, setSelectedSignatureId] = useState("")
   const [pph, setPph] = useState("2") // Auto-select PPH 23 2%
   const [items, setItems] = useState<Item[]>([])
+  const [summaryOrder, setSummaryOrder] = useState<string[]>(["subtotal", "pph", "total"])
   
   // Master data
   const [companies, setCompanies] = useState<Company[]>([])
@@ -179,6 +181,7 @@ export default function EditInvoicePage() {
       if (signature) setSelectedSignatureId(signature.id)
       
       setPph(InvoiceData.pph)
+      setSummaryOrder(InvoiceData.summaryOrder ? InvoiceData.summaryOrder.split(',') : ["subtotal", "pph", "total"])
       
       // Load remarks
       if (InvoiceData.remarks && Array.isArray(InvoiceData.remarks)) {
@@ -594,6 +597,7 @@ export default function EditInvoicePage() {
         signatureImageData: signature.imageData,
         pph,
         totalAmount: calculateTotalAmount(),
+        summaryOrder: summaryOrder.join(","),
         status,
         remarks: remarks.map(remark => ({
           id: remark.id,
@@ -1076,25 +1080,40 @@ export default function EditInvoicePage() {
 
               {/* Summary */}
               {items.length > 0 && (
-                <div className="space-y-3 rounded-lg border bg-card p-4">
-                  <h3 className="text-lg font-semibold">Summary</h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Subtotal:</span>
-                      <span className="font-medium">{formatCurrency(calculateSubtotal())}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>{PPH_OPTIONS.find(opt => opt.value === pph)?.label || `PPh (${pph}%)`}:</span>
-                      <span className="font-medium text-green-600">
-                        + {formatCurrency(calculatePphAmount())}
-                      </span>
-                    </div>
-                    <div className="flex justify-between border-t pt-2 text-base font-bold">
-                      <span>Total Amount:</span>
-                      <span className="text-primary">{formatCurrency(calculateTotalAmount())}</span>
-                    </div>
-                  </div>
-                </div>
+                <ReorderableSummary
+                  items={summaryOrder.map(id => {
+                    if (id === 'subtotal') {
+                      return {
+                        id: 'subtotal',
+                        label: 'Subtotal',
+                        value: formatCurrency(calculateSubtotal())
+                      }
+                    } else if (id === 'pph') {
+                      const pphOption = PPH_OPTIONS.find(opt => opt.value === pph)
+                      const pphLabel = pphOption ? pphOption.label : `PPh (${pph}%)`
+                      const pphParts = pphLabel.split(' - After reporting')
+                      const pphMainLabel = pphParts[0]
+                      const pphNote = pphParts[1] ? 'After reporting' + pphParts[1] : undefined
+                      
+                      return {
+                        id: 'pph',
+                        label: pphMainLabel,
+                        value: formatCurrency(calculatePphAmount()),
+                        note: pphNote
+                      }
+                    } else {
+                      return {
+                        id: 'total',
+                        label: 'Total Amount',
+                        value: formatCurrency(calculateTotalAmount())
+                      }
+                    }
+                  })}
+                  onReorder={(newOrder) => {
+                    setHasUnsavedChanges(true)
+                    setSummaryOrder(newOrder)
+                  }}
+                />
               )}
 
               {/* Actions */}

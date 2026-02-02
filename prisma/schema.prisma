@@ -136,6 +136,7 @@ model Quotation {
   signatureImageData     String
   pph                    String
   totalAmount            Float
+  summaryOrder           String?           @default("subtotal,pph,total")
   status                 String            @default("draft")
   generatedInvoiceId     String?
   deletedAt              DateTime?
@@ -143,6 +144,7 @@ model Quotation {
   updatedAt              DateTime          @updatedAt
   items                  QuotationItem[]
   remarks                QuotationRemark[]
+  signatures             QuotationSignature[]
 
   @@index([status, deletedAt])
   @@index([quotationId])
@@ -194,6 +196,21 @@ model QuotationRemark {
   @@index([quotationId])
 }
 
+model QuotationSignature {
+  id               String    @id @default(cuid())
+  quotationId      String
+  name             String
+  position         String
+  imageData        String
+  order            Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  quotation        Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([quotationId])
+  @@index([quotationId, order])
+}
+
 model Invoice {
   id                     String          @id @default(cuid())
   invoiceId              String          @unique
@@ -221,14 +238,16 @@ model Invoice {
   signatureImageData     String
   pph                    String
   totalAmount            Float
+  summaryOrder           String?           @default("subtotal,pph,total")
   status                 String          @default("draft")
   generatedExpenseId     String?
   deletedAt              DateTime?
   createdAt              DateTime        @default(now())
-  updatedAt              DateTime        @updatedAt
+  updatedAt              DateTime            @updatedAt
   expenses               Expense[]
   items                  InvoiceItem[]
   remarks                InvoiceRemark[]
+  signatures             InvoiceSignature[]
 
   @@index([status, deletedAt])
   @@index([invoiceId])
@@ -280,6 +299,21 @@ model InvoiceRemark {
   invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
+}
+
+model InvoiceSignature {
+  id               String   @id @default(cuid())
+  invoiceId        String
+  name             String
+  position         String
+  imageData        String
+  order            Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  invoice          Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@index([invoiceId, order])
 }
 
 model Expense {

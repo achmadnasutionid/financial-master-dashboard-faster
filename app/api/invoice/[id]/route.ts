@@ -17,7 +17,10 @@ export async function GET(
           },
           orderBy: { order: 'asc' }
         },
-        remarks: true
+        remarks: true,
+        signatures: {
+          orderBy: { order: 'asc' }
+        }
       }
     })
 
@@ -97,6 +100,7 @@ export async function PUT(
           signatureImageData: body.signatureImageData,
           pph: body.pph,
           totalAmount: parseFloat(body.totalAmount),
+          summaryOrder: body.summaryOrder || "subtotal,pph,total",
           status: body.status || "draft",
         }
       })

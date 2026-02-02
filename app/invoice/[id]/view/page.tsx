@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { PageHeader } from "@/components/layout/page-header"
 import { useFetch } from "@/hooks/use-fetch"
 import { Footer } from "@/components/layout/footer"
@@ -79,6 +79,20 @@ export default function ViewInvoicePage() {
     InvoiceId ? `/api/invoice/${InvoiceId}` : null
   )
 
+  // Prepare PDF data with properly formatted signatures
+  const pdfData = useMemo(() => {
+    if (!Invoice) return null
+    
+    return {
+      ...Invoice,
+      signatures: (Invoice as any).signatures?.map((sig: any) => ({
+        name: sig.name,
+        position: sig.position,
+        imageData: sig.imageData
+      })) || []
+    }
+  }, [Invoice])
+
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -89,7 +103,7 @@ export default function ViewInvoicePage() {
 
     try {
       // Generate and download the PDF
-      const blob = await pdf(<InvoicePDF data={Invoice} />).toBlob()
+      const blob = await pdf(<InvoicePDF data={pdfData || Invoice} />).toBlob()
       const url = URL.createObjectURL(blob)
       const link = document.createElement("a")
       link.href = url
@@ -348,7 +362,7 @@ export default function ViewInvoicePage() {
                     <MessageCircle className="h-4 w-4" />
                   </Button>
                   <PDFDownloadLink
-                    document={<InvoicePDF data={Invoice} />}
+                    document={<InvoicePDF data={pdfData || Invoice} />}
                     fileName={`${Invoice.invoiceId}_${Invoice.billTo.replace(
                       /\s+/g,
                       "_"
@@ -392,7 +406,7 @@ export default function ViewInvoicePage() {
               }}
               showToolbar={true}
             >
-              <InvoicePDF data={Invoice} />
+              <InvoicePDF data={pdfData || Invoice} />
             </LazyPDFViewer>
           </div>
         </div>

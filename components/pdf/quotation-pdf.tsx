@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   },
   signatureImage: {
     maxWidth: 150,
-    maxHeight: 60,
+    height: 60,
     objectFit: "contain",
   },
   footer: {
@@ -148,6 +148,12 @@ interface QuotationPDFProps {
     signatureName: string
     signatureRole?: string
     signatureImageData: string
+    summaryOrder?: string
+    signatures?: Array<{
+      name: string
+      position: string
+      imageData: string
+    }>
     pph: string
     totalAmount: number
     status: string
@@ -205,6 +211,262 @@ export const QuotationPDF: React.FC<QuotationPDFProps> = ({ data }) => {
   const pphParts = pphLabel.split(' - After reporting')
   const pphMainLabel = pphParts[0]
   const pphNote = pphParts[1] ? 'After reporting' + pphParts[1] : null
+
+  // Always include the main signature (if it has data), plus any additional signatures
+  const mainSignature = {
+    name: data.signatureName,
+    position: data.signatureRole || '',
+    imageData: data.signatureImageData
+  }
+  
+  // Only include main signature if it has a name
+  const allSignatures = [
+    ...(data.signatureName ? [mainSignature] : []),
+    ...(data.signatures || [])
+  ]
+
+  // Get summary order or use default
+  const summaryOrder = data.summaryOrder ? data.summaryOrder.split(',') : ['subtotal', 'pph', 'total']
+
+  // Create summary items based on order
+  const summaryItems = summaryOrder.map(id => {
+    if (id === 'subtotal') {
+      return { id: 'subtotal', label: 'Subtotal', value: netAmount, showPlus: false }
+    } else if (id === 'pph') {
+      return { id: 'pph', label: pphMainLabel, value: pphAmount, showPlus: true, note: pphNote }
+    } else {
+      return { id: 'total', label: 'Total Amount', value: grossAmount, showPlus: false, isTotal: true }
+    }
+  })
+
+  // Render signatures based on count
+  const renderSignatures = () => {
+    const sigCount = allSignatures.length
+
+    if (sigCount === 1) {
+      // Single signature: on the right side next to billing
+      const sig = allSignatures[0]
+      return (
+        <View style={[styles.gridCol, { paddingRight: 0, alignItems: "center", justifyContent: "center" }]}>
+          <View style={{ alignItems: "center", width: "100%" }}>
+            {sig.imageData ? (
+              <>
+                <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 2 }}>
+                  {data.companyCity}, {data.companyProvince}
+                </Text>
+                <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 5 }}>
+                  {new Date(data.updatedAt).toLocaleDateString("id-ID")}
+                </Text>
+                <Image src={sig.imageData} style={styles.signatureImage} />
+              </>
+            ) : (
+              <>
+                <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 2 }}>
+                  __________,__________
+                </Text>
+                <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 5 }}>
+                  ___/___/_______
+                </Text>
+                <View style={{ height: 60 }} />
+              </>
+            )}
+            <Text style={{ fontSize: 8, marginTop: 4, textAlign: "center" }}>
+              {sig.name}
+            </Text>
+            {sig.position && (
+              <Text style={{ fontSize: 7, marginTop: 2, textAlign: "center", color: "#666" }}>
+                {sig.position}
+              </Text>
+            )}
+          </View>
+        </View>
+      )
+    }
+
+    // Multiple signatures: below billing, arranged based on count
+    return null // Will be rendered separately below
+  }
+
+  const renderMultipleSignatures = () => {
+    const sigCount = allSignatures.length
+    
+    if (sigCount <= 1) return null
+
+    const signatureBoxStyle = {
+      alignItems: "center" as const,
+      width: sigCount === 2 ? "48%" : sigCount === 3 ? "30%" : "48%",
+      marginBottom: 10
+    }
+
+    if (sigCount === 2) {
+      // Side by side
+      return (
+        <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 15 }} wrap={false}>
+          {allSignatures.map((sig, idx) => (
+            <View key={idx} style={signatureBoxStyle}>
+              {sig.imageData ? (
+                <>
+                  <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 2 }}>
+                    {data.companyCity}, {data.companyProvince}
+                  </Text>
+                  <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 5 }}>
+                    {new Date(data.updatedAt).toLocaleDateString("id-ID")}
+                  </Text>
+                  <Image src={sig.imageData} style={styles.signatureImage} />
+                </>
+              ) : (
+                <>
+                  <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 2 }}>
+                    __________,__________
+                  </Text>
+                  <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 5 }}>
+                    ___/___/_______
+                  </Text>
+                  <View style={{ height: 60 }} />
+                </>
+              )}
+              <Text style={{ fontSize: 8, marginTop: 4, textAlign: "center" }}>
+                {sig.name}
+              </Text>
+              {sig.position && (
+                <Text style={{ fontSize: 7, marginTop: 2, textAlign: "center", color: "#666" }}>
+                  {sig.position}
+                </Text>
+              )}
+            </View>
+          ))}
+        </View>
+      )
+    } else if (sigCount === 3) {
+      // All aligned with one centered
+      return (
+        <View style={{ marginTop: 15 }} wrap={false}>
+          <View style={{ flexDirection: "row", justifyContent: "space-around", marginBottom: 10 }}>
+            {allSignatures.map((sig, idx) => (
+              <View key={idx} style={signatureBoxStyle}>
+                <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 2 }}>
+                  {data.companyCity}, {data.companyProvince}
+                </Text>
+                <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 5 }}>
+                  {new Date(data.updatedAt).toLocaleDateString("id-ID")}
+                </Text>
+                {sig.imageData ? (
+                  <Image src={sig.imageData} style={styles.signatureImage} />
+                ) : (
+                  <View style={{ height: 60, width: 120, borderBottom: "1px solid #999", marginTop: 20, marginBottom: 5 }} />
+                )}
+                <Text style={{ fontSize: 8, marginTop: 4, textAlign: "center" }}>
+                  {sig.name}
+                </Text>
+                {sig.position && (
+                  <Text style={{ fontSize: 7, marginTop: 2, textAlign: "center", color: "#666" }}>
+                    {sig.position}
+                  </Text>
+                )}
+              </View>
+            ))}
+          </View>
+        </View>
+      )
+    } else if (sigCount === 4) {
+      // 2x2 grid
+      return (
+        <View style={{ marginTop: 15 }} wrap={false}>
+          {/* Top row */}
+          <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 10 }}>
+            {allSignatures.slice(0, 2).map((sig, idx) => (
+              <View key={idx} style={signatureBoxStyle}>
+                <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 2 }}>
+                  {data.companyCity}, {data.companyProvince}
+                </Text>
+                <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 5 }}>
+                  {new Date(data.updatedAt).toLocaleDateString("id-ID")}
+                </Text>
+                {sig.imageData ? (
+                  <Image src={sig.imageData} style={styles.signatureImage} />
+                ) : (
+                  <View style={{ height: 60, width: 120, borderBottom: "1px solid #999", marginTop: 20, marginBottom: 5 }} />
+                )}
+                <Text style={{ fontSize: 8, marginTop: 4, textAlign: "center" }}>
+                  {sig.name}
+                </Text>
+                {sig.position && (
+                  <Text style={{ fontSize: 7, marginTop: 2, textAlign: "center", color: "#666" }}>
+                    {sig.position}
+                  </Text>
+                )}
+              </View>
+            ))}
+          </View>
+          {/* Bottom row */}
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            {allSignatures.slice(2, 4).map((sig, idx) => (
+              <View key={idx + 2} style={signatureBoxStyle}>
+                <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 2 }}>
+                  {data.companyCity}, {data.companyProvince}
+                </Text>
+                <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 5 }}>
+                  {new Date(data.updatedAt).toLocaleDateString("id-ID")}
+                </Text>
+                {sig.imageData ? (
+                  <Image src={sig.imageData} style={styles.signatureImage} />
+                ) : (
+                  <View style={{ height: 60, width: 120, borderBottom: "1px solid #999", marginTop: 20, marginBottom: 5 }} />
+                )}
+                <Text style={{ fontSize: 8, marginTop: 4, textAlign: "center" }}>
+                  {sig.name}
+                </Text>
+                {sig.position && (
+                  <Text style={{ fontSize: 7, marginTop: 2, textAlign: "center", color: "#666" }}>
+                    {sig.position}
+                  </Text>
+                )}
+              </View>
+            ))}
+          </View>
+        </View>
+      )
+    } else {
+      // 5+ signatures: wrap layout
+      return (
+        <View style={{ marginTop: 15, flexDirection: "row", flexWrap: "wrap", justifyContent: "space-around" }} wrap={false}>
+          {allSignatures.map((sig, idx) => (
+            <View key={idx} style={{ ...signatureBoxStyle, width: "30%", marginBottom: 15 }}>
+              {sig.imageData ? (
+                <>
+                  <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 2 }}>
+                    {data.companyCity}, {data.companyProvince}
+                  </Text>
+                  <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 5 }}>
+                    {new Date(data.updatedAt).toLocaleDateString("id-ID")}
+                  </Text>
+                  <Image src={sig.imageData} style={styles.signatureImage} />
+                </>
+              ) : (
+                <>
+                  <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 2 }}>
+                    __________,__________
+                  </Text>
+                  <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 5 }}>
+                    ___/___/_______
+                  </Text>
+                  <View style={{ height: 60 }} />
+                </>
+              )}
+              <Text style={{ fontSize: 8, marginTop: 4, textAlign: "center" }}>
+                {sig.name}
+              </Text>
+              {sig.position && (
+                <Text style={{ fontSize: 7, marginTop: 2, textAlign: "center", color: "#666" }}>
+                  {sig.position}
+                </Text>
+              )}
+            </View>
+          ))}
+        </View>
+      )
+    }
+  }
 
   return (
     <Document>
@@ -311,25 +573,23 @@ export const QuotationPDF: React.FC<QuotationPDFProps> = ({ data }) => {
 
         {/* Summary */}
         <View style={styles.summary} wrap={false}>
-          <View style={styles.summaryRow}>
-            <Text>Subtotal:</Text>
-            <Text>{formatCurrency(netAmount)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <View style={{ flexDirection: "column" }}>
-              <Text>{pphMainLabel}:</Text>
-              {pphNote && (
-                <Text style={{ fontSize: 8, fontWeight: "bold", marginTop: 2 }}>
-                  {pphNote}
+          {summaryItems.map((item, index) => (
+            <View key={item.id}>
+              <View style={index === 2 ? styles.summaryTotal : styles.summaryRow}>
+                <View style={{ flexDirection: "column" }}>
+                  <Text>{item.label}:</Text>
+                  {item.note && (
+                    <Text style={{ fontSize: 8, fontWeight: "bold", marginTop: 2 }}>
+                      {item.note}
+                    </Text>
+                  )}
+                </View>
+                <Text style={item.id === 'pph' ? { color: "green" } : {}}>
+                  {item.id === 'pph' && "+ "}{formatCurrency(item.value)}
                 </Text>
-              )}
+              </View>
             </View>
-            <Text style={{ color: "green" }}>+ {formatCurrency(pphAmount)}</Text>
-          </View>
-          <View style={styles.summaryTotal}>
-            <Text>Total Amount:</Text>
-            <Text>{formatCurrency(grossAmount)}</Text>
-          </View>
+          ))}
         </View>
 
         {/* Remarks */}
@@ -354,8 +614,8 @@ export const QuotationPDF: React.FC<QuotationPDFProps> = ({ data }) => {
         )}
 
         {/* Billing & Signature */}
-        <View style={styles.grid} wrap={false}>
-          <View style={styles.gridCol}>
+        <View style={allSignatures.length === 1 ? styles.grid : {}} wrap={false}>
+          <View style={allSignatures.length === 1 ? styles.gridCol : { width: "100%" }}>
             <Text style={styles.sectionTitle}>Billing Information</Text>
             <View style={styles.row}>
               <Text style={styles.label}>Account:</Text>
@@ -375,30 +635,12 @@ export const QuotationPDF: React.FC<QuotationPDFProps> = ({ data }) => {
             </View>
           </View>
 
-          <View style={[styles.gridCol, { paddingRight: 0, alignItems: "center", justifyContent: "center" }]}>
-            <View style={{ alignItems: "center", width: "100%" }}>
-              <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 2 }}>
-                {data.companyCity}, {data.companyProvince}
-              </Text>
-              <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 5 }}>
-                {new Date(data.updatedAt).toLocaleDateString("id-ID")}
-              </Text>
-              {data.signatureImageData ? (
-                <Image src={data.signatureImageData} style={styles.signatureImage} />
-              ) : (
-                <View style={{ height: 60, borderBottom: "1px solid #999", marginTop: 20, marginBottom: 5 }} />
-              )}
-              <Text style={{ fontSize: 8, marginTop: 4, textAlign: "center" }}>
-                {data.signatureName}
-              </Text>
-              {data.signatureRole && (
-                <Text style={{ fontSize: 7, marginTop: 2, textAlign: "center", color: "#666" }}>
-                  {data.signatureRole}
-                </Text>
-              )}
-            </View>
-          </View>
+          {/* Render single signature on right if count is 1 */}
+          {allSignatures.length === 1 && renderSignatures()}
         </View>
+
+        {/* Render multiple signatures below if count is 2+ */}
+        {allSignatures.length > 1 && renderMultipleSignatures()}
 
         {/* Footer */}
         <Text style={styles.footer} fixed>

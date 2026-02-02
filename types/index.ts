@@ -89,6 +89,17 @@ export interface Invoice {
   updatedAt: Date
 }
 
+export interface InvoiceSignature {
+  id: string
+  invoiceId: string
+  name: string
+  position: string
+  imageData: string
+  order: number
+  createdAt: Date
+  updatedAt: Date
+}
+
 export interface Quotation {
   id: string
   quotationId: string
@@ -116,6 +127,17 @@ export interface Quotation {
   status: DocumentStatus
   generatedInvoiceId: string | null
   deletedAt: Date | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface QuotationSignature {
+  id: string
+  quotationId: string
+  name: string
+  position: string
+  imageData: string
+  order: number
   createdAt: Date
   updatedAt: Date
 }

@@ -121,6 +121,7 @@ export async function POST(request: Request) {
         signatureImageData: body.signatureImageData || (isDraft ? "" : body.signatureImageData),
         pph: body.pph || (isDraft ? "" : body.pph),
         totalAmount: body.totalAmount ? parseFloat(body.totalAmount) : 0,
+        summaryOrder: body.summaryOrder || "subtotal,pph,total",
         status: body.status || "draft",
         items: {
           create: body.items?.map((item: any) => ({
@@ -141,6 +142,14 @@ export async function POST(request: Request) {
             text: remark.text || "",
             isCompleted: remark.isCompleted || false
           })) || []
+        },
+        signatures: {
+          create: body.customSignatures?.map((sig: any) => ({
+            name: sig.name,
+            position: sig.position,
+            imageData: sig.imageData || "", // Empty for manual signatures
+            order: sig.order
+          })) || []
         }
       },
       include: {
@@ -149,7 +158,8 @@ export async function POST(request: Request) {
             details: true
           }
         },
-        remarks: true
+        remarks: true,
+        signatures: true
       }
     })
 

@@ -28,6 +28,7 @@ import {
 import { PPH_OPTIONS } from "@/lib/constants"
 import { formatProductName } from "@/lib/utils"
 import { scrollToFirstError } from "@/lib/form-utils"
+import { ReorderableSummary } from "@/components/ui/reorderable-summary"
 
 interface Company {
   id: string
@@ -78,6 +79,12 @@ interface Remark {
   isCompleted: boolean
 }
 
+interface CustomSignature {
+  id: string
+  name: string
+  position: string
+}
+
 export default function CreateInvoicePage() {
   const router = useRouter()
   
@@ -103,6 +110,9 @@ export default function CreateInvoicePage() {
   const [selectedSignatureId, setSelectedSignatureId] = useState("")
   const [pph, setPph] = useState("2") // Auto-select PPH 23 2%
   const [items, setItems] = useState<Item[]>([])
+  const [customSignatures, setCustomSignatures] = useState<CustomSignature[]>([])
+  const [showSignatures, setShowSignatures] = useState(false)
+  const [summaryOrder, setSummaryOrder] = useState<string[]>(["subtotal", "pph", "total"])
   
   // Master data
   const [companies, setCompanies] = useState<Company[]>([])
@@ -187,6 +197,33 @@ export default function CreateInvoicePage() {
     markInteracted()
     setRemarks(remarks.map(remark =>
       remark.id === id ? { ...remark, isCompleted: !remark.isCompleted } : remark
+    ))
+  }
+
+  // Custom signature management
+  const addCustomSignature = () => {
+    markInteracted()
+    setShowSignatures(true)
+    setCustomSignatures([...customSignatures, {
+      id: crypto.randomUUID(),
+      name: "",
+      position: ""
+    }])
+  }
+
+  const removeCustomSignature = (id: string) => {
+    markInteracted()
+    const newSignatures = customSignatures.filter(sig => sig.id !== id)
+    setCustomSignatures(newSignatures)
+    if (newSignatures.length === 0) {
+      setShowSignatures(false)
+    }
+  }
+
+  const updateCustomSignature = (id: string, field: 'name' | 'position', value: string) => {
+    markInteracted()
+    setCustomSignatures(customSignatures.map(sig =>
+      sig.id === id ? { ...sig, [field]: value } : sig
     ))
   }
 
@@ -494,6 +531,7 @@ export default function CreateInvoicePage() {
         signatureImageData: signature?.imageData || "",
         pph,
         totalAmount: calculateTotalAmount(),
+        summaryOrder: summaryOrder.join(","),
         status,
         items: items.map(item => ({
           productName: item.productName,
@@ -510,6 +548,12 @@ export default function CreateInvoicePage() {
         remarks: remarks.filter(r => r.text.trim()).map(remark => ({
           text: remark.text,
           isCompleted: remark.isCompleted
+        })),
+        customSignatures: customSignatures.filter(s => s.name.trim() && s.position.trim()).map((sig, index) => ({
+          name: sig.name.trim(),
+          position: sig.position.trim(),
+          imageData: "", // No image - will be signed manually by client
+          order: index
         }))
       }
 
@@ -772,6 +816,48 @@ export default function CreateInvoicePage() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Custom Signatures Section */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Additional Signatures</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addCustomSignature}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Signature
+                    </Button>
+                  </div>
+                  {customSignatures.length > 0 && (
+                    <div className="space-y-2">
+                      {customSignatures.map((sig) => (
+                        <div key={sig.id} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+                          <Input
+                            value={sig.name}
+                            onChange={(e) => updateCustomSignature(sig.id, 'name', e.target.value)}
+                            placeholder="Name"
+                          />
+                          <Input
+                            value={sig.position}
+                            onChange={(e) => updateCustomSignature(sig.id, 'position', e.target.value)}
+                            placeholder="Position"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeCustomSignature(sig.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Items Section */}
@@ -923,25 +1009,40 @@ export default function CreateInvoicePage() {
 
               {/* Summary */}
               {items.length > 0 && (
-                <div className="space-y-3 rounded-lg border bg-card p-4">
-                  <h3 className="text-lg font-semibold">Summary</h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Subtotal:</span>
-                      <span className="font-medium">{formatCurrency(calculateSubtotal())}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>{PPH_OPTIONS.find(opt => opt.value === pph)?.label || `PPh (${pph}%)`}:</span>
-                      <span className="font-medium text-green-600">
-                        + {formatCurrency(calculatePphAmount())}
-                      </span>
-                    </div>
-                    <div className="flex justify-between border-t pt-2 text-base font-bold">
-                      <span>Total Amount:</span>
-                      <span className="text-primary">{formatCurrency(calculateTotalAmount())}</span>
-                    </div>
-                  </div>
-                </div>
+                <ReorderableSummary
+                  items={summaryOrder.map(id => {
+                    if (id === 'subtotal') {
+                      return {
+                        id: 'subtotal',
+                        label: 'Subtotal',
+                        value: formatCurrency(calculateSubtotal())
+                      }
+                    } else if (id === 'pph') {
+                      const pphOption = PPH_OPTIONS.find(opt => opt.value === pph)
+                      const pphLabel = pphOption ? pphOption.label : `PPh (${pph}%)`
+                      const pphParts = pphLabel.split(' - After reporting')
+                      const pphMainLabel = pphParts[0]
+                      const pphNote = pphParts[1] ? 'After reporting' + pphParts[1] : undefined
+                      
+                      return {
+                        id: 'pph',
+                        label: pphMainLabel,
+                        value: formatCurrency(calculatePphAmount()),
+                        note: pphNote
+                      }
+                    } else {
+                      return {
+                        id: 'total',
+                        label: 'Total Amount',
+                        value: formatCurrency(calculateTotalAmount())
+                      }
+                    }
+                  })}
+                  onReorder={(newOrder) => {
+                    markInteracted()
+                    setSummaryOrder(newOrder)
+                  }}
+                />
               )}
 
               {/* Actions */}
