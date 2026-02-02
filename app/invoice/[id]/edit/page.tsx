@@ -211,6 +211,8 @@ export default function EditInvoicePage() {
           text: remark.text,
           isCompleted: remark.isCompleted
         })))
+      } else {
+        setRemarks([])
       }
       
       // Load custom signatures

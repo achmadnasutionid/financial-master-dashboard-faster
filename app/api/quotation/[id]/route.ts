@@ -217,9 +217,15 @@ export async function PUT(
       })
       const existingRemarkIds = new Set(existingRemarks.map(remark => remark.id))
 
+      console.log("[QUOTATION UPDATE] Existing remark IDs:", Array.from(existingRemarkIds))
+      console.log("[QUOTATION UPDATE] Incoming remarks:", body.remarks)
+
       // UPSERT remarks (OPTIMIZED - batch operations)
       const remarksToUpdate = (body.remarks || []).filter((remark: any) => remark.id && existingRemarkIds.has(remark.id))
       const remarksToCreate = (body.remarks || []).filter((remark: any) => !remark.id || !existingRemarkIds.has(remark.id))
+      
+      console.log("[QUOTATION UPDATE] Remarks to update:", remarksToUpdate.length)
+      console.log("[QUOTATION UPDATE] Remarks to create:", remarksToCreate.length)
       
       // Update all existing remarks in parallel (with order)
       const updateRemarkPromises = remarksToUpdate.map((remark: any) =>
