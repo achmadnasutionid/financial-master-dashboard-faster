@@ -258,11 +258,32 @@ export async function PUT(
       // Execute all remark operations in parallel
       await Promise.all([...updateRemarkPromises, createRemarkPromise])
 
-      // Delete removed remarks
+      // After creating, fetch the newly created remark IDs
+      let newlyCreatedRemarkIds: string[] = []
+      if (remarksToCreate.length > 0) {
+        const remarkOrders = remarksToCreate.map((remark: any) => 
+          (body.remarks || []).findIndex((r: any) => r.id === remark.id)
+        )
+        const newRemarks = await tx.invoiceRemark.findMany({
+          where: {
+            invoiceId: id,
+            order: { in: remarkOrders }
+          },
+          select: { id: true }
+        })
+        newlyCreatedRemarkIds = newRemarks.map(r => r.id)
+      }
+
+      // Delete removed remarks (but NOT the newly created ones)
+      const idsToKeep = [
+        ...Array.from(incomingRemarkIds).filter((id): id is string => typeof id === 'string' && existingRemarkIds.has(id)),
+        ...newlyCreatedRemarkIds
+      ]
+      
       await tx.invoiceRemark.deleteMany({
         where: {
           invoiceId: id,
-          id: { notIn: Array.from(incomingRemarkIds).filter((id): id is string => typeof id === 'string') }
+          id: { notIn: idsToKeep }
         }
       })
 

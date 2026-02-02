@@ -241,6 +241,8 @@ export async function PUT(
       
       // Create new remarks using createMany for better performance (with order)
       let createRemarkResult
+      const newlyCreatedRemarkIds: string[] = []
+      
       if (remarksToCreate.length > 0) {
         try {
           const remarkData = remarksToCreate.map((remark: any, index: number) => {
@@ -254,10 +256,24 @@ export async function PUT(
             }
           })
           console.log("[QUOTATION UPDATE] About to create remarks:", JSON.stringify(remarkData, null, 2))
+          
+          // Note: createMany doesn't return the created records, so we need to fetch them
+          // to get their actual IDs for the deletion exclusion logic
           createRemarkResult = await tx.quotationRemark.createMany({
             data: remarkData
           })
           console.log("[QUOTATION UPDATE] createMany result:", JSON.stringify(createRemarkResult))
+          
+          // Fetch the newly created remarks to get their actual database IDs
+          const newRemarks = await tx.quotationRemark.findMany({
+            where: {
+              quotationId: id,
+              order: { in: remarkData.map((r: any) => r.order) }
+            },
+            select: { id: true }
+          })
+          newlyCreatedRemarkIds.push(...newRemarks.map(r => r.id))
+          console.log("[QUOTATION UPDATE] Newly created remark IDs:", newlyCreatedRemarkIds)
         } catch (error) {
           console.error("[QUOTATION UPDATE] Error creating remarks:", error)
           throw error
@@ -269,14 +285,20 @@ export async function PUT(
 
       console.log("[QUOTATION UPDATE] Remark operations completed")
 
-      // Delete removed remarks
+      // Delete removed remarks (but NOT the newly created ones)
+      const idsToKeep = [
+        ...Array.from(incomingRemarkIds).filter((id): id is string => typeof id === 'string' && existingRemarkIds.has(id)),
+        ...newlyCreatedRemarkIds
+      ]
+      
       const deleteResult = await tx.quotationRemark.deleteMany({
         where: {
           quotationId: id,
-          id: { notIn: Array.from(incomingRemarkIds).filter((id): id is string => typeof id === 'string') }
+          id: { notIn: idsToKeep }
         }
       })
       
+      console.log("[QUOTATION UPDATE] IDs to keep:", idsToKeep)
       console.log("[QUOTATION UPDATE] Deleted remarks count:", deleteResult.count)
 
       // Get existing signature IDs from database
