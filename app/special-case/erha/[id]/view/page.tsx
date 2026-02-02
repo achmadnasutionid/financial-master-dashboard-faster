@@ -286,15 +286,16 @@ export default function ViewErhaTicketPage() {
             </p>
             
             <div className="flex flex-wrap gap-2">
-              {/* Edit Button - Only show for draft status */}
-              {ticket.status === 'draft' && (
+              {/* Finalize Button - LEFTMOST (Only show on BAST view if status is draft) */}
+              {viewType === 'bast' && ticket.status === 'draft' && (
                 <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => router.push(`/special-case/erha/${params.id}/edit`)}
+                  onClick={() => setShowFinalizeDialog(true)}
+                  disabled={finalizing}
+                  size="icon"
+                  variant="default"
+                  title={finalizing ? "Finalizing..." : "Finalize Ticket"}
                 >
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit
+                  <CheckCircle className="h-4 w-4" />
                 </Button>
               )}
               
@@ -310,37 +311,36 @@ export default function ViewErhaTicketPage() {
                   />
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
                     onClick={() => document.getElementById('screenshotUpload')?.click()}
                     disabled={uploading}
+                    title={uploading ? "Uploading..." : "Upload Screenshot"}
                   >
-                    <Upload className="mr-2 h-4 w-4" />
-                    {uploading ? "Uploading..." : "Upload Screenshot"}
+                    <Upload className="h-4 w-4" />
                   </Button>
                 </>
               )}
               
-              {/* Finalize Button - Only show on BAST view if status is draft */}
-              {viewType === 'bast' && ticket.status === 'draft' && (
+              {/* Edit Button - Only show for draft status */}
+              {ticket.status === 'draft' && (
                 <Button
-                  onClick={() => setShowFinalizeDialog(true)}
-                  disabled={finalizing}
-                  size="sm"
-                  variant="default"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => router.push(`/special-case/erha/${params.id}/edit`)}
+                  title="Edit"
                 >
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  {finalizing ? "Finalizing..." : "Finalize Ticket"}
+                  <Edit className="h-4 w-4" />
                 </Button>
               )}
               
               <Button
-                size="sm"
+                size="icon"
                 variant="outline"
                 onClick={handleCopy}
                 disabled={copying}
+                title={copying ? "Copying..." : "Copy"}
               >
-                <Copy className="mr-2 h-4 w-4" />
-                {copying ? "Copying..." : "Copy"}
+                <Copy className="h-4 w-4" />
               </Button>
               
               {/* Download Button for Quotation */}
@@ -350,9 +350,12 @@ export default function ViewErhaTicketPage() {
                   fileName={`${ticket.quotationId}_quotation_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
                 >
                   {({ loading: pdfLoading }) => (
-                    <Button size="sm" disabled={pdfLoading}>
-                      <Download className="mr-2 h-4 w-4" />
-                      {pdfLoading ? "Preparing..." : "Download PDF"}
+                    <Button 
+                      size="icon" 
+                      disabled={pdfLoading}
+                      title={pdfLoading ? "Preparing..." : "Download PDF"}
+                    >
+                      <Download className="h-4 w-4" />
                     </Button>
                   )}
                 </PDFDownloadLink>
@@ -365,9 +368,12 @@ export default function ViewErhaTicketPage() {
                   fileName={`${ticket.invoiceId}_invoice_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
                 >
                   {({ loading: pdfLoading }) => (
-                    <Button size="sm" disabled={pdfLoading}>
-                      <Download className="mr-2 h-4 w-4" />
-                      {pdfLoading ? "Preparing..." : "Download PDF"}
+                    <Button 
+                      size="icon" 
+                      disabled={pdfLoading}
+                      title={pdfLoading ? "Preparing..." : "Download PDF"}
+                    >
+                      <Download className="h-4 w-4" />
                     </Button>
                   )}
                 </PDFDownloadLink>
@@ -380,9 +386,12 @@ export default function ViewErhaTicketPage() {
                   fileName={`${ticket.ticketId}_bast_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
                 >
                   {({ loading: pdfLoading }) => (
-                    <Button size="sm" disabled={pdfLoading}>
-                      <Download className="mr-2 h-4 w-4" />
-                      {pdfLoading ? "Preparing..." : "Download PDF"}
+                    <Button 
+                      size="icon" 
+                      disabled={pdfLoading}
+                      title={pdfLoading ? "Preparing..." : "Download PDF"}
+                    >
+                      <Download className="h-4 w-4" />
                     </Button>
                   )}
                 </PDFDownloadLink>

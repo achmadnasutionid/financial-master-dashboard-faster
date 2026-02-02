@@ -288,25 +288,15 @@ export default function ViewQuotationPage() {
               </p>
             </div>
             <div className="flex gap-2">
-              {/* Edit button - shown for draft and pending */}
-              {(quotation.status === "draft" || quotation.status === "pending") && (
-                <Button
-                  variant="outline"
-                  onClick={() => router.push(`/quotation/${quotationId}/edit`)}
-                >
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit
-                </Button>
-              )}
-              
-              {/* Accept button - shown only for pending */}
+              {/* Accept button - shown only for pending (LEFTMOST) */}
               {quotation.status === "pending" && (
                 <Button
                   onClick={() => setShowAcceptDialog(true)}
                   disabled={accepting}
+                  size="icon"
+                  title={accepting ? "Accepting..." : "Accept Quotation"}
                 >
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  {accepting ? "Accepting..." : "Accept Quotation"}
+                  <CheckCircle className="h-4 w-4" />
                 </Button>
               )}
               
@@ -316,33 +306,44 @@ export default function ViewQuotationPage() {
                   variant="outline"
                   onClick={handleViewInvoice}
                   disabled={generatingInvoice}
+                  size="icon"
+                  title={quotation.generatedInvoiceId ? "View Invoice" : generatingInvoice ? "Generating..." : "Generate Invoice"}
                 >
-                  <FileText className="mr-2 h-4 w-4" />
-                  {quotation.generatedInvoiceId
-                    ? "View Invoice"
-                    : generatingInvoice
-                    ? "Generating..."
-                    : "Generate Invoice"}
+                  <FileText className="h-4 w-4" />
                 </Button>
               )}
               
-              {/* Copy and Download buttons - shown for all non-draft statuses */}
+              {/* Edit button - shown for draft and pending */}
+              {(quotation.status === "draft" || quotation.status === "pending") && (
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/quotation/${quotationId}/edit`)}
+                  size="icon"
+                  title="Edit"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              )}
+              
+              {/* Copy, WhatsApp, and Download buttons - shown for all non-draft statuses */}
               {quotation.status !== "draft" && (
                 <>
                   <Button
                     variant="outline"
                     onClick={handleCopy}
                     disabled={copying}
+                    size="icon"
+                    title={copying ? "Copying..." : "Copy"}
                   >
-                    <Copy className="mr-2 h-4 w-4" />
-                    {copying ? "Copying..." : "Copy"}
+                    <Copy className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
                     onClick={handleWhatsApp}
+                    size="icon"
+                    title="WhatsApp"
                   >
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    WhatsApp
+                    <MessageCircle className="h-4 w-4" />
                   </Button>
                   <PDFDownloadLink
                     document={<QuotationPDF data={quotation} />}
@@ -352,9 +353,12 @@ export default function ViewQuotationPage() {
                     )}.pdf`}
                   >
                     {({ loading }) => (
-                      <Button disabled={loading}>
-                        <Download className="mr-2 h-4 w-4" />
-                        {loading ? "Preparing..." : "Download PDF"}
+                      <Button 
+                        disabled={loading}
+                        size="icon"
+                        title={loading ? "Preparing..." : "Download PDF"}
+                      >
+                        <Download className="h-4 w-4" />
                       </Button>
                     )}
                   </PDFDownloadLink>

@@ -263,25 +263,15 @@ export default function ViewInvoicePage() {
               </p>
             </div>
             <div className="flex gap-2">
-              {/* Edit button - shown for draft and pending */}
-              {(Invoice.status === "draft" || Invoice.status === "pending") && (
-                <Button
-                  variant="outline"
-                  onClick={() => router.push(`/invoice/${InvoiceId}/edit`)}
-                >
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit
-                </Button>
-              )}
-              
-              {/* Mark as Paid button - shown only for pending */}
+              {/* Mark as Paid button - shown only for pending (LEFTMOST) */}
               {Invoice.status === "pending" && (
                 <Button
                   onClick={() => setShowMarkPaidDialog(true)}
                   disabled={markingPaid}
+                  size="icon"
+                  title={markingPaid ? "Marking..." : "Mark as Paid"}
                 >
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  {markingPaid ? "Marking..." : "Mark as Paid"}
+                  <CheckCircle className="h-4 w-4" />
                 </Button>
               )}
               
@@ -290,9 +280,22 @@ export default function ViewInvoicePage() {
                 <Button
                   variant="outline"
                   onClick={handleViewExpense}
+                  size="icon"
+                  title="View Expense"
                 >
-                  <FileText className="mr-2 h-4 w-4" />
-                  View Expense
+                  <FileText className="h-4 w-4" />
+                </Button>
+              )}
+              
+              {/* Edit button - shown for draft and pending */}
+              {(Invoice.status === "draft" || Invoice.status === "pending") && (
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/invoice/${InvoiceId}/edit`)}
+                  size="icon"
+                  title="Edit"
+                >
+                  <Edit className="h-4 w-4" />
                 </Button>
               )}
               
@@ -303,16 +306,18 @@ export default function ViewInvoicePage() {
                     variant="outline"
                     onClick={handleCopy}
                     disabled={copying}
+                    size="icon"
+                    title={copying ? "Copying..." : "Copy"}
                   >
-                    <Copy className="mr-2 h-4 w-4" />
-                    {copying ? "Copying..." : "Copy"}
+                    <Copy className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
                     onClick={handleWhatsApp}
+                    size="icon"
+                    title="WhatsApp"
                   >
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    WhatsApp
+                    <MessageCircle className="h-4 w-4" />
                   </Button>
                   <PDFDownloadLink
                     document={<InvoicePDF data={Invoice} />}
@@ -322,9 +327,12 @@ export default function ViewInvoicePage() {
                     )}.pdf`}
                   >
                     {({ loading }) => (
-                      <Button disabled={loading}>
-                        <Download className="mr-2 h-4 w-4" />
-                        {loading ? "Preparing..." : "Download PDF"}
+                      <Button 
+                        disabled={loading}
+                        size="icon"
+                        title={loading ? "Preparing..." : "Download PDF"}
+                      >
+                        <Download className="h-4 w-4" />
                       </Button>
                     )}
                   </PDFDownloadLink>

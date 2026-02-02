@@ -183,9 +183,10 @@ export default function ViewExpensePage() {
                 <Button
                   variant="outline"
                   onClick={() => router.push(`/expense/${expenseId}/edit`)}
+                  size="icon"
+                  title="Edit"
                 >
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit
+                  <Edit className="h-4 w-4" />
                 </Button>
               )}
               
@@ -196,16 +197,18 @@ export default function ViewExpensePage() {
                     variant="outline"
                     onClick={handleCopy}
                     disabled={copying}
+                    size="icon"
+                    title={copying ? "Copying..." : "Copy"}
                   >
-                    <Copy className="mr-2 h-4 w-4" />
-                    {copying ? "Copying..." : "Copy"}
+                    <Copy className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
                     onClick={handleWhatsApp}
+                    size="icon"
+                    title="WhatsApp"
                   >
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    WhatsApp
+                    <MessageCircle className="h-4 w-4" />
                   </Button>
                   <PDFDownloadLink
                     document={<ExpensePDF data={expense} />}
@@ -215,9 +218,12 @@ export default function ViewExpensePage() {
                     )}.pdf`}
                   >
                     {({ loading }) => (
-                      <Button disabled={loading}>
-                        <Download className="mr-2 h-4 w-4" />
-                        {loading ? "Preparing..." : "Download PDF"}
+                      <Button 
+                        disabled={loading}
+                        size="icon"
+                        title={loading ? "Preparing..." : "Download PDF"}
+                      >
+                        <Download className="h-4 w-4" />
                       </Button>
                     )}
                   </PDFDownloadLink>

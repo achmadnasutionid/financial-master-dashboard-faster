@@ -263,41 +263,49 @@ export default function ViewPlanningPage() {
               </p>
             </div>
             <div className="flex gap-2">
+              {/* Generate/View Quotation button - shown for final (LEFTMOST for final) */}
+              {planning.status === "final" && (
+                <Button
+                  variant="outline"
+                  onClick={handleViewQuotation}
+                  size="icon"
+                  title={planning.generatedQuotationId ? "View Quotation" : "Generate Quotation"}
+                >
+                  <FileText className="h-4 w-4" />
+                </Button>
+              )}
+              
               {/* Edit button - shown for draft */}
               {planning.status === "draft" && (
                 <Button
                   variant="outline"
                   onClick={() => router.push(`/planning/${planningId}/edit`)}
+                  size="icon"
+                  title="Edit"
                 >
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit
+                  <Edit className="h-4 w-4" />
                 </Button>
               )}
               
-              {/* Generate/View Quotation button - shown for final */}
+              {/* Copy, WhatsApp, and Download buttons - shown for final */}
               {planning.status === "final" && (
                 <>
                   <Button
                     variant="outline"
-                    onClick={handleViewQuotation}
-                  >
-                    <FileText className="mr-2 h-4 w-4" />
-                    {planning.generatedQuotationId ? "View Quotation" : "Generate Quotation"}
-                  </Button>
-                  <Button
-                    variant="outline"
                     onClick={handleCopy}
                     disabled={copying}
+                    size="icon"
+                    title={copying ? "Copying..." : "Copy"}
                   >
-                    <Copy className="mr-2 h-4 w-4" />
-                    {copying ? "Copying..." : "Copy"}
+                    <Copy className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
                     onClick={handleWhatsApp}
+                    size="icon"
+                    title="WhatsApp"
                   >
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    WhatsApp
+                    <MessageCircle className="h-4 w-4" />
                   </Button>
                   <PDFDownloadLink
                     document={<PlanningPDF data={planning} />}
@@ -307,9 +315,12 @@ export default function ViewPlanningPage() {
                     )}.pdf`}
                   >
                     {({ loading }) => (
-                      <Button disabled={loading}>
-                        <Download className="mr-2 h-4 w-4" />
-                        {loading ? "Preparing..." : "Download PDF"}
+                      <Button 
+                        disabled={loading}
+                        size="icon"
+                        title={loading ? "Preparing..." : "Download PDF"}
+                      >
+                        <Download className="h-4 w-4" />
                       </Button>
                     )}
                   </PDFDownloadLink>
