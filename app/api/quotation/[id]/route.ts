@@ -240,7 +240,7 @@ export async function PUT(
       )
       
       // Create new remarks using createMany for better performance (with order)
-      let createRemarkPromise = Promise.resolve()
+      let createRemarkResult
       if (remarksToCreate.length > 0) {
         try {
           const remarkData = remarksToCreate.map((remark: any, index: number) => {
@@ -254,17 +254,18 @@ export async function PUT(
             }
           })
           console.log("[QUOTATION UPDATE] About to create remarks:", JSON.stringify(remarkData, null, 2))
-          createRemarkPromise = tx.quotationRemark.createMany({
+          createRemarkResult = await tx.quotationRemark.createMany({
             data: remarkData
           })
+          console.log("[QUOTATION UPDATE] createMany result:", JSON.stringify(createRemarkResult))
         } catch (error) {
-          console.error("[QUOTATION UPDATE] Error preparing remark data:", error)
+          console.error("[QUOTATION UPDATE] Error creating remarks:", error)
           throw error
         }
       }
       
-      // Execute all remark operations in parallel
-      await Promise.all([...updateRemarkPromises, createRemarkPromise])
+      // Execute all remark UPDATE operations
+      await Promise.all(updateRemarkPromises)
 
       console.log("[QUOTATION UPDATE] Remark operations completed")
 
