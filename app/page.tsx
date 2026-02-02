@@ -1,5 +1,18 @@
 "use client"
 
+/**
+ * PERFORMANCE OPTIMIZATION:
+ * This dashboard has been optimized to prevent multiple re-renders:
+ * 
+ * 1. Data is fetched ONCE on mount (not on year filter changes)
+ * 2. All calculations use useMemo to only recalculate when specific dependencies change
+ * 3. Each year filter has its own isolated memoized calculation
+ * 4. State updates only trigger when memoized values actually change
+ * 
+ * Previous Issue: Changing any year filter triggered 4+ cascading re-calculations
+ * Current: Each filter change triggers only 1 targeted recalculation
+ */
+
 import { useRouter } from "next/navigation"
 import { useEffect, useState, useMemo } from "react"
 import { Header } from "@/components/layout/header"
@@ -141,7 +154,7 @@ export default function Home() {
     setSelectedProductsYear(year)
   }, [])
 
-  // Fetch all dashboard data
+  // Fetch all dashboard data (only once on mount)
   useEffect(() => {
     if (!isClient) return
     
@@ -165,27 +178,7 @@ export default function Home() {
         const years = extractAvailableYears(invoices, quotations, expenses)
         setAvailableYears(years)
 
-        // Calculate initial stats
-        const { invoiceStats: invStats, quotationStats: qtnStats } = calculateStats(
-          invoices,
-          quotations,
-          selectedYear
-        )
-        setInvoiceStats(invStats)
-        setQuotationStats(qtnStats)
-        
-        setExpenseStats(calculateExpenseStats(expenses, selectedFinancialYear))
-        setExtraExpenses(calculateExtraExpenses(gearExpenses, bigExpenses, selectedFinancialYear))
-        setMonthlyTrends(calculateMonthlyTrends(expenses, selectedTrendsYear))
-        
-        const { productExpenses: prodExp, etcExpenses: etcExp } = calculateProductExpenses(
-          expenses,
-          products,
-          selectedProductsYear
-        )
-        setProductExpenses(prodExp)
-        setEtcExpenses(etcExp)
-        
+        // Calculate one-time stats (not dependent on year filters)
         setActionItems(calculateActionItems(invoices, quotations, expenses))
         setRecentActivities(calculateRecentActivities(invoices, quotations, expenses, planning))
         setThisMonthSummary(calculateThisMonthSummary(invoices, expenses))
@@ -197,47 +190,78 @@ export default function Home() {
     }
 
     fetchStats()
-  }, [isClient, selectedYear, selectedFinancialYear, selectedTrendsYear, selectedProductsYear])
+  }, [isClient]) // Only depends on isClient - fetch once!
 
-  // Recalculate stats when year filters change
-  const memoizedStats = useMemo(() => {
-    if (allInvoices.length === 0 || allQuotations.length === 0 || loading) return null
+  // ========================================
+  // OPTIMIZED: All calculations using useMemo
+  // These only recalculate when their specific dependencies change
+  // ========================================
+
+  // Invoice & Quotation Stats (recalculates only when selectedYear changes)
+  const memoizedInvoiceQuotationStats = useMemo(() => {
+    if (allInvoices.length === 0 && allQuotations.length === 0) {
+      return {
+        invoiceStats: { total: 0, draft: 0, pending: 0, paid: 0 },
+        quotationStats: { total: 0, draft: 0, pending: 0, accepted: 0 }
+      }
+    }
     return calculateStats(allInvoices, allQuotations, selectedYear)
-  }, [selectedYear, allInvoices, allQuotations, loading])
+  }, [allInvoices, allQuotations, selectedYear])
+
+  // Financial Health Stats (recalculates only when selectedFinancialYear changes)
+  const memoizedFinancialStats = useMemo(() => {
+    if (allExpenses.length === 0 && allGearExpenses.length === 0 && allBigExpenses.length === 0) {
+      return {
+        expenseStats: {
+          totalUnderBudget: 0,
+          totalOverBudget: 0,
+          averageEfficiency: 0,
+          grossProfit: 0,
+          netProfit: 0,
+          marginPercentage: 0,
+        },
+        extraExpenses: { gearTotal: 0, bigTotal: 0 }
+      }
+    }
+    return {
+      expenseStats: calculateExpenseStats(allExpenses, selectedFinancialYear),
+      extraExpenses: calculateExtraExpenses(allGearExpenses, allBigExpenses, selectedFinancialYear)
+    }
+  }, [allExpenses, allGearExpenses, allBigExpenses, selectedFinancialYear])
+
+  // Monthly Trends (recalculates only when selectedTrendsYear changes)
+  const memoizedMonthlyTrends = useMemo(() => {
+    if (allExpenses.length === 0) return []
+    return calculateMonthlyTrends(allExpenses, selectedTrendsYear)
+  }, [allExpenses, selectedTrendsYear])
+
+  // Product Expenses (recalculates only when selectedProductsYear changes)
+  const memoizedProductExpenses = useMemo(() => {
+    if (allExpenses.length === 0 || allProducts.length === 0) {
+      return { productExpenses: [], etcExpenses: [] }
+    }
+    return calculateProductExpenses(allExpenses, allProducts, selectedProductsYear)
+  }, [allExpenses, allProducts, selectedProductsYear])
+
+  // Update state from memoized values (only when memo values actually change)
+  useEffect(() => {
+    setInvoiceStats(memoizedInvoiceQuotationStats.invoiceStats)
+    setQuotationStats(memoizedInvoiceQuotationStats.quotationStats)
+  }, [memoizedInvoiceQuotationStats])
 
   useEffect(() => {
-    if (memoizedStats) {
-      setInvoiceStats(memoizedStats.invoiceStats)
-      setQuotationStats(memoizedStats.quotationStats)
-    }
-  }, [memoizedStats])
+    setExpenseStats(memoizedFinancialStats.expenseStats)
+    setExtraExpenses(memoizedFinancialStats.extraExpenses)
+  }, [memoizedFinancialStats])
 
   useEffect(() => {
-    if (allExpenses.length > 0 && !loading) {
-      setExpenseStats(calculateExpenseStats(allExpenses, selectedFinancialYear))
-      setExtraExpenses(
-        calculateExtraExpenses(allGearExpenses, allBigExpenses, selectedFinancialYear)
-      )
-    }
-  }, [selectedFinancialYear, allExpenses, allGearExpenses, allBigExpenses, loading])
+    setMonthlyTrends(memoizedMonthlyTrends)
+  }, [memoizedMonthlyTrends])
 
   useEffect(() => {
-    if (allExpenses.length > 0 && !loading) {
-      setMonthlyTrends(calculateMonthlyTrends(allExpenses, selectedTrendsYear))
-    }
-  }, [selectedTrendsYear, allExpenses, loading])
-
-  useEffect(() => {
-    if (allExpenses.length > 0 && allProducts.length > 0 && !loading) {
-      const { productExpenses: prodExp, etcExpenses: etcExp } = calculateProductExpenses(
-        allExpenses,
-        allProducts,
-        selectedProductsYear
-      )
-      setProductExpenses(prodExp)
-      setEtcExpenses(etcExp)
-    }
-  }, [selectedProductsYear, allExpenses, allProducts, loading])
+    setProductExpenses(memoizedProductExpenses.productExpenses)
+    setEtcExpenses(memoizedProductExpenses.etcExpenses)
+  }, [memoizedProductExpenses])
 
   // Format currency
   const formatCurrency = (amount: number) => {
