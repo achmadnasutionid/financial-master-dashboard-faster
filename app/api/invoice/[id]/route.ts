@@ -14,7 +14,8 @@ export async function GET(
         items: {
           include: {
             details: true
-          }
+          },
+          orderBy: { order: 'asc' }
         },
         remarks: true
       }
@@ -116,9 +117,15 @@ export async function PUT(
       )
 
       // UPSERT items and details (OPTIMIZED - batch operations)
+      // Process items in order, preserving their position from the frontend
+      const itemsWithOrder = (body.items || []).map((item: any, index: number) => ({
+        ...item,
+        order: index
+      }))
+      
       // Separate items into update vs create batches
-      const itemsToUpdate = (body.items || []).filter((item: any) => item.id && existingItemIds.has(item.id))
-      const itemsToCreate = (body.items || []).filter((item: any) => !item.id || !existingItemIds.has(item.id))
+      const itemsToUpdate = itemsWithOrder.filter((item: any) => item.id && existingItemIds.has(item.id))
+      const itemsToCreate = itemsWithOrder.filter((item: any) => !item.id || !existingItemIds.has(item.id))
       
       // Collect all details to be deleted for updated items
       const itemIdsToDeleteDetails = itemsToUpdate.map((item: any) => item.id)
@@ -130,6 +137,7 @@ export async function PUT(
           data: {
             productName: item.productName,
             total: parseFloat(item.total),
+            order: item.order
           }
         })
       )
@@ -149,6 +157,7 @@ export async function PUT(
               invoiceId: id,
               productName: item.productName,
               total: parseFloat(item.total),
+              order: item.order,
               details: {
                 create: item.details?.map((detail: any) => ({
                   detail: detail.detail,
@@ -250,7 +259,8 @@ export async function PUT(
           items: {
             include: {
               details: true
-            }
+            },
+            orderBy: { order: 'asc' }
           },
           remarks: true
         }
