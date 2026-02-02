@@ -107,6 +107,25 @@ function QuotationPageContent() {
     fetchQuotations()
   }, [statusFilter, sortBy])
 
+  // Refetch when page becomes visible (e.g., after navigation back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchQuotations()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    // Also refetch when page regains focus (navigating back)
+    window.addEventListener('focus', fetchQuotations)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', fetchQuotations)
+    }
+  }, [statusFilter, sortBy])
+
   const [isDeleting, setIsDeleting] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const ITEMS_PER_PAGE = 12
