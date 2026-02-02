@@ -449,6 +449,8 @@ function ExpensePageContent() {
                               <Pencil className="h-4 w-4" />
                             </Button>
                           </Link>
+                          {/* Separator */}
+                          <div className="h-8 w-px bg-border mx-1" />
                           <Button
                             variant="ghost"
                             size="icon"

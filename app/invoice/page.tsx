@@ -506,6 +506,8 @@ function InvoicePageContent() {
                               </Button>
                             </Link>
                           )}
+                          {/* Separator */}
+                          <div className="h-8 w-px bg-border mx-1" />
                           <Button
                             variant="ghost"
                             size="icon"
