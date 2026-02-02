@@ -193,10 +193,10 @@ const parseHTMLToTextBlocks = (html: string) => {
   const blocks: { text: string; style?: any }[] = []
   
   try {
-    // Split by paragraph tags
-    const paragraphs = html.split(/<\/p>|<\/h2>|<\/li>/).filter(p => p.trim())
+    // Split by paragraph tags but keep empty ones for spacing
+    const paragraphs = html.split(/<\/p>|<\/h2>|<\/li>/)
     
-    paragraphs.forEach(para => {
+    paragraphs.forEach((para, idx) => {
       let text = para
         .replace(/<p[^>]*>/gi, '')
         .replace(/<h2[^>]*>/gi, '')
@@ -214,12 +214,19 @@ const parseHTMLToTextBlocks = (html: string) => {
         .replace(/<[^>]*>/g, '')
         .trim()
       
+      // Check if it's a heading
+      const isHeading = para.includes('<h2')
+      
       if (text) {
-        // Check if it's a heading
-        const isHeading = para.includes('<h2')
         blocks.push({ 
           text, 
           style: isHeading ? { fontWeight: 'bold', fontSize: 9 } : {}
+        })
+      } else if (idx < paragraphs.length - 1) {
+        // Empty paragraph = intentional spacing, add empty line
+        blocks.push({ 
+          text: ' ', 
+          style: { fontSize: 8, lineHeight: 1 } 
         })
       }
     })
