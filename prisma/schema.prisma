@@ -92,6 +92,8 @@ model Planning {
   @@index([status, deletedAt])
   @@index([planningId])
   @@index([updatedAt])
+  @@index([status, updatedAt, deletedAt])
+  @@index([planningId, status, deletedAt])
 }
 
 model PlanningItem {
@@ -362,6 +364,8 @@ model ParagonTicket {
   @@index([ticketId])
   @@index([updatedAt])
   @@index([productionDate, status, deletedAt])
+  @@index([status, updatedAt, deletedAt])
+  @@index([companyName, status, deletedAt])
 }
 
 model ParagonTicketItem {
@@ -448,6 +452,8 @@ model ErhaTicket {
   @@index([ticketId])
   @@index([updatedAt])
   @@index([productionDate, status, deletedAt])
+  @@index([status, updatedAt, deletedAt])
+  @@index([companyName, status, deletedAt])
 }
 
 model ErhaTicketItem {
