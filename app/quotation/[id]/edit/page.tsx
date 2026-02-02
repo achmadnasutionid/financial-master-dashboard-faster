@@ -142,6 +142,8 @@ export default function EditQuotationPage() {
   const [quotationStatus, setQuotationStatus] = useState<string>("")
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const initialDataRef = useRef<string>("")
+  const lastUpdatedAtRef = useRef<string>("")
+  const [showStaleDataDialog, setShowStaleDataDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
@@ -196,6 +198,9 @@ export default function EditQuotationPage() {
       
       setPph(quotationData.pph)
       setSummaryOrder(quotationData.summaryOrder ? quotationData.summaryOrder.split(',') : ["subtotal", "pph", "total"])
+      
+      // Store the updatedAt timestamp for stale data detection
+      lastUpdatedAtRef.current = quotationData.updatedAt
       
       // Load items with details
       const loadedItems = quotationData.items && Array.isArray(quotationData.items)
@@ -286,6 +291,35 @@ export default function EditQuotationPage() {
     
     setHasUnsavedChanges(currentData !== initialDataRef.current)
   }, [selectedCompanyId, productionDate, billTo, notes, selectedBillingId, selectedSignatureId, pph, remarks, items, loading])
+
+  // Check for stale data when user returns to tab
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && !loading && quotationId && lastUpdatedAtRef.current) {
+        try {
+          const response = await fetch(`/api/quotation/${quotationId}`)
+          if (response.ok) {
+            const latestData = await response.json()
+            
+            // Compare timestamps
+            if (latestData.updatedAt !== lastUpdatedAtRef.current) {
+              setShowStaleDataDialog(true)
+            }
+          }
+        } catch (error) {
+          console.error("Error checking for updates:", error)
+        }
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [quotationId, loading])
+
+  const handleReloadData = () => {
+    setShowStaleDataDialog(false)
+    window.location.reload()
+  }
 
   // Unsaved changes dialog
   const {
@@ -1294,6 +1328,31 @@ export default function EditQuotationPage() {
               className="bg-red-600 text-white hover:bg-red-700"
             >
               {deleting ? "Deleting..." : "Yes, Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Stale Data Warning Dialog */}
+      <AlertDialog open={showStaleDataDialog} onOpenChange={setShowStaleDataDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Data Has Been Updated</AlertDialogTitle>
+            <AlertDialogDescription>
+              This quotation has been modified since you opened it. Your current changes may overwrite recent updates.
+              <br /><br />
+              <strong>Would you like to reload the latest data?</strong>
+              <br />
+              <span className="text-red-600 text-sm">Warning: Reloading will discard your current unsaved changes.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continue Editing (Not Recommended)</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleReloadData}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Reload Latest Data
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

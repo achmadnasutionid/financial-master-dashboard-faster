@@ -143,6 +143,8 @@ export default function EditInvoicePage() {
   const [InvoiceStatus, setInvoiceStatus] = useState<string>("")
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const initialDataRef = useRef<string>("")
+  const lastUpdatedAtRef = useRef<string>("")
+  const [showStaleDataDialog, setShowStaleDataDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
@@ -203,6 +205,9 @@ export default function EditInvoicePage() {
       
       setPph(InvoiceData.pph)
       setSummaryOrder(InvoiceData.summaryOrder ? InvoiceData.summaryOrder.split(',') : ["subtotal", "pph", "total"])
+      
+      // Store the updatedAt timestamp for stale data detection
+      lastUpdatedAtRef.current = InvoiceData.updatedAt
       
       // Load remarks
       if (InvoiceData.remarks && Array.isArray(InvoiceData.remarks)) {
@@ -297,6 +302,35 @@ export default function EditInvoicePage() {
     
     setHasUnsavedChanges(currentData !== initialDataRef.current)
   }, [selectedCompanyId, productionDate, paidDate, billTo, notes, selectedBillingId, selectedSignatureId, pph, remarks, items, loading])
+
+  // Check for stale data when user returns to tab
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && !loading && InvoiceId && lastUpdatedAtRef.current) {
+        try {
+          const response = await fetch(`/api/invoice/${InvoiceId}`)
+          if (response.ok) {
+            const latestData = await response.json()
+            
+            // Compare timestamps
+            if (latestData.updatedAt !== lastUpdatedAtRef.current) {
+              setShowStaleDataDialog(true)
+            }
+          }
+        } catch (error) {
+          console.error("Error checking for updates:", error)
+        }
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [InvoiceId, loading])
+
+  const handleReloadData = () => {
+    setShowStaleDataDialog(false)
+    window.location.reload()
+  }
 
   // Unsaved changes dialog
   const {
@@ -1320,6 +1354,31 @@ export default function EditInvoicePage() {
               className="bg-red-600 text-white hover:bg-red-700"
             >
               {deleting ? "Deleting..." : "Yes, Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Stale Data Warning Dialog */}
+      <AlertDialog open={showStaleDataDialog} onOpenChange={setShowStaleDataDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Data Has Been Updated</AlertDialogTitle>
+            <AlertDialogDescription>
+              This invoice has been modified since you opened it. Your current changes may overwrite recent updates.
+              <br /><br />
+              <strong>Would you like to reload the latest data?</strong>
+              <br />
+              <span className="text-red-600 text-sm">Warning: Reloading will discard your current unsaved changes.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continue Editing (Not Recommended)</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleReloadData}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Reload Latest Data
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
