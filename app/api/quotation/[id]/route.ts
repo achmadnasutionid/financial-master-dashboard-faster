@@ -242,11 +242,11 @@ export async function PUT(
       // Create new remarks using createMany for better performance (with order)
       const createRemarkPromise = remarksToCreate.length > 0
         ? tx.quotationRemark.createMany({
-            data: remarksToCreate.map((remark: any) => ({
+            data: remarksToCreate.map((remark: any, index: number) => ({
               quotationId: id,
               text: remark.text,
               isCompleted: remark.isCompleted || false,
-              order: (body.remarks || []).findIndex((r: any) => r === remark)
+              order: (body.remarks || []).findIndex((r: any) => r.id === remark.id)
             }))
           })
         : Promise.resolve()

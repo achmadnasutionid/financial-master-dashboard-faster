@@ -221,9 +221,15 @@ export async function PUT(
       })
       const existingRemarkIds = new Set(existingRemarks.map(remark => remark.id))
 
+      console.log("[INVOICE UPDATE] Existing remark IDs:", Array.from(existingRemarkIds))
+      console.log("[INVOICE UPDATE] Incoming remarks:", body.remarks)
+
       // UPSERT remarks (OPTIMIZED - batch operations)
       const remarksToUpdate = (body.remarks || []).filter((remark: any) => remark.id && existingRemarkIds.has(remark.id))
       const remarksToCreate = (body.remarks || []).filter((remark: any) => !remark.id || !existingRemarkIds.has(remark.id))
+      
+      console.log("[INVOICE UPDATE] Remarks to update:", remarksToUpdate.length)
+      console.log("[INVOICE UPDATE] Remarks to create:", remarksToCreate.length)
       
       // Update all existing remarks in parallel (with order)
       const updateRemarkPromises = remarksToUpdate.map((remark: any) =>
@@ -240,11 +246,11 @@ export async function PUT(
       // Create new remarks using createMany for better performance (with order)
       const createRemarkPromise = remarksToCreate.length > 0
         ? tx.invoiceRemark.createMany({
-            data: remarksToCreate.map((remark: any) => ({
+            data: remarksToCreate.map((remark: any, index: number) => ({
               invoiceId: id,
               text: remark.text,
               isCompleted: remark.isCompleted || false,
-              order: (body.remarks || []).findIndex((r: any) => r === remark)
+              order: (body.remarks || []).findIndex((r: any) => r.id === remark.id)
             }))
           })
         : Promise.resolve()
