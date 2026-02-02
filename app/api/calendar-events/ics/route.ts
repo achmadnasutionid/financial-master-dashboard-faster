@@ -270,15 +270,13 @@ export async function GET() {
       }).join('\\n')
 
       const summary = `💰 ${pendingInvoices.length} Pending Invoice${pendingInvoices.length > 1 ? 's' : ''} - Payment Reminder`
-      const descriptionLines = [
+      const description = [
         `You have ${pendingInvoices.length} pending invoice(s) that need attention:`,
         ``,
         invoiceList,
         ``,
         `Please follow up on these payments.`,
-      ]
-      // Join with \n first, then escape the entire string
-      const description = escapeICSText(descriptionLines.join('\n'))
+      ].join('\\n')
 
       icsLines.push(
         'BEGIN:VEVENT',
