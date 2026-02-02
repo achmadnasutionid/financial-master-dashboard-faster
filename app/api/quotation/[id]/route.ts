@@ -240,27 +240,43 @@ export async function PUT(
       )
       
       // Create new remarks using createMany for better performance (with order)
-      const createRemarkPromise = remarksToCreate.length > 0
-        ? tx.quotationRemark.createMany({
-            data: remarksToCreate.map((remark: any, index: number) => ({
+      let createRemarkPromise = Promise.resolve()
+      if (remarksToCreate.length > 0) {
+        try {
+          const remarkData = remarksToCreate.map((remark: any, index: number) => {
+            const order = (body.remarks || []).findIndex((r: any) => r.id === remark.id)
+            console.log(`[QUOTATION UPDATE] Creating remark: id=${remark.id}, text="${remark.text.substring(0, 30)}...", order=${order}`)
+            return {
               quotationId: id,
               text: remark.text,
               isCompleted: remark.isCompleted || false,
-              order: (body.remarks || []).findIndex((r: any) => r.id === remark.id)
-            }))
+              order: order
+            }
           })
-        : Promise.resolve()
+          console.log("[QUOTATION UPDATE] About to create remarks:", JSON.stringify(remarkData, null, 2))
+          createRemarkPromise = tx.quotationRemark.createMany({
+            data: remarkData
+          })
+        } catch (error) {
+          console.error("[QUOTATION UPDATE] Error preparing remark data:", error)
+          throw error
+        }
+      }
       
       // Execute all remark operations in parallel
       await Promise.all([...updateRemarkPromises, createRemarkPromise])
 
+      console.log("[QUOTATION UPDATE] Remark operations completed")
+
       // Delete removed remarks
-      await tx.quotationRemark.deleteMany({
+      const deleteResult = await tx.quotationRemark.deleteMany({
         where: {
           quotationId: id,
           id: { notIn: Array.from(incomingRemarkIds).filter((id): id is string => typeof id === 'string') }
         }
       })
+      
+      console.log("[QUOTATION UPDATE] Deleted remarks count:", deleteResult.count)
 
       // Get existing signature IDs from database
       const existingSignatures = await tx.quotationSignature.findMany({
@@ -316,7 +332,7 @@ export async function PUT(
       })
 
       // Return updated quotation with relations
-      return tx.quotation.findUnique({
+      const result = await tx.quotation.findUnique({
         where: { id },
         include: {
           items: {
@@ -333,6 +349,10 @@ export async function PUT(
           }
         }
       })
+      
+      console.log("[QUOTATION UPDATE] Returning quotation with remarks count:", result?.remarks?.length || 0)
+      
+      return result
     })
 
     return NextResponse.json(quotation)
