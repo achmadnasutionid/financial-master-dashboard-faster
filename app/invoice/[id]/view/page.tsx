@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { useFetch } from "@/hooks/use-fetch"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
-import { Download, MessageCircle, CheckCircle, FileText, Copy, Edit } from "lucide-react"
+import { Download, MessageCircle, CheckCircle, FileText, Copy, Edit, Trash2 } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
 import { PDFDownloadLink, pdf } from "@react-pdf/renderer"
 import { InvoicePDF } from "@/components/pdf/invoice-pdf"
@@ -71,6 +71,8 @@ export default function ViewInvoicePage() {
   const [mounted, setMounted] = useState(false)
   const [markingPaid, setMarkingPaid] = useState(false)
   const [showMarkPaidDialog, setShowMarkPaidDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   // Use SWR for cached data fetching
   const { data: Invoice, isLoading: loading, mutate } = useFetch<Invoice>(
@@ -216,6 +218,32 @@ export default function ViewInvoicePage() {
     }
   }
 
+  // Handle delete invoice
+  const handleDelete = async () => {
+    setDeleting(true)
+    try {
+      const response = await fetch(`/api/invoice/${InvoiceId}`, {
+        method: "DELETE"
+      })
+
+      if (response.ok) {
+        toast.success("Invoice deleted successfully")
+        router.push("/invoice")
+      } else {
+        const data = await response.json()
+        toast.error("Failed to delete invoice", {
+          description: data.error || "An error occurred."
+        })
+      }
+    } catch (error) {
+      console.error("Error deleting invoice:", error)
+      toast.error("Failed to delete invoice")
+    } finally {
+      setDeleting(false)
+      setShowDeleteDialog(false)
+    }
+  }
+
   if (loading || !mounted) {
     return (
       <div className="flex min-h-screen flex-col">
@@ -338,6 +366,19 @@ export default function ViewInvoicePage() {
                   </PDFDownloadLink>
                 </>
               )}
+              
+              {/* Separator */}
+              <div className="h-8 w-px bg-border" />
+              
+              {/* Delete button - always shown at far right */}
+              <Button
+                variant="destructive"
+                onClick={() => setShowDeleteDialog(true)}
+                size="icon"
+                title="Delete"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
@@ -379,6 +420,29 @@ export default function ViewInvoicePage() {
               className="bg-green-600 text-white hover:bg-green-700"
             >
               Yes, Mark as Paid
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Invoice Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Invoice?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the invoice{" "}
+              <strong>{Invoice?.invoiceId}</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {deleting ? "Deleting..." : "Yes, Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
