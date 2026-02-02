@@ -17,7 +17,9 @@ export async function GET(
           },
           orderBy: { order: 'asc' }
         },
-        remarks: true,
+        remarks: {
+          orderBy: { createdAt: 'asc' }
+        },
         signatures: {
           orderBy: { order: 'asc' }
         }
