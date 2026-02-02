@@ -131,6 +131,7 @@ export async function PUT(
         finalWorkImageData: body.finalWorkImageData || null,
         pph: body.pph,
         totalAmount: parseFloat(body.totalAmount),
+        termsAndConditions: body.termsAndConditions || null,
         status: body.status,
         items: {
           create: body.items?.map((item: any, index: number) => ({

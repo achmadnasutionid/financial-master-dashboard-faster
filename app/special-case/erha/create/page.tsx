@@ -578,6 +578,7 @@ export default function CreateErhaTicketPage() {
         finalWorkImageData: finalWorkImage || null,
         pph,
         totalAmount: calculateTotalAmount(),
+        termsAndConditions: showTerms ? termsAndConditions : null,
         status,
         items: items.map(item => ({
           productName: item.productName,
@@ -812,6 +813,44 @@ export default function CreateErhaTicketPage() {
                       onToggleRemark={toggleRemarkCompleted}
                       onRemoveRemark={removeRemark}
                     />
+                  )}
+                </div>
+
+                {/* Terms & Conditions (S&K) */}
+                <div className="space-y-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowTerms(!showTerms)}
+                    className="w-full"
+                  >
+                    {showTerms ? (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                          <path d="m18 15-6-6-6 6"/>
+                        </svg>
+                        Hide S&K
+                      </>
+                    ) : (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                          <path d="m6 9 6 6 6-6"/>
+                        </svg>
+                        Add S&K
+                      </>
+                    )}
+                  </Button>
+                  {showTerms && (
+                    <div className="space-y-2">
+                      <Label>Detailed Terms & Conditions (S&K)</Label>
+                      <RichTextEditor
+                        content={termsAndConditions}
+                        onChange={setTermsAndConditions}
+                        placeholder="Enter detailed terms and conditions..."
+                        minHeight="300px"
+                      />
+                    </div>
                   )}
                 </div>
               </div>

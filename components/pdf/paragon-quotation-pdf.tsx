@@ -178,6 +178,7 @@ interface ParagonQuotationPDFProps {
       text: string
       isCompleted: boolean
     }>
+    termsAndConditions?: string
     items: Array<{
       productName: string
       total: number
@@ -200,6 +201,55 @@ const formatCurrency = (amount: number) => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount)
+}
+
+// Helper to parse HTML and convert to formatted text blocks
+const parseHTMLToTextBlocks = (html: string) => {
+  if (!html || typeof html !== 'string') return []
+  
+  const blocks: { text: string; style?: any }[] = []
+  
+  try {
+    const paragraphs = html.split(/<\/p>|<\/h2>|<\/li>/)
+    
+    paragraphs.forEach((para, idx) => {
+      let text = para
+        .replace(/<p[^>]*>/gi, '')
+        .replace(/<h2[^>]*>/gi, '')
+        .replace(/<li[^>]*>/gi, '• ')
+        .replace(/<ul[^>]*>/gi, '')
+        .replace(/<ol[^>]*>/gi, '')
+        .replace(/<\/ul>/gi, '')
+        .replace(/<\/ol>/gi, '')
+        .replace(/<strong[^>]*>/gi, '')
+        .replace(/<\/strong>/gi, '')
+        .replace(/<em[^>]*>/gi, '')
+        .replace(/<\/em>/gi, '')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/<[^>]*>/g, '')
+        .trim()
+      
+      const isHeading = para.includes('<h2')
+      
+      if (text) {
+        blocks.push({ 
+          text, 
+          style: isHeading ? { fontWeight: 'bold', fontSize: 9 } : {}
+        })
+      } else if (idx < paragraphs.length - 1) {
+        blocks.push({ 
+          text: ' ', 
+          style: { fontSize: 8, lineHeight: 1 } 
+        })
+      }
+    })
+  } catch (error) {
+    console.error('Error parsing HTML:', error)
+    return [{ text: html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' '), style: {} }]
+  }
+  
+  return blocks
 }
 
   // For Paragon, subtotal is the final total amount (PPh already included in prices)
@@ -315,6 +365,20 @@ const formatCurrency = (amount: number) => {
                   {remark.text}
                 </Text>
               ))}
+          </View>
+        )}
+
+        {/* Detailed Terms & Conditions (S&K) */}
+        {data.termsAndConditions && (
+          <View style={{ marginBottom: 15 }}>
+            <Text style={styles.remarksTitle}>Detailed S&K:</Text>
+            <View style={{ fontSize: 8, lineHeight: 1.5 }}>
+              {parseHTMLToTextBlocks(data.termsAndConditions).map((block, index) => (
+                <Text key={index} style={{ marginBottom: 4, ...block.style }}>
+                  {block.text}
+                </Text>
+              ))}
+            </View>
           </View>
         )}
 

@@ -195,6 +195,7 @@ export async function POST(request: Request) {
           finalWorkImageData: body.finalWorkImageData || null,
           pph: body.pph || (isDraft ? "" : body.pph),
           totalAmount: body.totalAmount ? parseFloat(body.totalAmount) : 0,
+          termsAndConditions: body.termsAndConditions || null,
           status: body.status || "draft",
           items: {
             create: body.items?.map((item: any) => ({
