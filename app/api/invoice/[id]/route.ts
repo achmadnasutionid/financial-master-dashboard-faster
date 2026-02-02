@@ -142,26 +142,31 @@ export async function PUT(
         : Promise.resolve()
       
       // Step 3: Create new items with details in parallel
-      const createItemPromises = itemsToCreate.map((item: any) =>
-        tx.invoiceItem.create({
-          data: {
-            invoiceId: id,
-            productName: item.productName,
-            total: parseFloat(item.total),
-            details: {
-              create: item.details?.map((detail: any) => ({
-                detail: detail.detail,
-                unitPrice: parseFloat(detail.unitPrice),
-                qty: parseFloat(detail.qty),
-                amount: parseFloat(detail.amount)
-              })) || []
+      const createItemResults = await Promise.all(
+        itemsToCreate.map((item: any) =>
+          tx.invoiceItem.create({
+            data: {
+              invoiceId: id,
+              productName: item.productName,
+              total: parseFloat(item.total),
+              details: {
+                create: item.details?.map((detail: any) => ({
+                  detail: detail.detail,
+                  unitPrice: parseFloat(detail.unitPrice),
+                  qty: parseFloat(detail.qty),
+                  amount: parseFloat(detail.amount)
+                })) || []
+              }
             }
-          }
-        })
+          })
+        )
       )
       
-      // Execute all updates, deletes, and creates in parallel
-      await Promise.all([...updatePromises, deleteDetailsPromise, ...createItemPromises])
+      // Execute all updates and deletes in parallel
+      await Promise.all([...updatePromises, deleteDetailsPromise])
+      
+      // Collect newly created item IDs to prevent them from being deleted
+      const newlyCreatedItemIds = createItemResults.map(item => item.id)
       
       // Step 4: Bulk create new details for updated items
       const allNewDetails = itemsToUpdate.flatMap((item: any) =>
@@ -180,11 +185,17 @@ export async function PUT(
         })
       }
 
-      // Delete removed items
+      // Delete removed items (items not in incoming data AND not just created)
+      // Combine existing item IDs from frontend with newly created IDs
+      const allKeptItemIds = [
+        ...Array.from(incomingItemIds).filter((id): id is string => typeof id === 'string' && existingItemIds.has(id)),
+        ...newlyCreatedItemIds
+      ]
+      
       await tx.invoiceItem.deleteMany({
         where: {
           invoiceId: id,
-          id: { notIn: Array.from(incomingItemIds).filter((id): id is string => typeof id === 'string') }
+          id: { notIn: allKeptItemIds }
         }
       })
 
