@@ -59,6 +59,12 @@ function ErhaTicketPageContent() {
   const [generatingInvoice, setGeneratingInvoice] = useState<string | null>(null)
   const [finalizeDialogId, setFinalizeDialogId] = useState<string | null>(null)
   const [generateInvoiceDialogId, setGenerateInvoiceDialogId] = useState<string | null>(null)
+  
+  // Server-side pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const ITEMS_PER_PAGE = 20
 
   // Set initial filter from URL query parameter
   useEffect(() => {
@@ -73,15 +79,22 @@ function ErhaTicketPageContent() {
       const params = new URLSearchParams()
       if (statusFilter !== "all") params.append("status", statusFilter)
       params.append("sortBy", sortBy)
-      params.append("page", "1") // Always fetch page 1 since we do client-side pagination
-      params.append("limit", "1000") // Fetch enough for client-side filtering
+      params.append("page", currentPage.toString())
+      params.append("limit", ITEMS_PER_PAGE.toString())
+      if (debouncedSearchQuery.trim()) params.append("search", debouncedSearchQuery.trim())
 
       const response = await fetch(`/api/erha?${params}`, { cache: 'no-store' })
       if (response.ok) {
         const result = await response.json()
-        // Handle both old format (array) and new format (object with data)
-        const data = Array.isArray(result) ? result : result.data
-        setTickets(data)
+        if (Array.isArray(result)) {
+          setTickets(result)
+          setTotalPages(1)
+          setTotalItems(result.length)
+        } else {
+          setTickets(result.data || [])
+          setTotalPages(result.pagination?.totalPages || 1)
+          setTotalItems(result.pagination?.total || 0)
+        }
       }
     } catch (error) {
       console.error("Error fetching erha tickets:", error)
@@ -91,8 +104,14 @@ function ErhaTicketPageContent() {
   }
 
   useEffect(() => {
+    setLoading(true)
     fetchTickets()
-  }, [statusFilter, sortBy])
+  }, [statusFilter, sortBy, currentPage, debouncedSearchQuery])
+
+  // Reset to page 1 when search/filter changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [debouncedSearchQuery, statusFilter])
 
   // Refetch when page becomes visible (e.g., after navigation back)
   useEffect(() => {
@@ -112,8 +131,6 @@ function ErhaTicketPageContent() {
   }, [statusFilter, sortBy])
 
   const [isDeleting, setIsDeleting] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
-  const ITEMS_PER_PAGE = 12
 
   const handleDelete = async () => {
     if (!deleteId || isDeleting) return
@@ -247,57 +264,6 @@ function ErhaTicketPageContent() {
     }).format(amount)
   }
 
-  // Filter tickets based on search query (debounced for performance)
-  const filteredTickets = tickets.filter((ticket) => {
-    if (!debouncedSearchQuery.trim()) return true
-    
-    const query = debouncedSearchQuery.toLowerCase()
-    const ticketId = ticket.ticketId.toLowerCase()
-    const companyName = ticket.companyName.toLowerCase()
-    const billTo = ticket.billTo.toLowerCase()
-    
-    // Priority: exact match or starts with query
-    if (ticketId === query || companyName.startsWith(query) || billTo.startsWith(query)) {
-      return true
-    }
-    
-    // Then include partial matches
-    return ticketId.includes(query) || companyName.includes(query) || billTo.includes(query)
-  })
-
-  // Sort filtered results: exact/starts-with matches first
-  const sortedFilteredTickets = [...filteredTickets].sort((a, b) => {
-    if (!debouncedSearchQuery.trim()) return 0
-    
-    const query = debouncedSearchQuery.toLowerCase()
-    
-    const getScore = (ticket: ErhaTicket) => {
-      const ticketId = ticket.ticketId.toLowerCase()
-      const companyName = ticket.companyName.toLowerCase()
-      const billTo = ticket.billTo.toLowerCase()
-      
-      if (ticketId === query) return 3
-      if (companyName === query || billTo === query) return 2
-      if (ticketId.startsWith(query) || companyName.startsWith(query) || billTo.startsWith(query)) return 1
-      return 0
-    }
-    
-    return getScore(b) - getScore(a)
-  })
-
-  // Pagination logic
-  const totalItems = sortedFilteredTickets.length
-  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE)
-  const paginatedTickets = sortedFilteredTickets.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  )
-
-  // Reset to page 1 when search/filter changes
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [debouncedSearchQuery, statusFilter])
-
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col">
@@ -381,7 +347,7 @@ function ErhaTicketPageContent() {
           </div>
 
           {/* Ticket List */}
-          {sortedFilteredTickets.length === 0 ? (
+          {tickets.length === 0 ? (
             <Card>
               <CardContent className="py-0">
                 <EmptyState
@@ -394,7 +360,7 @@ function ErhaTicketPageContent() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {paginatedTickets.map((ticket) => (
+              {tickets.map((ticket) => (
                 <Card key={ticket.id} className="transition-all hover:shadow-lg">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">

@@ -73,6 +73,12 @@ function PlanningPageContent() {
   const [searchQuery, setSearchQuery] = useState<string>("")
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
   
+  // Server-side pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const ITEMS_PER_PAGE = 20
+  
   // Generate quotation state
   const [showQuotationDialog, setShowQuotationDialog] = useState(false)
   const [selectedPlanningId, setSelectedPlanningId] = useState<string | null>(null)
@@ -92,15 +98,22 @@ function PlanningPageContent() {
       const params = new URLSearchParams()
       if (statusFilter !== "all") params.append("status", statusFilter)
       params.append("sortBy", sortBy)
-      params.append("page", "1") // Always fetch page 1 since we do client-side pagination
-      params.append("limit", "1000") // Fetch enough for client-side filtering
+      params.append("page", currentPage.toString())
+      params.append("limit", ITEMS_PER_PAGE.toString())
+      if (debouncedSearchQuery.trim()) params.append("search", debouncedSearchQuery.trim())
 
       const response = await fetch(`/api/planning?${params}`, { cache: 'no-store' })
       if (response.ok) {
         const result = await response.json()
-        // Handle both old format (array) and new format (object with data)
-        const data = Array.isArray(result) ? result : result.data
-        setPlannings(data)
+        if (Array.isArray(result)) {
+          setPlannings(result)
+          setTotalPages(1)
+          setTotalItems(result.length)
+        } else {
+          setPlannings(result.data || [])
+          setTotalPages(result.pagination?.totalPages || 1)
+          setTotalItems(result.pagination?.total || 0)
+        }
       }
     } catch (error) {
       console.error("Error fetching plannings:", error)
@@ -110,8 +123,14 @@ function PlanningPageContent() {
   }
 
   useEffect(() => {
+    setLoading(true)
     fetchPlannings()
-  }, [statusFilter, sortBy])
+  }, [statusFilter, sortBy, currentPage, debouncedSearchQuery])
+
+  // Reset to page 1 when search/filter changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [debouncedSearchQuery, statusFilter])
 
   // Refetch when page becomes visible (e.g., after navigation back)
   useEffect(() => {
@@ -146,8 +165,6 @@ function PlanningPageContent() {
   }, [showQuotationDialog])
 
   const [isDeleting, setIsDeleting] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
-  const ITEMS_PER_PAGE = 12
 
   const handleDelete = async () => {
     if (!deleteId || isDeleting) return
@@ -265,58 +282,6 @@ function PlanningPageContent() {
     }).format(amount)
   }
 
-  // Filter plannings based on search query (debounced for performance)
-  const filteredPlannings = plannings.filter((planning) => {
-    if (!debouncedSearchQuery.trim()) return true
-    
-    const query = debouncedSearchQuery.toLowerCase()
-    const planningId = planning.planningId.toLowerCase()
-    const projectName = planning.projectName.toLowerCase()
-    const clientName = planning.clientName.toLowerCase()
-    
-    // Priority: exact match in planning ID or starts with query
-    if (planningId === query || projectName.startsWith(query) || clientName.startsWith(query)) {
-      return true
-    }
-    
-    // Then include partial matches
-    return planningId.includes(query) || projectName.includes(query) || clientName.includes(query)
-  })
-
-  // Sort filtered results: exact/starts-with matches first
-  const sortedFilteredPlannings = [...filteredPlannings].sort((a, b) => {
-    if (!debouncedSearchQuery.trim()) return 0
-    
-    const query = debouncedSearchQuery.toLowerCase()
-    
-    // Calculate priority score
-    const getScore = (planning: Planning) => {
-      const planningId = planning.planningId.toLowerCase()
-      const projectName = planning.projectName.toLowerCase()
-      const clientName = planning.clientName.toLowerCase()
-      
-      if (planningId === query) return 3
-      if (projectName === query || clientName === query) return 2
-      if (planningId.startsWith(query) || projectName.startsWith(query) || clientName.startsWith(query)) return 1
-      return 0
-    }
-    
-    return getScore(b) - getScore(a)
-  })
-
-  // Pagination logic
-  const totalItems = sortedFilteredPlannings.length
-  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE)
-  const paginatedPlannings = sortedFilteredPlannings.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  )
-
-  // Reset to page 1 when search/filter changes
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [debouncedSearchQuery, statusFilter])
-
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col">
@@ -400,7 +365,7 @@ function PlanningPageContent() {
           </div>
 
           {/* Planning List */}
-          {sortedFilteredPlannings.length === 0 ? (
+          {plannings.length === 0 ? (
             <Card>
               <CardContent className="py-0">
                 <EmptyState
@@ -438,7 +403,7 @@ function PlanningPageContent() {
               </div>
 
               {/* Data Rows */}
-              {paginatedPlannings.map((planning) => {
+              {plannings.map((planning) => {
                 const { totalBudget, totalExpense } = calculateTotals(planning.items)
                 return (
                   <Card key={planning.id} className="transition-all hover:shadow-md">
