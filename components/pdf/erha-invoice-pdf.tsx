@@ -225,21 +225,94 @@ export const ErhaInvoicePDF: React.FC<ErhaInvoicePDFProps> = ({ data }) => {
 
   const parseHTMLToTextBlocks = (html: string) => {
     if (!html || typeof html !== 'string') return []
+    
     const blocks: { text: string; style?: any }[] = []
+    
     try {
-      const paragraphs = html.split(/<\/p>|<\/h2>|<\/li>/)
-      paragraphs.forEach((para, idx) => {
-        let text = para.replace(/<p[^>]*>/gi, '').replace(/<h2[^>]*>/gi, '').replace(/<li[^>]*>/gi, '• ').replace(/<ul[^>]*>/gi, '').replace(/<ol[^>]*>/gi, '').replace(/<\/ul>/gi, '').replace(/<\/ol>/gi, '').replace(/<strong[^>]*>/gi, '').replace(/<\/strong>/gi, '').replace(/<em[^>]*>/gi, '').replace(/<\/em>/gi, '').replace(/<br\s*\/?>/gi, '\n').replace(/&nbsp;/g, ' ').replace(/<[^>]*>/g, '').trim()
-        const isHeading = para.includes('<h2')
+      // Handle paragraphs
+      const paragraphPattern = /<p[^>]*>([\s\S]*?)<\/p>/gi
+      let match
+      while ((match = paragraphPattern.exec(html)) !== null) {
+        let content = match[1]
+        
+        // Check if entire content is wrapped in strong or em
+        const isFullyBold = /^<strong[^>]*>([\s\S]*?)<\/strong>$/i.test(content.trim())
+        const isFullyItalic = /^<em[^>]*>([\s\S]*?)<\/em>$/i.test(content.trim())
+        
+        // Extract text
+        let text = content
+          .replace(/<strong[^>]*>/gi, '')
+          .replace(/<\/strong>/gi, '')
+          .replace(/<em[^>]*>/gi, '')
+          .replace(/<\/em>/gi, '')
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/<[^>]*>/g, '')
+          .trim()
+        
         if (text) {
-          blocks.push({ text, style: isHeading ? { fontWeight: 'bold', fontSize: 9 } : {} })
-        } else if (idx < paragraphs.length - 1) {
-          blocks.push({ text: ' ', style: { fontSize: 8, lineHeight: 1 } })
+          const style: any = { fontSize: 8 }
+          if (isFullyBold) style.fontWeight = 'bold'
+          if (isFullyItalic) style.fontStyle = 'italic'
+          blocks.push({ text, style })
         }
-      })
+      }
+      
+      // Handle headings
+      const h2Pattern = /<h2[^>]*>([\s\S]*?)<\/h2>/gi
+      while ((match = h2Pattern.exec(html)) !== null) {
+        let text = match[1]
+          .replace(/<[^>]*>/g, '')
+          .replace(/&nbsp;/g, ' ')
+          .trim()
+        
+        if (text) {
+          blocks.push({ 
+            text, 
+            style: { fontSize: 9, fontWeight: 'bold' } 
+          })
+        }
+      }
+      
+      // Handle list items
+      const liPattern = /<li[^>]*>([\s\S]*?)<\/li>/gi
+      while ((match = liPattern.exec(html)) !== null) {
+        let text = match[1]
+          .replace(/<strong[^>]*>/gi, '')
+          .replace(/<\/strong>/gi, '')
+          .replace(/<em[^>]*>/gi, '')
+          .replace(/<\/em>/gi, '')
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/<[^>]*>/g, '')
+          .trim()
+        
+        if (text) {
+          blocks.push({ 
+            text: '• ' + text, 
+            style: { fontSize: 8 } 
+          })
+        }
+      }
+      
+      // If no blocks found, just strip all HTML
+      if (blocks.length === 0 && html.trim()) {
+        const plainText = html
+          .replace(/<[^>]*>/g, ' ')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+        
+        if (plainText) {
+          blocks.push({ text: plainText, style: { fontSize: 8 } })
+        }
+      }
+      
     } catch (error) {
-      return [{ text: html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' '), style: {} }]
+      console.error('Error parsing HTML:', error)
+      return [{ text: html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' '), style: { fontSize: 8 } }]
     }
+    
     return blocks
   }
 
