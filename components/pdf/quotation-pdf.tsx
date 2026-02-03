@@ -193,146 +193,88 @@ const parseHTMLToTextBlocks = (html: string) => {
   const blocks: { text: string; style?: any }[] = []
   
   try {
-    // Split by block-level elements (paragraphs, headings, list items)
-    const blockElements = html.split(/<\/p>|<\/h2>|<\/li>/)
-    
-    blockElements.forEach((block, idx) => {
-      // Skip empty blocks
-      if (!block.trim()) {
-        if (idx < blockElements.length - 1) {
-          // Empty paragraph = intentional spacing
-          blocks.push({ text: ' ', style: { fontSize: 8, lineHeight: 1 } })
-        }
-        return
-      }
+    // Handle paragraphs
+    const paragraphPattern = /<p[^>]*>([\s\S]*?)<\/p>/gi
+    let match
+    while ((match = paragraphPattern.exec(html)) !== null) {
+      let content = match[1]
       
-      // Detect block type
-      const isHeading = block.includes('<h2')
-      const isBulletItem = block.includes('<li') && html.includes('<ul')
-      const isOrderedItem = block.includes('<li') && html.includes('<ol')
+      // Check if entire content is wrapped in strong or em
+      const isFullyBold = /^<strong[^>]*>([\s\S]*?)<\/strong>$/i.test(content.trim())
+      const isFullyItalic = /^<em[^>]*>([\s\S]*?)<\/em>$/i.test(content.trim())
       
-      // Clean block-level tags
-      let cleanBlock = block
-        .replace(/<p[^>]*>/gi, '')
-        .replace(/<h2[^>]*>/gi, '')
-        .replace(/<li[^>]*>/gi, '')
-        .replace(/<ul[^>]*>/gi, '')
-        .replace(/<ol[^>]*>/gi, '')
-        .replace(/<\/ul>/gi, '')
-        .replace(/<\/ol>/gi, '')
-      
-      // Parse inline formatting into segments
-      const segments: Array<{ text: string; bold?: boolean; italic?: boolean }> = []
-      let currentPos = 0
-      let tempText = cleanBlock
-      
-      // Process inline tags (bold and italic)
-      const inlineRegex = /<(strong|em)>(.*?)<\/(strong|em)>/gi
-      let match
-      let lastIndex = 0
-      
-      // Use a more robust approach to handle nested and overlapping tags
-      const processedText = cleanBlock
+      // Extract text
+      let text = content
+        .replace(/<strong[^>]*>/gi, '')
+        .replace(/<\/strong>/gi, '')
+        .replace(/<em[^>]*>/gi, '')
+        .replace(/<\/em>/gi, '')
         .replace(/<br\s*\/?>/gi, '\n')
         .replace(/&nbsp;/g, ' ')
+        .replace(/<[^>]*>/g, '')
+        .trim()
       
-      // Split by tags and preserve formatting info
-      const parts: Array<{ text: string; bold: boolean; italic: boolean }> = []
-      let remaining = processedText
-      let isBold = false
-      let isItalic = false
-      
-      // Simple parser for nested tags
-      while (remaining.length > 0) {
-        const strongStart = remaining.indexOf('<strong>')
-        const strongEnd = remaining.indexOf('</strong>')
-        const emStart = remaining.indexOf('<em>')
-        const emEnd = remaining.indexOf('</em>')
-        
-        // Find the next tag
-        const positions = [
-          { pos: strongStart, tag: 'strong', isOpen: true },
-          { pos: strongEnd, tag: 'strong', isOpen: false },
-          { pos: emStart, tag: 'em', isOpen: true },
-          { pos: emEnd, tag: 'em', isOpen: false }
-        ].filter(p => p.pos >= 0).sort((a, b) => a.pos - b.pos)
-        
-        if (positions.length === 0) {
-          // No more tags, add remaining text
-          if (remaining.trim()) {
-            parts.push({ text: remaining, bold: isBold, italic: isItalic })
-          }
-          break
-        }
-        
-        const next = positions[0]
-        
-        // Add text before the tag
-        if (next.pos > 0) {
-          const textBefore = remaining.substring(0, next.pos)
-          if (textBefore.trim()) {
-            parts.push({ text: textBefore, bold: isBold, italic: isItalic })
-          }
-        }
-        
-        // Update state based on tag
-        if (next.tag === 'strong') {
-          isBold = next.isOpen
-          remaining = remaining.substring(next.pos + (next.isOpen ? 8 : 9)) // <strong> or </strong>
-        } else if (next.tag === 'em') {
-          isItalic = next.isOpen
-          remaining = remaining.substring(next.pos + (next.isOpen ? 4 : 5)) // <em> or </em>
-        }
+      if (text) {
+        const style: any = { fontSize: 8 }
+        if (isFullyBold) style.fontWeight = 'bold'
+        if (isFullyItalic) style.fontStyle = 'italic'
+        blocks.push({ text, style })
       }
+    }
+    
+    // Handle headings
+    const h2Pattern = /<h2[^>]*>([\s\S]*?)<\/h2>/gi
+    while ((match = h2Pattern.exec(html)) !== null) {
+      let text = match[1]
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .trim()
       
-      // Build the final text with formatting
-      if (parts.length === 0) {
-        // No inline formatting, just plain text
-        const plainText = processedText
-          .replace(/<[^>]*>/g, '')
-          .trim()
-        
-        if (plainText) {
-          const baseStyle: any = { fontSize: 8 }
-          if (isHeading) {
-            baseStyle.fontWeight = 'bold'
-            baseStyle.fontSize = 9
-          }
-          
-          const prefix = isBulletItem ? '• ' : isOrderedItem ? `${idx + 1}. ` : ''
-          blocks.push({ text: prefix + plainText, style: baseStyle })
-        }
-      } else {
-        // Has inline formatting - need to create a structured block
-        const baseStyle: any = { fontSize: 8 }
-        if (isHeading) {
-          baseStyle.fontWeight = 'bold'
-          baseStyle.fontSize = 9
-        }
-        
-        // For now, we'll combine with markers in text
-        // React-PDF Text doesn't support nested Text, so we use markers
-        let combinedText = ''
-        parts.forEach(part => {
-          let text = part.text
-          // Note: React-PDF doesn't support inline bold/italic in a single Text
-          // We'll mark them and use fontWeight in the parent style if all parts are bold
-          combinedText += text
+      if (text) {
+        blocks.push({ 
+          text, 
+          style: { fontSize: 9, fontWeight: 'bold' } 
         })
-        
-        const allBold = parts.every(p => p.bold)
-        const allItalic = parts.every(p => p.italic)
-        
-        if (allBold && !isHeading) baseStyle.fontWeight = 'bold'
-        if (allItalic) baseStyle.fontStyle = 'italic'
-        
-        const prefix = isBulletItem ? '• ' : isOrderedItem ? `${idx + 1}. ` : ''
-        blocks.push({ text: prefix + combinedText.trim(), style: baseStyle })
       }
-    })
+    }
+    
+    // Handle list items
+    const liPattern = /<li[^>]*>([\s\S]*?)<\/li>/gi
+    while ((match = liPattern.exec(html)) !== null) {
+      let text = match[1]
+        .replace(/<strong[^>]*>/gi, '')
+        .replace(/<\/strong>/gi, '')
+        .replace(/<em[^>]*>/gi, '')
+        .replace(/<\/em>/gi, '')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/<[^>]*>/g, '')
+        .trim()
+      
+      if (text) {
+        blocks.push({ 
+          text: '• ' + text, 
+          style: { fontSize: 8 } 
+        })
+      }
+    }
+    
+    // If no blocks found, just strip all HTML
+    if (blocks.length === 0 && html.trim()) {
+      const plainText = html
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+      
+      if (plainText) {
+        blocks.push({ text: plainText, style: { fontSize: 8 } })
+      }
+    }
+    
   } catch (error) {
     console.error('Error parsing HTML:', error)
-    return [{ text: html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' '), style: {} }]
+    return [{ text: html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' '), style: { fontSize: 8 } }]
   }
   
   return blocks
@@ -778,10 +720,10 @@ export const QuotationPDF: React.FC<QuotationPDFProps> = ({ data }) => {
         {/* Detailed Terms & Conditions (S&K) */}
         {data.termsAndConditions && (
           <View style={{ marginBottom: 15 }}>
-            <Text style={styles.sectionTitle}>Detailed S&K</Text>
+            <Text style={styles.sectionTitle}>Detailed S&K:</Text>
             <View style={{ fontSize: 8, lineHeight: 1.5 }}>
               {parseHTMLToTextBlocks(data.termsAndConditions).map((block, index) => (
-                <Text key={index} style={{ marginBottom: 4, ...block.style }}>
+                <Text key={index} style={{ marginBottom: 4, fontSize: 8, ...block.style }}>
                   {block.text}
                 </Text>
               ))}
