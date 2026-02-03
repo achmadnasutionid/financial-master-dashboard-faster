@@ -186,48 +186,148 @@ const formatCurrency = (amount: number) => {
   }).format(amount)
 }
 
-// Helper to parse HTML and convert to formatted text blocks
+// Helper to parse HTML and convert to formatted text blocks with inline styles
 const parseHTMLToTextBlocks = (html: string) => {
   if (!html || typeof html !== 'string') return []
   
   const blocks: { text: string; style?: any }[] = []
   
   try {
-    // Split by paragraph tags but keep empty ones for spacing
-    const paragraphs = html.split(/<\/p>|<\/h2>|<\/li>/)
+    // Split by block-level elements (paragraphs, headings, list items)
+    const blockElements = html.split(/<\/p>|<\/h2>|<\/li>/)
     
-    paragraphs.forEach((para, idx) => {
-      let text = para
+    blockElements.forEach((block, idx) => {
+      // Skip empty blocks
+      if (!block.trim()) {
+        if (idx < blockElements.length - 1) {
+          // Empty paragraph = intentional spacing
+          blocks.push({ text: ' ', style: { fontSize: 8, lineHeight: 1 } })
+        }
+        return
+      }
+      
+      // Detect block type
+      const isHeading = block.includes('<h2')
+      const isBulletItem = block.includes('<li') && html.includes('<ul')
+      const isOrderedItem = block.includes('<li') && html.includes('<ol')
+      
+      // Clean block-level tags
+      let cleanBlock = block
         .replace(/<p[^>]*>/gi, '')
         .replace(/<h2[^>]*>/gi, '')
-        .replace(/<li[^>]*>/gi, '• ')
+        .replace(/<li[^>]*>/gi, '')
         .replace(/<ul[^>]*>/gi, '')
         .replace(/<ol[^>]*>/gi, '')
         .replace(/<\/ul>/gi, '')
         .replace(/<\/ol>/gi, '')
-        .replace(/<strong[^>]*>/gi, '')
-        .replace(/<\/strong>/gi, '')
-        .replace(/<em[^>]*>/gi, '')
-        .replace(/<\/em>/gi, '')
+      
+      // Parse inline formatting into segments
+      const segments: Array<{ text: string; bold?: boolean; italic?: boolean }> = []
+      let currentPos = 0
+      let tempText = cleanBlock
+      
+      // Process inline tags (bold and italic)
+      const inlineRegex = /<(strong|em)>(.*?)<\/(strong|em)>/gi
+      let match
+      let lastIndex = 0
+      
+      // Use a more robust approach to handle nested and overlapping tags
+      const processedText = cleanBlock
         .replace(/<br\s*\/?>/gi, '\n')
         .replace(/&nbsp;/g, ' ')
-        .replace(/<[^>]*>/g, '')
-        .trim()
       
-      // Check if it's a heading
-      const isHeading = para.includes('<h2')
+      // Split by tags and preserve formatting info
+      const parts: Array<{ text: string; bold: boolean; italic: boolean }> = []
+      let remaining = processedText
+      let isBold = false
+      let isItalic = false
       
-      if (text) {
-        blocks.push({ 
-          text, 
-          style: isHeading ? { fontWeight: 'bold', fontSize: 9 } : {}
+      // Simple parser for nested tags
+      while (remaining.length > 0) {
+        const strongStart = remaining.indexOf('<strong>')
+        const strongEnd = remaining.indexOf('</strong>')
+        const emStart = remaining.indexOf('<em>')
+        const emEnd = remaining.indexOf('</em>')
+        
+        // Find the next tag
+        const positions = [
+          { pos: strongStart, tag: 'strong', isOpen: true },
+          { pos: strongEnd, tag: 'strong', isOpen: false },
+          { pos: emStart, tag: 'em', isOpen: true },
+          { pos: emEnd, tag: 'em', isOpen: false }
+        ].filter(p => p.pos >= 0).sort((a, b) => a.pos - b.pos)
+        
+        if (positions.length === 0) {
+          // No more tags, add remaining text
+          if (remaining.trim()) {
+            parts.push({ text: remaining, bold: isBold, italic: isItalic })
+          }
+          break
+        }
+        
+        const next = positions[0]
+        
+        // Add text before the tag
+        if (next.pos > 0) {
+          const textBefore = remaining.substring(0, next.pos)
+          if (textBefore.trim()) {
+            parts.push({ text: textBefore, bold: isBold, italic: isItalic })
+          }
+        }
+        
+        // Update state based on tag
+        if (next.tag === 'strong') {
+          isBold = next.isOpen
+          remaining = remaining.substring(next.pos + (next.isOpen ? 8 : 9)) // <strong> or </strong>
+        } else if (next.tag === 'em') {
+          isItalic = next.isOpen
+          remaining = remaining.substring(next.pos + (next.isOpen ? 4 : 5)) // <em> or </em>
+        }
+      }
+      
+      // Build the final text with formatting
+      if (parts.length === 0) {
+        // No inline formatting, just plain text
+        const plainText = processedText
+          .replace(/<[^>]*>/g, '')
+          .trim()
+        
+        if (plainText) {
+          const baseStyle: any = { fontSize: 8 }
+          if (isHeading) {
+            baseStyle.fontWeight = 'bold'
+            baseStyle.fontSize = 9
+          }
+          
+          const prefix = isBulletItem ? '• ' : isOrderedItem ? `${idx + 1}. ` : ''
+          blocks.push({ text: prefix + plainText, style: baseStyle })
+        }
+      } else {
+        // Has inline formatting - need to create a structured block
+        const baseStyle: any = { fontSize: 8 }
+        if (isHeading) {
+          baseStyle.fontWeight = 'bold'
+          baseStyle.fontSize = 9
+        }
+        
+        // For now, we'll combine with markers in text
+        // React-PDF Text doesn't support nested Text, so we use markers
+        let combinedText = ''
+        parts.forEach(part => {
+          let text = part.text
+          // Note: React-PDF doesn't support inline bold/italic in a single Text
+          // We'll mark them and use fontWeight in the parent style if all parts are bold
+          combinedText += text
         })
-      } else if (idx < paragraphs.length - 1) {
-        // Empty paragraph = intentional spacing, add empty line
-        blocks.push({ 
-          text: ' ', 
-          style: { fontSize: 8, lineHeight: 1 } 
-        })
+        
+        const allBold = parts.every(p => p.bold)
+        const allItalic = parts.every(p => p.italic)
+        
+        if (allBold && !isHeading) baseStyle.fontWeight = 'bold'
+        if (allItalic) baseStyle.fontStyle = 'italic'
+        
+        const prefix = isBulletItem ? '• ' : isOrderedItem ? `${idx + 1}. ` : ''
+        blocks.push({ text: prefix + combinedText.trim(), style: baseStyle })
       }
     })
   } catch (error) {
