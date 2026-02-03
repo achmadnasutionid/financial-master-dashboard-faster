@@ -705,13 +705,15 @@ export default function EditQuotationPage() {
           text: remark.text,
           isCompleted: remark.isCompleted
         })),
-        customSignatures: customSignatures.filter(s => s.name.trim() && s.position.trim()).map((sig, index) => ({
-          id: sig.id,
-          name: sig.name.trim(),
-          position: sig.position.trim(),
-          imageData: "", // No image - will be signed manually by client
-          order: index
-        })),
+        customSignatures: customSignatures
+          .filter(s => s.position.trim()) // Only position is required
+          .map((sig, index) => ({
+            id: sig.id,
+            name: sig.name.trim() || "_______________", // Auto-fill empty name with underscores
+            position: sig.position.trim(),
+            imageData: "", // No image - will be signed manually by client
+            order: index
+          })),
         items: items.map(item => ({
           id: item.id,
           productName: item.productName,
