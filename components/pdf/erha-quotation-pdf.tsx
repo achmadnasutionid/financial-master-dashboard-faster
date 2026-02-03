@@ -241,6 +241,17 @@ export const ErhaQuotationPDF: React.FC<ErhaQuotationPDFProps> = ({ data }) => {
     }).format(amount)}`
   }
 
+  // Helper to decode HTML entities
+  const decodeHTMLEntities = (text: string) => {
+    return text
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, ' ')
+  }
+
   const parseHTMLToTextBlocks = (html: string) => {
     if (!html || typeof html !== 'string') return []
     
@@ -271,9 +282,10 @@ export const ErhaQuotationPDF: React.FC<ErhaQuotationPDFProps> = ({ data }) => {
             .replace(/<em[^>]*>/gi, '')
             .replace(/<\/em>/gi, '')
             .replace(/<br\s*\/?>/gi, '\n')
-            .replace(/&nbsp;/g, ' ')
             .replace(/<[^>]*>/g, '')
-            .trim()
+          
+          // Decode HTML entities
+          text = decodeHTMLEntities(text).trim()
           
           if (text) {
             const style: any = { fontSize: 8 }
@@ -289,8 +301,9 @@ export const ErhaQuotationPDF: React.FC<ErhaQuotationPDFProps> = ({ data }) => {
       while ((match = h2Pattern.exec(html)) !== null) {
         let text = match[1]
           .replace(/<[^>]*>/g, '')
-          .replace(/&nbsp;/g, ' ')
-          .trim()
+        
+        // Decode HTML entities
+        text = decodeHTMLEntities(text).trim()
         
         if (text) {
           blocks.push({ 
@@ -309,9 +322,10 @@ export const ErhaQuotationPDF: React.FC<ErhaQuotationPDFProps> = ({ data }) => {
           .replace(/<em[^>]*>/gi, '')
           .replace(/<\/em>/gi, '')
           .replace(/<br\s*\/?>/gi, '\n')
-          .replace(/&nbsp;/g, ' ')
           .replace(/<[^>]*>/g, '')
-          .trim()
+        
+        // Decode HTML entities
+        text = decodeHTMLEntities(text).trim()
         
         if (text) {
           blocks.push({ 
@@ -325,18 +339,20 @@ export const ErhaQuotationPDF: React.FC<ErhaQuotationPDFProps> = ({ data }) => {
       if (blocks.length === 0 && html.trim()) {
         const plainText = html
           .replace(/<[^>]*>/g, ' ')
-          .replace(/&nbsp;/g, ' ')
           .replace(/\s+/g, ' ')
-          .trim()
         
-        if (plainText) {
-          blocks.push({ text: plainText, style: { fontSize: 8 } })
+        // Decode HTML entities
+        const decodedText = decodeHTMLEntities(plainText).trim()
+        
+        if (decodedText) {
+          blocks.push({ text: decodedText, style: { fontSize: 8 } })
         }
       }
       
     } catch (error) {
       console.error('Error parsing HTML:', error)
-      return [{ text: html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' '), style: { fontSize: 8 } }]
+      const fallbackText = decodeHTMLEntities(html.replace(/<[^>]*>/g, ' '))
+      return [{ text: fallbackText, style: { fontSize: 8 } }]
     }
     
     return blocks
