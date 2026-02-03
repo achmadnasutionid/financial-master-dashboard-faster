@@ -349,6 +349,7 @@ export async function PUT(
         }
       })
 
+
       // Return updated invoice with relations
       return tx.invoice.findUnique({
         where: { id },
