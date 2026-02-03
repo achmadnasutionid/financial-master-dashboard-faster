@@ -218,15 +218,9 @@ export async function PUT(
       })
       const existingRemarkIds = new Set(existingRemarks.map(remark => remark.id))
 
-      console.log("[QUOTATION UPDATE] Existing remark IDs:", Array.from(existingRemarkIds))
-      console.log("[QUOTATION UPDATE] Incoming remarks:", body.remarks)
-
       // UPSERT remarks (OPTIMIZED - batch operations)
       const remarksToUpdate = (body.remarks || []).filter((remark: any) => remark.id && existingRemarkIds.has(remark.id))
       const remarksToCreate = (body.remarks || []).filter((remark: any) => !remark.id || !existingRemarkIds.has(remark.id))
-      
-      console.log("[QUOTATION UPDATE] Remarks to update:", remarksToUpdate.length)
-      console.log("[QUOTATION UPDATE] Remarks to create:", remarksToCreate.length)
       
       // Update all existing remarks in parallel (with order)
       const updateRemarkPromises = remarksToUpdate.map((remark: any) =>
@@ -248,7 +242,6 @@ export async function PUT(
         try {
           const remarkData = remarksToCreate.map((remark: any, index: number) => {
             const order = (body.remarks || []).findIndex((r: any) => r.id === remark.id)
-            console.log(`[QUOTATION UPDATE] Creating remark: id=${remark.id}, text="${remark.text.substring(0, 30)}...", order=${order}`)
             return {
               quotationId: id,
               text: remark.text,
@@ -256,14 +249,12 @@ export async function PUT(
               order: order
             }
           })
-          console.log("[QUOTATION UPDATE] About to create remarks:", JSON.stringify(remarkData, null, 2))
           
           // Note: createMany doesn't return the created records, so we need to fetch them
           // to get their actual IDs for the deletion exclusion logic
           createRemarkResult = await tx.quotationRemark.createMany({
             data: remarkData
           })
-          console.log("[QUOTATION UPDATE] createMany result:", JSON.stringify(createRemarkResult))
           
           // Fetch the newly created remarks to get their actual database IDs
           const newRemarks = await tx.quotationRemark.findMany({
@@ -274,7 +265,6 @@ export async function PUT(
             select: { id: true }
           })
           newlyCreatedRemarkIds.push(...newRemarks.map(r => r.id))
-          console.log("[QUOTATION UPDATE] Newly created remark IDs:", newlyCreatedRemarkIds)
         } catch (error) {
           console.error("[QUOTATION UPDATE] Error creating remarks:", error)
           throw error
@@ -284,23 +274,18 @@ export async function PUT(
       // Execute all remark UPDATE operations
       await Promise.all(updateRemarkPromises)
 
-      console.log("[QUOTATION UPDATE] Remark operations completed")
-
       // Delete removed remarks (but NOT the newly created ones)
       const idsToKeep = [
         ...Array.from(incomingRemarkIds).filter((id): id is string => typeof id === 'string' && existingRemarkIds.has(id)),
         ...newlyCreatedRemarkIds
       ]
       
-      const deleteResult = await tx.quotationRemark.deleteMany({
+      await tx.quotationRemark.deleteMany({
         where: {
           quotationId: id,
           id: { notIn: idsToKeep }
         }
       })
-      
-      console.log("[QUOTATION UPDATE] IDs to keep:", idsToKeep)
-      console.log("[QUOTATION UPDATE] Deleted remarks count:", deleteResult.count)
 
       // Get existing signature IDs from database
       const existingSignatures = await tx.quotationSignature.findMany({
@@ -382,8 +367,6 @@ export async function PUT(
           }
         }
       })
-      
-      console.log("[QUOTATION UPDATE] Returning quotation with remarks count:", result?.remarks?.length || 0)
       
       return result
     })
