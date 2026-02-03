@@ -295,9 +295,9 @@ export async function PUT(
       })
       const existingSignatureIds = new Set(existingSignatures.map(sig => sig.id))
 
-      // Collect incoming signature IDs
+      // Collect incoming signature IDs (only the ones that exist in DB already)
       const incomingSignatureIds = new Set(
-        body.customSignatures?.map((sig: any) => sig.id).filter(Boolean) || []
+        body.customSignatures?.map((sig: any) => sig.id).filter((id: string) => id && existingSignatureIds.has(id)) || []
       )
 
       // UPSERT signatures (OPTIMIZED - batch operations)
@@ -317,6 +317,9 @@ export async function PUT(
         })
       )
       
+      // Execute all signature update operations FIRST
+      await Promise.all(updateSignaturePromises)
+      
       // Create new signatures using createMany for better performance (with order)
       let newlyCreatedSignatureIds: string[] = []
       if (signaturesToCreate.length > 0) {
@@ -332,14 +335,11 @@ export async function PUT(
         })
         newlyCreatedSignatureIds = createResult.map((sig: any) => sig.id)
       }
-      
-      // Execute all signature update operations
-      await Promise.all(updateSignaturePromises)
 
-      // Delete removed signatures (but keep newly created ones)
-      const allKeptSignatureIds = [
-        ...Array.from(incomingSignatureIds).filter((id): id is string => typeof id === 'string'),
-        ...newlyCreatedSignatureIds
+      // Delete removed signatures (keep existing ones that were in the request + newly created ones)
+      const allKeptSignatureIds: string[] = [
+        ...(Array.from(incomingSignatureIds) as string[]), // Only IDs that exist in DB
+        ...newlyCreatedSignatureIds // Newly created IDs from DB
       ]
       
       await tx.invoiceSignature.deleteMany({
