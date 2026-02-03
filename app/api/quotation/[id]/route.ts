@@ -309,23 +309,14 @@ export async function PUT(
       })
       const existingSignatureIds = new Set(existingSignatures.map(sig => sig.id))
 
-      console.log('🔍 [SIGNATURE DEBUG START]')
-      console.log('📦 Incoming customSignatures from frontend:', JSON.stringify(body.customSignatures, null, 2))
-      console.log('💾 Existing signature IDs in DB:', Array.from(existingSignatureIds))
-
       // Collect incoming signature IDs (only the ones that exist in DB already)
       const incomingSignatureIds = new Set(
         body.customSignatures?.map((sig: any) => sig.id).filter((id: string) => id && existingSignatureIds.has(id)) || []
       )
 
-      console.log('✅ Filtered incoming IDs (exist in DB):', Array.from(incomingSignatureIds))
-
       // UPSERT signatures (OPTIMIZED - batch operations)
       const signaturesToUpdate = (body.customSignatures || []).filter((sig: any) => sig.id && existingSignatureIds.has(sig.id))
       const signaturesToCreate = (body.customSignatures || []).filter((sig: any) => !sig.id || !existingSignatureIds.has(sig.id))
-      
-      console.log('🔄 Signatures to UPDATE:', signaturesToUpdate.length, signaturesToUpdate.map((s: any) => ({ id: s.id, name: s.name })))
-      console.log('➕ Signatures to CREATE:', signaturesToCreate.length, signaturesToCreate.map((s: any) => ({ id: s.id, name: s.name })))
       
       // Update all existing signatures in parallel (with order)
       const updateSignaturePromises = signaturesToUpdate.map((sig: any) =>
@@ -342,12 +333,10 @@ export async function PUT(
       
       // Execute all signature update operations FIRST
       await Promise.all(updateSignaturePromises)
-      console.log('✅ Update operations completed')
       
       // Create new signatures using createMany for better performance (with order)
       let newlyCreatedSignatureIds: string[] = []
       if (signaturesToCreate.length > 0) {
-        console.log('🔨 Creating new signatures...')
         const createResult = await tx.quotationSignature.createManyAndReturn({
           data: signaturesToCreate.map((sig: any) => ({
             quotationId: id,
@@ -359,7 +348,6 @@ export async function PUT(
           select: { id: true }
         })
         newlyCreatedSignatureIds = createResult.map((sig: any) => sig.id)
-        console.log('✅ Created new signatures with IDs:', newlyCreatedSignatureIds)
       }
 
       // Delete removed signatures (keep existing ones that were in the request + newly created ones)
@@ -368,17 +356,12 @@ export async function PUT(
         ...newlyCreatedSignatureIds // Newly created IDs from DB
       ]
       
-      console.log('🛡️ All kept signature IDs (won\'t delete):', allKeptSignatureIds)
-      
       const signatureDeleteResult = await tx.quotationSignature.deleteMany({
         where: {
           quotationId: id,
           id: { notIn: allKeptSignatureIds }
         }
       })
-      
-      console.log('🗑️ Deleted signatures count:', signatureDeleteResult.count)
-      console.log('🔍 [SIGNATURE DEBUG END]')
 
 
       // Return updated quotation with relations

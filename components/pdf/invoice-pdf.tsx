@@ -200,26 +200,34 @@ const parseHTMLToTextBlocks = (html: string) => {
     while ((match = paragraphPattern.exec(html)) !== null) {
       let content = match[1]
       
-      // Check if entire content is wrapped in strong or em
-      const isFullyBold = /^<strong[^>]*>([\s\S]*?)<\/strong>$/i.test(content.trim())
-      const isFullyItalic = /^<em[^>]*>([\s\S]*?)<\/em>$/i.test(content.trim())
+      // Check if paragraph is empty or contains only whitespace/br tags
+      const isEmpty = !content.trim() || /^(<br\s*\/?>|\s|&nbsp;)*$/i.test(content)
       
-      // Extract text
-      let text = content
-        .replace(/<strong[^>]*>/gi, '')
-        .replace(/<\/strong>/gi, '')
-        .replace(/<em[^>]*>/gi, '')
-        .replace(/<\/em>/gi, '')
-        .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/<[^>]*>/g, '')
-        .trim()
-      
-      if (text) {
-        const style: any = { fontSize: 8 }
-        if (isFullyBold) style.fontWeight = 'bold'
-        if (isFullyItalic) style.fontStyle = 'italic'
-        blocks.push({ text, style })
+      if (isEmpty) {
+        // Preserve empty paragraphs as blank lines
+        blocks.push({ text: ' ', style: { fontSize: 8 } })
+      } else {
+        // Check if entire content is wrapped in strong or em
+        const isFullyBold = /^<strong[^>]*>([\s\S]*?)<\/strong>$/i.test(content.trim())
+        const isFullyItalic = /^<em[^>]*>([\s\S]*?)<\/em>$/i.test(content.trim())
+        
+        // Extract text
+        let text = content
+          .replace(/<strong[^>]*>/gi, '')
+          .replace(/<\/strong>/gi, '')
+          .replace(/<em[^>]*>/gi, '')
+          .replace(/<\/em>/gi, '')
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/<[^>]*>/g, '')
+          .trim()
+        
+        if (text) {
+          const style: any = { fontSize: 8 }
+          if (isFullyBold) style.fontWeight = 'bold'
+          if (isFullyItalic) style.fontStyle = 'italic'
+          blocks.push({ text, style })
+        }
       }
     }
     
