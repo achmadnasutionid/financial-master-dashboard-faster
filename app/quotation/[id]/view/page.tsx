@@ -86,11 +86,13 @@ export default function ViewQuotationPage() {
     
     return {
       ...quotation,
-      signatures: (quotation as any).signatures?.map((sig: any) => ({
-        name: sig.name,
-        position: sig.position,
-        imageData: sig.imageData
-      })) || []
+      signatures: ((quotation as any).signatures || [])
+        .filter((sig: any) => sig && typeof sig === 'object' && sig.name && sig.position)
+        .map((sig: any) => ({
+          name: String(sig.name || ''),
+          position: String(sig.position || ''),
+          imageData: String(sig.imageData || '')
+        }))
     }
   }, [quotation])
 

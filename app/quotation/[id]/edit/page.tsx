@@ -728,6 +728,16 @@ export default function EditQuotationPage() {
         }))
       }
 
+      // DEBUG: Log signature data before sending
+      console.log('🚀 [FRONTEND] About to save quotation')
+      console.log('📝 [FRONTEND] customSignatures state:', customSignatures)
+      console.log('📤 [FRONTEND] customSignatures being sent:', payload.customSignatures)
+      console.log('📋 [FRONTEND] Full payload preview:', {
+        quotationId: quotationId,
+        signatureCount: payload.customSignatures?.length || 0,
+        itemsCount: payload.items?.length || 0
+      })
+
       const response = await fetch(`/api/quotation/${quotationId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },

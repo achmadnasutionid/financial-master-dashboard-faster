@@ -85,11 +85,13 @@ export default function ViewInvoicePage() {
     
     return {
       ...Invoice,
-      signatures: (Invoice as any).signatures?.map((sig: any) => ({
-        name: sig.name,
-        position: sig.position,
-        imageData: sig.imageData
-      })) || []
+      signatures: ((Invoice as any).signatures || [])
+        .filter((sig: any) => sig && typeof sig === 'object' && sig.name && sig.position)
+        .map((sig: any) => ({
+          name: String(sig.name || ''),
+          position: String(sig.position || ''),
+          imageData: String(sig.imageData || '')
+        }))
     }
   }, [Invoice])
 

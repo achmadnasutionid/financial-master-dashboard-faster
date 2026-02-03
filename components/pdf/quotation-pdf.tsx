@@ -317,11 +317,20 @@ export const QuotationPDF: React.FC<QuotationPDFProps> = ({ data }) => {
   // Only include main signature if it has a name
   // Add safety checks for signatures array
   const additionalSignatures = Array.isArray(data.signatures) 
-    ? data.signatures.filter(sig => sig && typeof sig.name === 'string' && typeof sig.position === 'string').map(sig => ({
-        name: sig.name || '',
-        position: sig.position || '',
-        imageData: sig.imageData || ''
-      }))
+    ? data.signatures
+        .filter(sig => {
+          // Extra safety: check if sig is a valid object
+          if (!sig || typeof sig !== 'object') return false
+          if (typeof sig.name !== 'string' || typeof sig.position !== 'string') return false
+          // Check if name and position are not just whitespace
+          if (!sig.name.trim() || !sig.position.trim()) return false
+          return true
+        })
+        .map(sig => ({
+          name: String(sig.name || ''),
+          position: String(sig.position || ''),
+          imageData: String(sig.imageData || '')
+        }))
     : []
   
   const allSignatures = [
