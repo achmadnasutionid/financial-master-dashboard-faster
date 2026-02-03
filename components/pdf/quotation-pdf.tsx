@@ -425,7 +425,8 @@ export const QuotationPDF: React.FC<QuotationPDFProps> = ({ data }) => {
         <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 15 }} wrap={false}>
           {allSignatures.map((sig, idx) => (
             <View key={idx} style={signatureBoxStyle}>
-              {sig.imageData ? (
+              {/* Only show real location/date for main signature (idx 0) with imageData, rest are for client signatures */}
+              {sig.imageData && idx === 0 ? (
                 <>
                   <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 2 }}>
                     {data.companyCity}, {data.companyProvince}
@@ -465,16 +466,27 @@ export const QuotationPDF: React.FC<QuotationPDFProps> = ({ data }) => {
           <View style={{ flexDirection: "row", justifyContent: "space-around", marginBottom: 10 }}>
             {allSignatures.map((sig, idx) => (
               <View key={idx} style={signatureBoxStyle}>
-                <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 2 }}>
-                  {data.companyCity}, {data.companyProvince}
-                </Text>
-                <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 5 }}>
-                  {new Date(data.updatedAt).toLocaleDateString("id-ID")}
-                </Text>
-                {sig.imageData ? (
-                  <Image src={sig.imageData} style={styles.signatureImage} />
+                {/* Only show real location/date for main signature (idx 0) with imageData, rest are for client signatures */}
+                {sig.imageData && idx === 0 ? (
+                  <>
+                    <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 2 }}>
+                      {data.companyCity}, {data.companyProvince}
+                    </Text>
+                    <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 5 }}>
+                      {new Date(data.updatedAt).toLocaleDateString("id-ID")}
+                    </Text>
+                    <Image src={sig.imageData} style={styles.signatureImage} />
+                  </>
                 ) : (
-                  <View style={{ height: 60, width: 120, borderBottom: "1px solid #999", marginTop: 20, marginBottom: 5 }} />
+                  <>
+                    <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 2 }}>
+                      __________,__________
+                    </Text>
+                    <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 5 }}>
+                      ___/___/_______
+                    </Text>
+                    <View style={{ height: 60 }} />
+                  </>
                 )}
                 <Text style={{ fontSize: 8, marginTop: 4, textAlign: "center" }}>
                   {sig.name}
@@ -497,16 +509,27 @@ export const QuotationPDF: React.FC<QuotationPDFProps> = ({ data }) => {
           <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 10 }}>
             {allSignatures.slice(0, 2).map((sig, idx) => (
               <View key={idx} style={signatureBoxStyle}>
-                <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 2 }}>
-                  {data.companyCity}, {data.companyProvince}
-                </Text>
-                <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 5 }}>
-                  {new Date(data.updatedAt).toLocaleDateString("id-ID")}
-                </Text>
-                {sig.imageData ? (
-                  <Image src={sig.imageData} style={styles.signatureImage} />
+                {/* Only show real location/date for main signature (idx 0) with imageData, rest are for client signatures */}
+                {sig.imageData && idx === 0 ? (
+                  <>
+                    <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 2 }}>
+                      {data.companyCity}, {data.companyProvince}
+                    </Text>
+                    <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 5 }}>
+                      {new Date(data.updatedAt).toLocaleDateString("id-ID")}
+                    </Text>
+                    <Image src={sig.imageData} style={styles.signatureImage} />
+                  </>
                 ) : (
-                  <View style={{ height: 60, width: 120, borderBottom: "1px solid #999", marginTop: 20, marginBottom: 5 }} />
+                  <>
+                    <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 2 }}>
+                      __________,__________
+                    </Text>
+                    <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 5 }}>
+                      ___/___/_______
+                    </Text>
+                    <View style={{ height: 60 }} />
+                  </>
                 )}
                 <Text style={{ fontSize: 8, marginTop: 4, textAlign: "center" }}>
                   {sig.name}
@@ -523,17 +546,14 @@ export const QuotationPDF: React.FC<QuotationPDFProps> = ({ data }) => {
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
             {allSignatures.slice(2, 4).map((sig, idx) => (
               <View key={idx + 2} style={signatureBoxStyle}>
+                {/* Additional signatures always have blank fields */}
                 <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 2 }}>
-                  {data.companyCity}, {data.companyProvince}
+                  __________,__________
                 </Text>
                 <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 5 }}>
-                  {new Date(data.updatedAt).toLocaleDateString("id-ID")}
+                  ___/___/_______
                 </Text>
-                {sig.imageData ? (
-                  <Image src={sig.imageData} style={styles.signatureImage} />
-                ) : (
-                  <View style={{ height: 60, width: 120, borderBottom: "1px solid #999", marginTop: 20, marginBottom: 5 }} />
-                )}
+                <View style={{ height: 60 }} />
                 <Text style={{ fontSize: 8, marginTop: 4, textAlign: "center" }}>
                   {sig.name}
                 </Text>
@@ -553,7 +573,8 @@ export const QuotationPDF: React.FC<QuotationPDFProps> = ({ data }) => {
         <View style={{ marginTop: 15, flexDirection: "row", flexWrap: "wrap", justifyContent: "space-around" }} wrap={false}>
           {allSignatures.map((sig, idx) => (
             <View key={idx} style={{ ...signatureBoxStyle, width: "30%", marginBottom: 15 }}>
-              {sig.imageData ? (
+              {/* Only show real location/date for main signature (idx 0) with imageData, rest are for client signatures */}
+              {sig.imageData && idx === 0 ? (
                 <>
                   <Text style={{ fontSize: 9, textAlign: "center", marginBottom: 2 }}>
                     {data.companyCity}, {data.companyProvince}
