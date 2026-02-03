@@ -332,26 +332,34 @@ export async function PUT(
       )
       
       // Create new signatures using createMany for better performance (with order)
-      const createSignaturePromise = signaturesToCreate.length > 0
-        ? tx.quotationSignature.createMany({
-            data: signaturesToCreate.map((sig: any) => ({
-              quotationId: id,
-              name: sig.name,
-              position: sig.position,
-              imageData: sig.imageData || "",
-              order: (body.customSignatures || []).findIndex((s: any) => s === sig)
-            }))
-          })
-        : Promise.resolve()
+      let newlyCreatedSignatureIds: string[] = []
+      if (signaturesToCreate.length > 0) {
+        const createResult = await tx.quotationSignature.createManyAndReturn({
+          data: signaturesToCreate.map((sig: any) => ({
+            quotationId: id,
+            name: sig.name,
+            position: sig.position,
+            imageData: sig.imageData || "",
+            order: (body.customSignatures || []).findIndex((s: any) => s === sig)
+          })),
+          select: { id: true }
+        })
+        newlyCreatedSignatureIds = createResult.map((sig: any) => sig.id)
+      }
       
-      // Execute all signature operations in parallel
-      await Promise.all([...updateSignaturePromises, createSignaturePromise])
+      // Execute all signature update operations
+      await Promise.all(updateSignaturePromises)
 
-      // Delete removed signatures
+      // Delete removed signatures (but keep newly created ones)
+      const allKeptSignatureIds = [
+        ...Array.from(incomingSignatureIds).filter((id): id is string => typeof id === 'string'),
+        ...newlyCreatedSignatureIds
+      ]
+      
       await tx.quotationSignature.deleteMany({
         where: {
           quotationId: id,
-          id: { notIn: Array.from(incomingSignatureIds).filter((id): id is string => typeof id === 'string') }
+          id: { notIn: allKeptSignatureIds }
         }
       })
 
