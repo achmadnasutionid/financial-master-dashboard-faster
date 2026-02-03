@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef, useMemo } from "react"
+import { useEffect, useState, useRef, useMemo, useCallback } from "react"
 import { PageHeader } from "@/components/layout/page-header"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,7 @@ import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog"
 import { ReorderableRemarks } from "@/components/ui/reorderable-remarks"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
+import { ParagonDetailRow } from "@/components/form/ParagonDetailRow"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -338,10 +339,10 @@ export default function EditParagonTicketPage() {
     ))
   }
 
-  // Item management
-  const addItem = () => {
+  // Item management (optimized with useCallback)
+  const addItem = useCallback(() => {
     const newItemId = Date.now().toString()
-    setItems([...items, {
+    setItems(prevItems => [...prevItems, {
       id: newItemId,
       productName: "",
       details: [{
@@ -353,67 +354,62 @@ export default function EditParagonTicketPage() {
       }],
       total: 0
     }])
-  }
+  }, [])
 
-  const removeItem = (itemId: string) => {
-    setItems(items.filter(item => item.id !== itemId))
-  }
+  const removeItem = useCallback((itemId: string) => {
+    setItems(prevItems => prevItems.filter(item => item.id !== itemId))
+  }, [])
 
-  const handleReorderItems = (reorderedItems: Item[]) => {
+  const handleReorderItems = useCallback((reorderedItems: Item[]) => {
     setItems(reorderedItems)
-  }
+  }, [])
 
-  const updateItemName = (itemId: string, productName: string) => {
-    // Just update the raw name (allow spaces while typing)
-    setItems(items.map(item => 
+  const updateItemName = useCallback((itemId: string, productName: string) => {
+    setItems(prevItems => prevItems.map(item => 
       item.id === itemId ? { ...item, productName } : item
     ))
-  }
+  }, [])
 
-  const formatItemName = (itemId: string) => {
-    const item = items.find(i => i.id === itemId)
-    if (!item || !item.productName.trim()) return
-    
-    // Format on blur: Auto-capitalize if not from master data, normalize spaces
-    const finalName = formatProductName(item.productName, products)
-    
-    // Check if this product exists in master data and has details
-    const masterProduct = productDetails.find((p: any) => 
-      p.name.toLowerCase() === finalName.toLowerCase()
-    )
-    
-    setItems(items.map(item => {
-      if (item.id !== itemId) return item
+  const formatItemName = useCallback((itemId: string) => {
+    setItems(prevItems => {
+      const item = prevItems.find(i => i.id === itemId)
+      if (!item || !item.productName.trim()) return prevItems
       
-      // If master product has details, auto-fill them
-      if (masterProduct && masterProduct.details && masterProduct.details.length > 0) {
-        const autoFilledDetails = masterProduct.details.map((detail: any) => ({
-          id: `temp-detail-${Date.now()}-${Math.random()}`,
-          detail: detail.detail,
-          unitPrice: detail.unitPrice.toString(),
-          qty: detail.qty.toString(),
-          amount: detail.unitPrice * detail.qty
-        }))
+      const finalName = formatProductName(item.productName, products)
+      const masterProduct = productDetails.find((p: any) => 
+        p.name.toLowerCase() === finalName.toLowerCase()
+      )
+      
+      return prevItems.map(item => {
+        if (item.id !== itemId) return item
         
-        const total = autoFilledDetails.reduce((sum: number, d: any) => sum + d.amount, 0)
-        
-        toast.success(`Auto-filled ${autoFilledDetails.length} detail(s) from master data`)
-        
-        return {
-          ...item,
-          productName: finalName,
-          details: autoFilledDetails,
-          total
+        if (masterProduct && masterProduct.details && masterProduct.details.length > 0) {
+          const autoFilledDetails = masterProduct.details.map((detail: any) => ({
+            id: `temp-detail-${Date.now()}-${Math.random()}`,
+            detail: detail.detail,
+            unitPrice: detail.unitPrice.toString(),
+            qty: detail.qty.toString(),
+            amount: detail.unitPrice * detail.qty
+          }))
+          
+          const total = autoFilledDetails.reduce((sum: number, d: any) => sum + d.amount, 0)
+          toast.success(`Auto-filled ${autoFilledDetails.length} detail(s) from master data`)
+          
+          return {
+            ...item,
+            productName: finalName,
+            details: autoFilledDetails,
+            total
+          }
         }
-      }
-      
-      // No master data details, just update formatted name
-      return { ...item, productName: finalName }
-    }))
-  }
+        
+        return { ...item, productName: finalName }
+      })
+    })
+  }, [products, productDetails])
 
-  const addDetail = (itemId: string) => {
-    setItems(items.map(item =>
+  const addDetail = useCallback((itemId: string) => {
+    setItems(prevItems => prevItems.map(item =>
       item.id === itemId
         ? {
             ...item,
@@ -427,32 +423,34 @@ export default function EditParagonTicketPage() {
           }
         : item
     ))
-  }
+  }, [])
 
-  const removeDetail = (itemId: string, detailId: string) => {
-    setItems(items.map(item => {
-      if (item.id === itemId) {
-        // Prevent removing the last detail
-        if (item.details.length <= 1) {
-          toast.warning("Cannot remove detail", {
-            description: "Each item must have at least one detail."
-          })
-          return item
-        }
-        
-        const newDetails = item.details.filter(d => d.id !== detailId)
-        return {
-          ...item,
-          details: newDetails,
-          total: newDetails.reduce((sum, d) => sum + d.amount, 0)
-        }
+  const removeDetail = useCallback((itemId: string, detailId: string) => {
+    setItems(prevItems => {
+      const item = prevItems.find(i => i.id === itemId)
+      if (item && item.details.length <= 1) {
+        toast.warning("Cannot remove detail", {
+          description: "Each item must have at least one detail."
+        })
+        return prevItems
       }
-      return item
-    }))
-  }
+      
+      return prevItems.map(item => {
+        if (item.id === itemId) {
+          const newDetails = item.details.filter(d => d.id !== detailId)
+          return {
+            ...item,
+            details: newDetails,
+            total: newDetails.reduce((sum, d) => sum + d.amount, 0)
+          }
+        }
+        return item
+      })
+    })
+  }, [])
 
-  const updateDetail = (itemId: string, detailId: string, field: string, value: string) => {
-    setItems(items.map(item => {
+  const updateDetail = useCallback((itemId: string, detailId: string, field: string, value: string) => {
+    setItems(prevItems => prevItems.map(item => {
       if (item.id !== itemId) return item
 
       const updatedDetails = item.details.map(detail => {
@@ -460,7 +458,6 @@ export default function EditParagonTicketPage() {
 
         const updated = { ...detail, [field]: value }
         
-        // Calculate amount
         const unitPrice = parseFloat(updated.unitPrice) || 0
         const qty = parseFloat(updated.qty) || 0
         updated.amount = unitPrice * qty
@@ -468,40 +465,36 @@ export default function EditParagonTicketPage() {
         return updated
       })
 
-      // Calculate item total
       const total = updatedDetails.reduce((sum, d) => sum + d.amount, 0)
 
       return { ...item, details: updatedDetails, total }
     }))
-  }
+  }, [])
 
-  // Calculate totals
-  const calculateSubtotal = () => {
+  // Memoized calculations
+  const subtotal = useMemo(() => {
     return items.reduce((sum, item) => sum + item.total, 0)
-  }
+  }, [items])
 
-  const calculatePphAmount = () => {
-    const netAmount = calculateSubtotal()
+  const pphAmount = useMemo(() => {
     const pphRate = parseFloat(pph)
     if (pphRate === 0) return 0
-    // Formula: Gross = Net × (100 / (100 - pph%))
-    // PPh Amount = Gross - Net
-    const grossAmount = netAmount * (100 / (100 - pphRate))
-    return grossAmount - netAmount
-  }
+    const grossAmount = subtotal * (100 / (100 - pphRate))
+    return grossAmount - subtotal
+  }, [subtotal, pph])
 
-  const calculateTotalAmount = () => {
-    return calculateSubtotal() + calculatePphAmount()
-  }
+  const totalAmount = useMemo(() => {
+    return subtotal + pphAmount
+  }, [subtotal, pphAmount])
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = useCallback((amount: number) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount)
-  }
+  }, [])
 
   const validateField = (field: string, value: string | Date | null | undefined) => {
     const fieldErrors: any = { ...errors }
@@ -658,7 +651,7 @@ export default function EditParagonTicketPage() {
         signatureImageData: signature.imageData,
         finalWorkImageData: finalWorkImage || null,
         pph,
-        totalAmount: calculateTotalAmount(),
+        totalAmount: totalAmount,
         termsAndConditions: showTerms ? termsAndConditions : null,
         status,
         items: items.map(item => ({
@@ -1115,44 +1108,15 @@ export default function EditParagonTicketPage() {
                                 {/* Details Rows */}
                                 <div className="space-y-2">
                                   {item.details.map((detail) => (
-                                    <div key={detail.id} className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-2 items-center">
-                                      <AutoExpandInput
-                                        value={detail.detail}
-                                        onChange={(e) =>
-                                          updateDetail(item.id, detail.id, "detail", e.target.value)
-                                        }
-                                        placeholder="Enter detail"
-                                      />
-                                      <CurrencyInput
-                                        value={detail.unitPrice}
-                                        onValueChange={(value) =>
-                                          updateDetail(item.id, detail.id, "unitPrice", value)
-                                        }
-                                        placeholder="Rp 0"
-                                      />
-                                      <Input
-                                        type="number"
-                                        value={detail.qty}
-                                        onChange={(e) =>
-                                          updateDetail(item.id, detail.id, "qty", e.target.value)
-                                        }
-                                        placeholder="0"
-                                      />
-                                      <div className="flex h-11 items-center rounded-md border px-3 text-sm font-medium bg-muted">
-                                        {formatCurrency(detail.amount)}
-                                      </div>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => removeDetail(item.id, detail.id)}
-                                        disabled={item.details.length === 1}
-                                        className="h-9 w-8 p-0"
-                                        title={item.details.length === 1 ? "Cannot remove the last detail" : "Remove detail"}
-                                      >
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                      </Button>
-                                    </div>
+                                    <ParagonDetailRow
+                                      key={detail.id}
+                                      detail={detail}
+                                      itemId={item.id}
+                                      canRemove={item.details.length > 1}
+                                      onUpdate={updateDetail}
+                                      onRemove={removeDetail}
+                                      formatCurrency={formatCurrency}
+                                    />
                                   ))}
                                 </div>
                               </>
@@ -1200,17 +1164,17 @@ export default function EditParagonTicketPage() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Subtotal:</span>
-                      <span className="font-medium">{formatCurrency(calculateSubtotal())}</span>
+                      <span className="font-medium">{formatCurrency(subtotal)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>{PPH_OPTIONS.find(opt => opt.value === pph)?.label || `PPh (${pph}%)`}:</span>
                       <span className="font-medium text-green-600">
-                        + {formatCurrency(calculatePphAmount())}
+                        + {formatCurrency(pphAmount)}
                       </span>
                     </div>
                     <div className="flex justify-between border-t pt-2 text-base font-bold">
                       <span>Total Amount:</span>
-                      <span className="text-primary">{formatCurrency(calculateTotalAmount())}</span>
+                      <span className="text-primary">{formatCurrency(totalAmount)}</span>
                     </div>
                   </div>
                 </div>

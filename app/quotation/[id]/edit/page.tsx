@@ -41,6 +41,7 @@ import { scrollToFirstError } from "@/lib/form-utils"
 import { ReorderableSummary } from "@/components/ui/reorderable-summary"
 import { ReorderableRemarks } from "@/components/ui/reorderable-remarks"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
+import { QuotationDetailRow } from "@/components/form/QuotationDetailRow"
 
 interface Company {
   id: string
@@ -405,10 +406,10 @@ export default function EditQuotationPage() {
     })))
   }
 
-  // Item management functions (same as create page)
-  const addItem = () => {
+  // Item management functions (optimized with useCallback)
+  const addItem = useCallback(() => {
     const newItemId = Date.now().toString()
-    setItems([...items, {
+    setItems(prevItems => [...prevItems, {
       id: newItemId,
       productName: "",
       details: [{
@@ -420,67 +421,69 @@ export default function EditQuotationPage() {
       }],
       total: 0
     }])
-  }
+  }, [])
 
-  const removeItem = (itemId: string) => {
-    setItems(items.filter(item => item.id !== itemId))
-  }
+  const removeItem = useCallback((itemId: string) => {
+    setItems(prevItems => prevItems.filter(item => item.id !== itemId))
+  }, [])
 
-  const handleReorderItems = (reorderedItems: Item[]) => {
+  const handleReorderItems = useCallback((reorderedItems: Item[]) => {
     setItems(reorderedItems)
-  }
+  }, [])
 
-  const updateItemName = (itemId: string, productName: string) => {
+  const updateItemName = useCallback((itemId: string, productName: string) => {
     // Just update the raw name (allow spaces while typing)
-    setItems(items.map(item => 
+    setItems(prevItems => prevItems.map(item => 
       item.id === itemId ? { ...item, productName } : item
     ))
-  }
+  }, [])
 
-  const formatItemName = (itemId: string) => {
-    const item = items.find(i => i.id === itemId)
-    if (!item || !item.productName.trim()) return
-    
-    // Format on blur: Auto-capitalize if not from master data, normalize spaces
-    const finalName = formatProductName(item.productName, products)
-    
-    // Check if this product exists in master data and has details
-    const masterProduct = productDetails.find((p: any) => 
-      p.name.toLowerCase() === finalName.toLowerCase()
-    )
-    
-    setItems(items.map(item => {
-      if (item.id !== itemId) return item
+  const formatItemName = useCallback((itemId: string) => {
+    setItems(prevItems => {
+      const item = prevItems.find(i => i.id === itemId)
+      if (!item || !item.productName.trim()) return prevItems
       
-      // If master product has details, auto-fill them
-      if (masterProduct && masterProduct.details && masterProduct.details.length > 0) {
-        const autoFilledDetails = masterProduct.details.map((detail: any) => ({
-          id: `temp-detail-${Date.now()}-${Math.random()}`,
-          detail: detail.detail,
-          unitPrice: detail.unitPrice.toString(),
-          qty: detail.qty.toString(),
-          amount: detail.unitPrice * detail.qty
-        }))
+      // Format on blur: Auto-capitalize if not from master data, normalize spaces
+      const finalName = formatProductName(item.productName, products)
+      
+      // Check if this product exists in master data and has details
+      const masterProduct = productDetails.find((p: any) => 
+        p.name.toLowerCase() === finalName.toLowerCase()
+      )
+      
+      return prevItems.map(item => {
+        if (item.id !== itemId) return item
         
-        const total = autoFilledDetails.reduce((sum: number, d: any) => sum + d.amount, 0)
-        
-        toast.success(`Auto-filled ${autoFilledDetails.length} detail(s) from master data`)
-        
-        return {
-          ...item,
-          productName: finalName,
-          details: autoFilledDetails,
-          total
+        // If master product has details, auto-fill them
+        if (masterProduct && masterProduct.details && masterProduct.details.length > 0) {
+          const autoFilledDetails = masterProduct.details.map((detail: any) => ({
+            id: `temp-detail-${Date.now()}-${Math.random()}`,
+            detail: detail.detail,
+            unitPrice: detail.unitPrice.toString(),
+            qty: detail.qty.toString(),
+            amount: detail.unitPrice * detail.qty
+          }))
+          
+          const total = autoFilledDetails.reduce((sum: number, d: any) => sum + d.amount, 0)
+          
+          toast.success(`Auto-filled ${autoFilledDetails.length} detail(s) from master data`)
+          
+          return {
+            ...item,
+            productName: finalName,
+            details: autoFilledDetails,
+            total
+          }
         }
-      }
-      
-      // No master data details, just update formatted name
-      return { ...item, productName: finalName }
-    }))
-  }
+        
+        // No master data details, just update formatted name
+        return { ...item, productName: finalName }
+      })
+    })
+  }, [products, productDetails])
 
-  const addDetail = (itemId: string) => {
-    setItems(items.map(item =>
+  const addDetail = useCallback((itemId: string) => {
+    setItems(prevItems => prevItems.map(item =>
       item.id === itemId
         ? {
             ...item,
@@ -494,32 +497,34 @@ export default function EditQuotationPage() {
           }
         : item
     ))
-  }
+  }, [])
 
-  const removeDetail = (itemId: string, detailId: string) => {
-    const item = items.find(i => i.id === itemId)
-    if (item && item.details.length === 1) {
-      toast.warning("Cannot remove detail", {
-        description: "Each product must have at least one detail."
-      })
-      return
-    }
-    
-    setItems(items.map(item =>
-      item.id === itemId
-        ? {
-            ...item,
-            details: item.details.filter(d => d.id !== detailId),
-            total: item.details
-              .filter(d => d.id !== detailId)
-              .reduce((sum, d) => sum + d.amount, 0)
-          }
-        : item
-    ))
-  }
+  const removeDetail = useCallback((itemId: string, detailId: string) => {
+    setItems(prevItems => {
+      const item = prevItems.find(i => i.id === itemId)
+      if (item && item.details.length === 1) {
+        toast.warning("Cannot remove detail", {
+          description: "Each product must have at least one detail."
+        })
+        return prevItems
+      }
+      
+      return prevItems.map(item =>
+        item.id === itemId
+          ? {
+              ...item,
+              details: item.details.filter(d => d.id !== detailId),
+              total: item.details
+                .filter(d => d.id !== detailId)
+                .reduce((sum, d) => sum + d.amount, 0)
+            }
+          : item
+      )
+    })
+  }, [])
 
-  const updateDetail = (itemId: string, detailId: string, field: string, value: string) => {
-    setItems(items.map(item => {
+  const updateDetail = useCallback((itemId: string, detailId: string, field: string, value: string) => {
+    setItems(prevItems => prevItems.map(item => {
       if (item.id !== itemId) return item
 
       const updatedDetails = item.details.map(detail => {
@@ -538,34 +543,34 @@ export default function EditQuotationPage() {
 
       return { ...item, details: updatedDetails, total }
     }))
-  }
+  }, [])
 
-  const calculateSubtotal = () => {
+  // Memoized calculations - only recalculate when dependencies change
+  const subtotal = useMemo(() => {
     return items.reduce((sum, item) => sum + item.total, 0)
-  }
+  }, [items])
 
-  const calculatePphAmount = () => {
-    const netAmount = calculateSubtotal()
+  const pphAmount = useMemo(() => {
     const pphRate = parseFloat(pph)
     if (pphRate === 0) return 0
     // Formula: Gross = Net × (100 / (100 - pph%))
     // PPh Amount = Gross - Net
-    const grossAmount = netAmount * (100 / (100 - pphRate))
-    return grossAmount - netAmount
-  }
+    const grossAmount = subtotal * (100 / (100 - pphRate))
+    return grossAmount - subtotal
+  }, [subtotal, pph])
 
-  const calculateTotalAmount = () => {
-    return calculateSubtotal() + calculatePphAmount()
-  }
+  const totalAmount = useMemo(() => {
+    return subtotal + pphAmount
+  }, [subtotal, pphAmount])
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = useCallback((amount: number) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount)
-  }
+  }, [])
 
   const validateField = (field: string, value: string | Date | null) => {
     const fieldErrors: any = { ...errors }
@@ -696,7 +701,7 @@ export default function EditQuotationPage() {
         signatureRole: signature.role,
         signatureImageData: signature.imageData,
         pph,
-        totalAmount: calculateTotalAmount(),
+        totalAmount: totalAmount,
         summaryOrder: summaryOrder.join(","),
         termsAndConditions: showTerms ? termsAndConditions : null,
         status,
@@ -1173,43 +1178,15 @@ export default function EditQuotationPage() {
 
                                 <div className="space-y-2">
                                   {item.details.map((detail) => (
-                                    <div key={detail.id} className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-2 items-center">
-                                      <AutoExpandInput
-                                        value={detail.detail}
-                                        onChange={(e) =>
-                                          updateDetail(item.id, detail.id, "detail", e.target.value)
-                                        }
-                                        placeholder="Enter detail"
-                                      />
-                                      <CurrencyInput
-                                        value={detail.unitPrice}
-                                        onValueChange={(value) =>
-                                          updateDetail(item.id, detail.id, "unitPrice", value)
-                                        }
-                                        placeholder="Rp 0"
-                                      />
-                                      <Input
-                                        type="number"
-                                        value={detail.qty}
-                                        onChange={(e) =>
-                                          updateDetail(item.id, detail.id, "qty", e.target.value)
-                                        }
-                                        placeholder="0"
-                                      />
-                                      <div className="flex h-11 items-center rounded-md border px-3 text-sm font-medium bg-muted">
-                                        {formatCurrency(detail.amount)}
-                                      </div>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => removeDetail(item.id, detail.id)}
-                                        className="h-9 w-8 p-0"
-                                        disabled={item.details.length === 1}
-                                      >
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                      </Button>
-                                    </div>
+                                    <QuotationDetailRow
+                                      key={detail.id}
+                                      detail={detail}
+                                      itemId={item.id}
+                                      canRemove={item.details.length > 1}
+                                      onUpdate={updateDetail}
+                                      onRemove={removeDetail}
+                                      formatCurrency={formatCurrency}
+                                    />
                                   ))}
                                 </div>
                               </>
@@ -1257,7 +1234,7 @@ export default function EditQuotationPage() {
                       return {
                         id: 'subtotal',
                         label: 'Subtotal',
-                        value: formatCurrency(calculateSubtotal())
+                        value: formatCurrency(subtotal)
                       }
                     } else if (id === 'pph') {
                       const pphOption = PPH_OPTIONS.find(opt => opt.value === pph)
@@ -1269,14 +1246,14 @@ export default function EditQuotationPage() {
                       return {
                         id: 'pph',
                         label: pphMainLabel,
-                        value: formatCurrency(calculatePphAmount()),
+                        value: formatCurrency(pphAmount),
                         note: pphNote
                       }
                     } else {
                       return {
                         id: 'total',
                         label: 'Total Amount',
-                        value: formatCurrency(calculateTotalAmount())
+                        value: formatCurrency(totalAmount)
                       }
                     }
                   })}
