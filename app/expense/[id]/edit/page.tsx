@@ -27,6 +27,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { scrollToFirstError } from "@/lib/form-utils"
+import { AutoSaveIndicator } from "@/components/ui/auto-save-indicator"
+import { useSmartAutoSave } from "@/lib/smart-auto-save"
 
 interface ExpenseItem {
   id: string
@@ -75,6 +77,44 @@ export default function EditExpensePage() {
   // Refs for error scrolling
   const projectNameRef = useRef<HTMLDivElement>(null)
   const productionDateRef = useRef<HTMLDivElement>(null)
+
+  // Auto-save setup
+  const {
+    autoSaveStatus,
+    triggerAutoSave,
+    setIsSavingManually,
+    cancelAutoSave
+  } = useSmartAutoSave({
+    recordId: expenseId,
+    type: 'quotation', // Use quotation type
+    getData: () => {
+      if (!projectName.trim() || !productionDate) {
+        return null
+      }
+      
+      return {
+        projectName: projectName.trim(),
+        productionDate: productionDate.toISOString(),
+        clientBudget: parseFloat(clientBudget) || 0,
+        paidAmount: parseFloat(paidAmount) || 0,
+        notes: notes.trim() || null,
+        status: 'draft', // Always draft for auto-save
+        items: items.map(item => ({
+          id: item.id,
+          productName: item.productName,
+          budgeted: parseFloat(item.budgeted) || 0,
+          actual: parseFloat(item.actual) || 0,
+          difference: item.difference
+        }))
+      }
+    },
+    onSuccess: () => {
+      setHasUnsavedChanges(false)
+    },
+    onError: (error) => {
+      console.error('[AUTO-SAVE] Error:', error)
+    }
+  })
 
   // Fetch expense data and products
   useEffect(() => {
@@ -165,6 +205,16 @@ export default function EditExpensePage() {
     
     setHasUnsavedChanges(currentData !== initialDataRef.current)
   }, [projectName, productionDate, clientBudget, paidAmount, notes, items, loading])
+
+  // Trigger auto-save when data changes
+  useEffect(() => {
+    if (loading || !expenseId) return
+    
+    // Only trigger if all mandatory fields are filled
+    if (projectName.trim() && productionDate) {
+      triggerAutoSave()
+    }
+  }, [projectName, productionDate, clientBudget, paidAmount, notes, items, loading, expenseId, triggerAutoSave])
 
   // Check for stale data when user returns to tab
   useEffect(() => {
@@ -339,10 +389,18 @@ export default function EditExpensePage() {
 
   const handleSubmit = async (status: "draft" | "final") => {
     if (saving) return
+    
+    // Cancel any pending auto-save
+    cancelAutoSave()
+    
+    // Mark as manual save
+    setIsSavingManually(true)
+    
     if (!validateForm()) {
       toast.error("Validation failed", {
         description: "Please fill in all required fields"
       })
+      setIsSavingManually(false)
       return
     }
 
@@ -430,6 +488,7 @@ export default function EditExpensePage() {
       toast.error("Failed to update expense")
     } finally {
       setSaving(false)
+      setIsSavingManually(false)
     }
   }
 
@@ -515,6 +574,12 @@ export default function EditExpensePage() {
             { label: "Expenses", href: "/expense" },
             { label: expenseNumber || "Edit" }
           ]} />
+          
+          {/* Auto-save indicator */}
+          <div className="flex justify-end">
+            <AutoSaveIndicator status={autoSaveStatus} />
+          </div>
+          
           <Card>
             <CardContent className="space-y-6 pt-6">
               {/* Warning Banner for Finalized Expense */}

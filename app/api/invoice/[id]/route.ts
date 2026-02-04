@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { verifyRecordVersion, OptimisticLockError } from "@/lib/optimistic-locking"
 
 // GET single invoice
 export async function GET(
@@ -69,6 +70,30 @@ export async function PUT(
       })
       
       return NextResponse.json(invoice)
+    }
+
+    // OPTIMISTIC LOCKING: Check if record was modified by another user
+    if (body.updatedAt) {
+      const currentRecord = await prisma.invoice.findUnique({
+        where: { id },
+        select: { updatedAt: true }
+      })
+      
+      try {
+        verifyRecordVersion(body.updatedAt, currentRecord)
+      } catch (error) {
+        if (error instanceof OptimisticLockError) {
+          return NextResponse.json(
+            { 
+              error: "CONFLICT",
+              message: error.message,
+              code: "OPTIMISTIC_LOCK_ERROR"
+            },
+            { status: 409 }
+          )
+        }
+        throw error
+      }
     }
 
     // Use transaction for atomic updates with UPSERT pattern
@@ -373,6 +398,17 @@ export async function PUT(
     return NextResponse.json(invoice)
   } catch (error) {
     console.error("Error updating invoice:", error)
+    
+    // Handle specific error types
+    if (error instanceof Error) {
+      if (error.message.includes('Unique constraint')) {
+        return NextResponse.json(
+          { error: "A record with this data already exists" },
+          { status: 409 }
+        )
+      }
+    }
+    
     return NextResponse.json(
       { error: "Failed to update invoice" },
       { status: 500 }

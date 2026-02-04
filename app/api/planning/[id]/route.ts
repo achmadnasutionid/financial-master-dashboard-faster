@@ -52,33 +52,98 @@ export async function PUT(
       )
     }
 
-    // Delete existing items and create new ones
-    await prisma.planningItem.deleteMany({
-      where: { planningId: id }
-    })
+    // Use transaction for atomic updates with UPSERT pattern
+    const planning = await prisma.$transaction(async (tx) => {
+      // Update main planning data
+      const updated = await tx.planning.update({
+        where: { id },
+        data: {
+          projectName: projectName.trim(),
+          clientName: clientName.trim(),
+          clientBudget: parseFloat(clientBudget),
+          notes: notes?.trim() || null,
+          status: status || "draft",
+        }
+      })
 
-    const planning = await prisma.planning.update({
-      where: { id },
-      data: {
-        projectName: projectName.trim(),
-        clientName: clientName.trim(),
-        clientBudget: parseFloat(clientBudget),
-        notes: notes?.trim() || null,
-        status: status || "draft",
-        items: {
-          create: items?.map((item: any, index: number) => ({
+      // Get existing item IDs from database
+      const existingItems = await tx.planningItem.findMany({
+        where: { planningId: id },
+        select: { id: true }
+      })
+      const existingItemIds = new Set(existingItems.map(item => item.id))
+
+      // Collect IDs from incoming data
+      const incomingItemIds = new Set(
+        items?.map((item: any) => item.id).filter(Boolean) || []
+      )
+
+      // Process items with order
+      const itemsWithOrder = (items || []).map((item: any, index: number) => ({
+        ...item,
+        order: index
+      }))
+      
+      // Separate items into update vs create batches
+      const itemsToUpdate = itemsWithOrder.filter((item: any) => item.id && existingItemIds.has(item.id))
+      const itemsToCreate = itemsWithOrder.filter((item: any) => !item.id || !existingItemIds.has(item.id))
+      
+      // Update existing items in parallel
+      const updatePromises = itemsToUpdate.map((item: any) =>
+        tx.planningItem.update({
+          where: { id: item.id },
+          data: {
             productName: item.productName,
             budget: parseFloat(item.budget),
             expense: parseFloat(item.expense),
-            order: index
-          })) || []
+            order: item.order
+          }
+        })
+      )
+      
+      // Create new items
+      const createItemResults = await Promise.all(
+        itemsToCreate.map((item: any) =>
+          tx.planningItem.create({
+            data: {
+              planningId: id,
+              productName: item.productName,
+              budget: parseFloat(item.budget),
+              expense: parseFloat(item.expense),
+              order: item.order
+            }
+          })
+        )
+      )
+      
+      // Execute all updates
+      await Promise.all(updatePromises)
+      
+      // Collect newly created item IDs
+      const newlyCreatedItemIds = createItemResults.map(item => item.id)
+      
+      // Delete removed items (items not in incoming data AND not just created)
+      const allKeptItemIds = [
+        ...Array.from(incomingItemIds).filter((id): id is string => typeof id === 'string' && existingItemIds.has(id)),
+        ...newlyCreatedItemIds
+      ]
+      
+      await tx.planningItem.deleteMany({
+        where: {
+          planningId: id,
+          id: { notIn: allKeptItemIds }
         }
-      },
-      include: {
-        items: {
-          orderBy: { order: 'asc' }
+      })
+
+      // Return updated planning with relations
+      return tx.planning.findUnique({
+        where: { id },
+        include: {
+          items: {
+            orderBy: { order: 'asc' }
+          }
         }
-      }
+      })
     })
 
     return NextResponse.json(planning)

@@ -92,80 +92,227 @@ export async function PUT(
       return NextResponse.json(ticket)
     }
 
-    // Otherwise, do full update
-    // Delete existing items and remarks
-    await prisma.erhaTicketItem.deleteMany({
-      where: { ticketId: id }
-    })
-    await prisma.erhaTicketRemark.deleteMany({
-      where: { ticketId: id }
-    })
+    // Use transaction for atomic updates with UPSERT pattern
+    const ticket = await prisma.$transaction(async (tx) => {
+      // Update main ticket data
+      const updated = await tx.erhaTicket.update({
+        where: { id },
+        data: {
+          companyName: body.companyName,
+          companyAddress: body.companyAddress,
+          companyCity: body.companyCity,
+          companyProvince: body.companyProvince,
+          companyPostalCode: body.companyPostalCode || null,
+          companyTelp: body.companyTelp || null,
+          companyEmail: body.companyEmail || null,
+          productionDate: new Date(body.productionDate),
+          quotationDate: new Date(body.quotationDate),
+          invoiceBastDate: new Date(body.invoiceBastDate),
+          billTo: body.billTo,
+          billToAddress: body.billToAddress || "",
+          contactPerson: body.contactPerson,
+          contactPosition: body.contactPosition,
+          billingName: body.billingName,
+          billingBankName: body.billingBankName,
+          billingBankAccount: body.billingBankAccount,
+          billingBankAccountName: body.billingBankAccountName,
+          billingKtp: body.billingKtp || null,
+          billingNpwp: body.billingNpwp || null,
+          signatureName: body.signatureName,
+          signatureRole: body.signatureRole || null,
+          signatureImageData: body.signatureImageData,
+          finalWorkImageData: body.finalWorkImageData || null,
+          pph: body.pph,
+          totalAmount: parseFloat(body.totalAmount),
+          termsAndConditions: body.termsAndConditions || null,
+          status: body.status,
+        }
+      })
 
-    // Update ticket with new data
-    const ticket = await prisma.erhaTicket.update({
-      where: { id },
-      data: {
-        companyName: body.companyName,
-        companyAddress: body.companyAddress,
-        companyCity: body.companyCity,
-        companyProvince: body.companyProvince,
-        companyPostalCode: body.companyPostalCode || null,
-        companyTelp: body.companyTelp || null,
-        companyEmail: body.companyEmail || null,
-        productionDate: new Date(body.productionDate),
-        quotationDate: new Date(body.quotationDate),
-        invoiceBastDate: new Date(body.invoiceBastDate),
-        billTo: body.billTo,
-        billToAddress: body.billToAddress || "",
-        contactPerson: body.contactPerson,
-        contactPosition: body.contactPosition,
-        billingName: body.billingName,
-        billingBankName: body.billingBankName,
-        billingBankAccount: body.billingBankAccount,
-        billingBankAccountName: body.billingBankAccountName,
-        billingKtp: body.billingKtp || null,
-        billingNpwp: body.billingNpwp || null,
-        signatureName: body.signatureName,
-        signatureRole: body.signatureRole || null,
-        signatureImageData: body.signatureImageData,
-        finalWorkImageData: body.finalWorkImageData || null,
-        pph: body.pph,
-        totalAmount: parseFloat(body.totalAmount),
-        termsAndConditions: body.termsAndConditions || null,
-        status: body.status,
-        items: {
-          create: body.items?.map((item: any, index: number) => ({
+      // Get existing item IDs
+      const existingItems = await tx.erhaTicketItem.findMany({
+        where: { ticketId: id },
+        select: { id: true }
+      })
+      const existingItemIds = new Set(existingItems.map(item => item.id))
+
+      // Collect IDs from incoming data
+      const incomingItemIds = new Set(
+        body.items?.map((item: any) => item.id).filter(Boolean) || []
+      )
+
+      // Process items with order
+      const itemsWithOrder = (body.items || []).map((item: any, index: number) => ({
+        ...item,
+        order: index
+      }))
+      
+      // Separate items into update vs create batches
+      const itemsToUpdate = itemsWithOrder.filter((item: any) => item.id && existingItemIds.has(item.id))
+      const itemsToCreate = itemsWithOrder.filter((item: any) => !item.id || !existingItemIds.has(item.id))
+      
+      // Collect all details to be deleted for updated items
+      const itemIdsToDeleteDetails = itemsToUpdate.map((item: any) => item.id)
+      
+      // Update all existing items in parallel
+      const updatePromises = itemsToUpdate.map((item: any) =>
+        tx.erhaTicketItem.update({
+          where: { id: item.id },
+          data: {
             productName: item.productName,
             total: parseFloat(item.total),
-            order: index,
-            details: {
-              create: item.details?.map((detail: any) => ({
-                detail: detail.detail,
-                unitPrice: parseFloat(detail.unitPrice),
-                qty: parseFloat(detail.qty),
-                amount: parseFloat(detail.amount)
-              }))
+            order: item.order
+          }
+        })
+      )
+      
+      // Delete all old details for updated items (single query)
+      const deleteDetailsPromise = itemIdsToDeleteDetails.length > 0
+        ? tx.erhaTicketItemDetail.deleteMany({
+            where: { itemId: { in: itemIdsToDeleteDetails } }
+          })
+        : Promise.resolve()
+      
+      // Create new items with details in parallel
+      const createItemResults = await Promise.all(
+        itemsToCreate.map((item: any) =>
+          tx.erhaTicketItem.create({
+            data: {
+              ticketId: id,
+              productName: item.productName,
+              total: parseFloat(item.total),
+              order: item.order,
+              details: {
+                create: item.details?.map((detail: any) => ({
+                  detail: detail.detail,
+                  unitPrice: parseFloat(detail.unitPrice),
+                  qty: parseFloat(detail.qty),
+                  amount: parseFloat(detail.amount)
+                })) || []
+              }
             }
-          }))
-        },
-        remarks: {
-          create: body.remarks?.map((remark: any, index: number) => ({
+          })
+        )
+      )
+      
+      // Execute all updates and deletes in parallel
+      await Promise.all([...updatePromises, deleteDetailsPromise])
+      
+      // Collect newly created item IDs
+      const newlyCreatedItemIds = createItemResults.map(item => item.id)
+      
+      // Bulk create new details for updated items
+      const allNewDetails = itemsToUpdate.flatMap((item: any) =>
+        (item.details || []).map((detail: any) => ({
+          itemId: item.id,
+          detail: detail.detail,
+          unitPrice: parseFloat(detail.unitPrice),
+          qty: parseFloat(detail.qty),
+          amount: parseFloat(detail.amount)
+        }))
+      )
+      
+      if (allNewDetails.length > 0) {
+        await tx.erhaTicketItemDetail.createMany({
+          data: allNewDetails
+        })
+      }
+
+      // Delete removed items
+      const allKeptItemIds = [
+        ...Array.from(incomingItemIds).filter((id): id is string => typeof id === 'string' && existingItemIds.has(id)),
+        ...newlyCreatedItemIds
+      ]
+      
+      await tx.erhaTicketItem.deleteMany({
+        where: {
+          ticketId: id,
+          id: { notIn: allKeptItemIds }
+        }
+      })
+
+      // Handle remarks using UPSERT pattern
+      const existingRemarks = await tx.erhaTicketRemark.findMany({
+        where: { ticketId: id },
+        select: { id: true }
+      })
+      const existingRemarkIds = new Set(existingRemarks.map(remark => remark.id))
+
+      const incomingRemarkIds = new Set(
+        body.remarks?.map((remark: any) => remark.id).filter(Boolean) || []
+      )
+
+      const remarksToUpdate = (body.remarks || []).filter((remark: any) => remark.id && existingRemarkIds.has(remark.id))
+      const remarksToCreate = (body.remarks || []).filter((remark: any) => !remark.id || !existingRemarkIds.has(remark.id))
+      
+      // Update existing remarks in parallel
+      const updateRemarkPromises = remarksToUpdate.map((remark: any) =>
+        tx.erhaTicketRemark.update({
+          where: { id: remark.id },
+          data: {
             text: remark.text,
             isCompleted: remark.isCompleted || false,
-            order: index
-          }))
-        }
-      },
-      include: {
-        items: {
-          include: {
-            details: true
+            order: (body.remarks || []).findIndex((r: any) => r.id === remark.id)
           }
-        },
-        remarks: {
-          orderBy: { order: 'asc' }
-        }
+        })
+      )
+      
+      // Create new remarks
+      let newlyCreatedRemarkIds: string[] = []
+      if (remarksToCreate.length > 0) {
+        const remarkData = remarksToCreate.map((remark: any) => ({
+          ticketId: id,
+          text: remark.text,
+          isCompleted: remark.isCompleted || false,
+          order: (body.remarks || []).findIndex((r: any) => r === remark)
+        }))
+        
+        await tx.erhaTicketRemark.createMany({
+          data: remarkData
+        })
+        
+        // Fetch newly created remarks
+        const newRemarks = await tx.erhaTicketRemark.findMany({
+          where: {
+            ticketId: id,
+            order: { in: remarkData.map((r: any) => r.order) }
+          },
+          select: { id: true }
+        })
+        newlyCreatedRemarkIds = newRemarks.map(r => r.id)
       }
+      
+      // Execute remark updates
+      await Promise.all(updateRemarkPromises)
+
+      // Delete removed remarks
+      const idsToKeep = [
+        ...Array.from(incomingRemarkIds).filter((id): id is string => typeof id === 'string' && existingRemarkIds.has(id)),
+        ...newlyCreatedRemarkIds
+      ]
+      
+      await tx.erhaTicketRemark.deleteMany({
+        where: {
+          ticketId: id,
+          id: { notIn: idsToKeep }
+        }
+      })
+
+      // Return updated ticket with relations
+      return tx.erhaTicket.findUnique({
+        where: { id },
+        include: {
+          items: {
+            include: {
+              details: true
+            },
+            orderBy: { order: 'asc' }
+          },
+          remarks: {
+            orderBy: { order: 'asc' }
+          }
+        }
+      })
     })
 
     return NextResponse.json(ticket)

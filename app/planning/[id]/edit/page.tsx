@@ -33,6 +33,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { scrollToFirstError } from "@/lib/form-utils"
+import { AutoSaveIndicator } from "@/components/ui/auto-save-indicator"
+import { useSmartAutoSave } from "@/lib/smart-auto-save"
 
 interface PlanningItem {
   id: string
@@ -68,6 +70,42 @@ export default function EditPlanningPage() {
   // Refs for error scrolling
   const projectNameRef = useRef<HTMLDivElement>(null)
   const clientNameRef = useRef<HTMLDivElement>(null)
+
+  // Auto-save setup
+  const {
+    autoSaveStatus,
+    triggerAutoSave,
+    setIsSavingManually,
+    cancelAutoSave
+  } = useSmartAutoSave({
+    recordId: planningId,
+    type: 'quotation', // Use quotation type (has similar validation)
+    getData: () => {
+      if (!projectName.trim() || !clientName.trim() || !clientBudget || parseFloat(clientBudget) <= 0) {
+        return null
+      }
+      
+      return {
+        projectName: projectName.trim(),
+        clientName: clientName.trim(),
+        clientBudget: parseFloat(clientBudget) || 0,
+        notes: notes.trim() || null,
+        status: 'draft', // Always draft for auto-save
+        items: items.map(item => ({
+          id: item.id,
+          productName: item.productName,
+          budget: parseFloat(item.budget) || 0,
+          expense: parseFloat(item.expense) || 0
+        }))
+      }
+    },
+    onSuccess: () => {
+      setHasUnsavedChanges(false)
+    },
+    onError: (error) => {
+      console.error('[AUTO-SAVE] Error:', error)
+    }
+  })
 
   // Fetch planning data
   useEffect(() => {
@@ -149,6 +187,16 @@ export default function EditPlanningPage() {
     
     setHasUnsavedChanges(currentData !== initialDataRef.current)
   }, [projectName, clientName, clientBudget, notes, items, loading])
+
+  // Trigger auto-save when data changes
+  useEffect(() => {
+    if (loading || !planningId) return
+    
+    // Only trigger if all mandatory fields are filled
+    if (projectName.trim() && clientName.trim() && clientBudget && parseFloat(clientBudget) > 0) {
+      triggerAutoSave()
+    }
+  }, [projectName, clientName, clientBudget, notes, items, loading, planningId, triggerAutoSave])
 
   // Check for stale data when user returns to tab
   useEffect(() => {
@@ -298,7 +346,17 @@ export default function EditPlanningPage() {
 
   const handleSubmit = async (status: "draft" | "final") => {
     if (saving) return
-    if (!validateForm()) return
+    
+    // Cancel any pending auto-save
+    cancelAutoSave()
+    
+    // Mark as manual save
+    setIsSavingManually(true)
+    
+    if (!validateForm()) {
+      setIsSavingManually(false)
+      return
+    }
 
     // Additional validation for finalizing
     if (status === "final") {
@@ -379,6 +437,7 @@ export default function EditPlanningPage() {
       })
     } finally {
       setSaving(false)
+      setIsSavingManually(false)
     }
   }
 
@@ -464,6 +523,12 @@ export default function EditPlanningPage() {
             { label: "Planning", href: "/planning" },
             { label: planningNumber || "Edit" }
           ]} />
+          
+          {/* Auto-save indicator */}
+          <div className="flex justify-end">
+            <AutoSaveIndicator status={autoSaveStatus} />
+          </div>
+          
           <Card>
             <CardContent className="space-y-6 pt-6">
               {/* Project Info */}

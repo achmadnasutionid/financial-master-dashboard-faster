@@ -21,6 +21,8 @@ import { ReorderableRemarks } from "@/components/ui/reorderable-remarks"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes"
 import { ParagonDetailRow } from "@/components/form/ParagonDetailRow"
+import { AutoSaveIndicator } from "@/components/ui/auto-save-indicator"
+import { useSmartAutoSave } from "@/lib/smart-auto-save"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -113,6 +115,7 @@ export default function EditParagonTicketPage() {
   // UI state
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [isSavingManually, setIsSavingManually] = useState(false)
   const [errors, setErrors] = useState<any>({})
   const [ticketNumber, setTicketNumber] = useState<string>("")
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -131,6 +134,71 @@ export default function EditParagonTicketPage() {
   const contactPersonRef = useRef<HTMLDivElement>(null)
   const contactPositionRef = useRef<HTMLDivElement>(null)
   const signatureRef = useRef<HTMLDivElement>(null)
+
+  // Auto-save integration
+  const { autoSaveStatus, triggerAutoSave, cancelAutoSave } = useSmartAutoSave({
+    recordId: ticketId,
+    type: 'paragon',
+    getData: () => {
+      const company = companies.find(c => c.id === selectedCompanyId)
+      const signature = signatures.find(s => s.id === selectedSignatureId)
+
+      return {
+        companyName: company?.name,
+        companyAddress: company?.address,
+        companyCity: company?.city,
+        companyProvince: company?.province,
+        companyPostalCode: company?.postalCode,
+        companyTelp: company?.telp,
+        companyEmail: company?.email,
+        productionDate: productionDate?.toISOString(),
+        quotationDate: quotationDate?.toISOString(),
+        invoiceBastDate: invoiceBastDate?.toISOString(),
+        billTo,
+        contactPerson,
+        contactPosition,
+        signatureName: signature?.name,
+        signatureRole: signature?.role || null,
+        signatureImageData: signature?.imageData,
+        finalWorkImageData: finalWorkImage || null,
+        pph,
+        totalAmount,
+        termsAndConditions: showTerms ? termsAndConditions : null,
+        status: 'draft',
+        items: items.map(item => ({
+          id: item.id,
+          productName: item.productName,
+          total: item.total,
+          details: item.details
+            .filter(detail => detail.detail.trim() || parseFloat(detail.unitPrice) || parseFloat(detail.qty))
+            .map(detail => ({
+              id: detail.id,
+              detail: detail.detail,
+              unitPrice: parseFloat(detail.unitPrice) || 0,
+              qty: parseFloat(detail.qty) || 0,
+              amount: detail.amount
+            }))
+        })),
+        remarks: remarks.filter(r => r.text.trim()).map(remark => ({
+          id: remark.id,
+          text: remark.text,
+          isCompleted: remark.isCompleted
+        })),
+        lastKnownUpdatedAt: lastUpdatedAtRef.current,
+        // Mandatory fields for validation
+        selectedCompanyId,
+        selectedSignatureId
+      }
+    },
+    onSuccess: () => {
+      setHasUnsavedChanges(false)
+    },
+    onError: (error: any) => {
+      if (error.conflict) {
+        setShowStaleDataDialog(true)
+      }
+    }
+  })
   
   // Fetch master data and ticket data
   useEffect(() => {
@@ -252,6 +320,20 @@ export default function EditParagonTicketPage() {
     
     setHasUnsavedChanges(currentData !== initialDataRef.current)
   }, [selectedCompanyId, productionDate, quotationDate, invoiceBastDate, billTo, contactPerson, contactPosition, selectedSignatureId, pph, items, remarks, finalWorkImage, loading])
+
+  // Auto-save trigger when data changes (only if mandatory fields filled)
+  useEffect(() => {
+    if (loading || isSavingManually) return
+    
+    // Check if mandatory fields are filled
+    const mandatoryFilled = selectedCompanyId && productionDate && quotationDate && 
+      invoiceBastDate && billTo.trim() && contactPerson.trim() && 
+      contactPosition.trim() && selectedSignatureId
+    
+    if (mandatoryFilled) {
+      triggerAutoSave()
+    }
+  }, [selectedCompanyId, productionDate, quotationDate, invoiceBastDate, billTo, contactPerson, contactPosition, selectedSignatureId, pph, items, remarks, finalWorkImage, loading, isSavingManually, triggerAutoSave])
 
   // Check for stale data when user returns to tab
   useEffect(() => {
@@ -594,41 +676,45 @@ export default function EditParagonTicketPage() {
   const handleSubmit = async (status: "draft" | "final") => {
     if (saving) return
 
-    if (!validateForm()) {
-      toast.error("Validation failed", {
-        description: "Please fill in all required fields"
-      })
-      return
-    }
+    // Cancel any pending auto-save
+    cancelAutoSave()
+    setIsSavingManually(true)
 
-    // Additional validation for final status
-    if (status === "final") {
-      if (items.length === 0) {
-        toast.warning("Cannot finalize ticket", {
-          description: "Please add at least one item before finalizing."
-        })
-        return
-      }
-
-      const emptyProducts = items.filter(item => !item.productName.trim())
-      if (emptyProducts.length > 0) {
-        toast.warning("Cannot finalize ticket", {
-          description: "All items must have a product name filled in."
-        })
-        return
-      }
-
-      const itemsWithoutDetails = items.filter(item => item.details.length === 0)
-      if (itemsWithoutDetails.length > 0) {
-        toast.warning("Cannot finalize ticket", {
-          description: "All products must have at least one detail."
-        })
-        return
-      }
-    }
-
-    setSaving(true)
     try {
+      if (!validateForm()) {
+        toast.error("Validation failed", {
+          description: "Please fill in all required fields"
+        })
+        return
+      }
+
+      // Additional validation for final status
+      if (status === "final") {
+        if (items.length === 0) {
+          toast.warning("Cannot finalize ticket", {
+            description: "Please add at least one item before finalizing."
+          })
+          return
+        }
+
+        const emptyProducts = items.filter(item => !item.productName.trim())
+        if (emptyProducts.length > 0) {
+          toast.warning("Cannot finalize ticket", {
+            description: "All items must have a product name filled in."
+          })
+          return
+        }
+
+        const itemsWithoutDetails = items.filter(item => item.details.length === 0)
+        if (itemsWithoutDetails.length > 0) {
+          toast.warning("Cannot finalize ticket", {
+            description: "All products must have at least one detail."
+          })
+          return
+        }
+      }
+
+      setSaving(true)
       const company = companies.find(c => c.id === selectedCompanyId)!
       const signature = signatures.find(s => s.id === selectedSignatureId)!
 
@@ -696,6 +782,7 @@ export default function EditParagonTicketPage() {
       toast.error("Failed to update ticket")
     } finally {
       setSaving(false)
+      setIsSavingManually(false)
     }
   }
 
@@ -762,10 +849,13 @@ export default function EditParagonTicketPage() {
           </div>
         ) : (
         <div className="container mx-auto max-w-5xl space-y-6">
-          <Breadcrumb items={[
-            { label: "Paragon Tickets", href: "/special-case/paragon" },
-            { label: ticketNumber || "Edit" }
-          ]} />
+          <div className="flex items-center justify-between">
+            <Breadcrumb items={[
+              { label: "Paragon Tickets", href: "/special-case/paragon" },
+              { label: ticketNumber || "Edit" }
+            ]} />
+            <AutoSaveIndicator status={autoSaveStatus} />
+          </div>
           <Card>
             <CardContent className="space-y-6 pt-6">
               {/* Basic Information */}

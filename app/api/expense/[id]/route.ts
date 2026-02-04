@@ -60,36 +60,102 @@ export async function PUT(
       return NextResponse.json(expense)
     }
 
-    // Delete existing items
-    await prisma.expenseItem.deleteMany({
-      where: { expenseId: id }
-    })
+    // Use transaction for atomic updates with UPSERT pattern
+    const expense = await prisma.$transaction(async (tx) => {
+      // Update main expense data
+      const updated = await tx.expense.update({
+        where: { id },
+        data: {
+          projectName: body.projectName,
+          clientBudget: parseFloat(body.clientBudget),
+          paidAmount: parseFloat(body.paidAmount) || 0,
+          notes: body.notes || null,
+          status: body.status || "draft",
+          totalItemBudgeted: parseFloat(body.totalItemBudgeted) || 0,
+          totalItemDifferences: parseFloat(body.totalItemDifferences) || 0,
+        }
+      })
 
-    const expense = await prisma.expense.update({
-      where: { id },
-      data: {
-        projectName: body.projectName,
-        clientBudget: parseFloat(body.clientBudget),
-        paidAmount: parseFloat(body.paidAmount) || 0,
-        notes: body.notes || null,
-        status: body.status || "draft",
-        totalItemBudgeted: parseFloat(body.totalItemBudgeted) || 0,
-        totalItemDifferences: parseFloat(body.totalItemDifferences) || 0,
-        items: {
-          create: body.items?.map((item: any, index: number) => ({
+      // Get existing item IDs from database
+      const existingItems = await tx.expenseItem.findMany({
+        where: { expenseId: id },
+        select: { id: true }
+      })
+      const existingItemIds = new Set(existingItems.map(item => item.id))
+
+      // Collect IDs from incoming data
+      const incomingItemIds = new Set(
+        body.items?.map((item: any) => item.id).filter(Boolean) || []
+      )
+
+      // Process items with order
+      const itemsWithOrder = (body.items || []).map((item: any, index: number) => ({
+        ...item,
+        order: index
+      }))
+      
+      // Separate items into update vs create batches
+      const itemsToUpdate = itemsWithOrder.filter((item: any) => item.id && existingItemIds.has(item.id))
+      const itemsToCreate = itemsWithOrder.filter((item: any) => !item.id || !existingItemIds.has(item.id))
+      
+      // Update existing items in parallel
+      const updatePromises = itemsToUpdate.map((item: any) =>
+        tx.expenseItem.update({
+          where: { id: item.id },
+          data: {
             productName: item.productName,
             budgeted: parseFloat(item.budgeted),
             actual: parseFloat(item.actual),
             difference: parseFloat(item.budgeted) - parseFloat(item.actual),
-            order: index
-          })) || []
+            order: item.order
+          }
+        })
+      )
+      
+      // Create new items
+      const createItemResults = await Promise.all(
+        itemsToCreate.map((item: any) =>
+          tx.expenseItem.create({
+            data: {
+              expenseId: id,
+              productName: item.productName,
+              budgeted: parseFloat(item.budgeted),
+              actual: parseFloat(item.actual),
+              difference: parseFloat(item.budgeted) - parseFloat(item.actual),
+              order: item.order
+            }
+          })
+        )
+      )
+      
+      // Execute all updates
+      await Promise.all(updatePromises)
+      
+      // Collect newly created item IDs
+      const newlyCreatedItemIds = createItemResults.map(item => item.id)
+      
+      // Delete removed items
+      const allKeptItemIds = [
+        ...Array.from(incomingItemIds).filter((id): id is string => typeof id === 'string' && existingItemIds.has(id)),
+        ...newlyCreatedItemIds
+      ]
+      
+      await tx.expenseItem.deleteMany({
+        where: {
+          expenseId: id,
+          id: { notIn: allKeptItemIds }
         }
-      },
-      include: {
-        items: {
-          orderBy: { order: 'asc' }
+      })
+
+      // Return updated expense with relations
+      return tx.expense.findUnique({
+        where: { id },
+        include: {
+          items: {
+            orderBy: { order: 'asc' }
+          }
         }
-      }
+      })
     })
 
     return NextResponse.json(expense)

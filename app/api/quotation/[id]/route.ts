@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { verifyRecordVersion, OptimisticLockError } from "@/lib/optimistic-locking"
 
 // GET single quotation
 export async function GET(
@@ -70,6 +71,31 @@ export async function PUT(
       })
       
       return NextResponse.json(quotation)
+    }
+
+    // OPTIMISTIC LOCKING: Check if record was modified by another user
+    // Client should send the `updatedAt` timestamp they have
+    if (body.updatedAt) {
+      const currentRecord = await prisma.quotation.findUnique({
+        where: { id },
+        select: { updatedAt: true }
+      })
+      
+      try {
+        verifyRecordVersion(body.updatedAt, currentRecord)
+      } catch (error) {
+        if (error instanceof OptimisticLockError) {
+          return NextResponse.json(
+            { 
+              error: "CONFLICT",
+              message: error.message,
+              code: "OPTIMISTIC_LOCK_ERROR"
+            },
+            { status: 409 }
+          )
+        }
+        throw error
+      }
     }
 
     // Use transaction for atomic updates with UPSERT pattern
@@ -374,6 +400,18 @@ export async function PUT(
     return NextResponse.json(quotation)
   } catch (error) {
     console.error("Error updating quotation:", error)
+    
+    // Handle specific error types
+    if (error instanceof Error) {
+      // Prisma unique constraint violation
+      if (error.message.includes('Unique constraint')) {
+        return NextResponse.json(
+          { error: "A record with this data already exists" },
+          { status: 409 }
+        )
+      }
+    }
+    
     return NextResponse.json(
       { error: "Failed to update quotation" },
       { status: 500 }

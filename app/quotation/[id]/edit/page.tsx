@@ -42,6 +42,8 @@ import { ReorderableSummary } from "@/components/ui/reorderable-summary"
 import { ReorderableRemarks } from "@/components/ui/reorderable-remarks"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { QuotationDetailRow } from "@/components/form/QuotationDetailRow"
+import { AutoSaveIndicator } from "@/components/ui/auto-save-indicator"
+import { useSmartAutoSave } from "@/lib/smart-auto-save"
 
 interface Company {
   id: string
@@ -158,6 +160,89 @@ export default function EditQuotationPage() {
   const billToRef = useRef<HTMLDivElement>(null)
   const billingRef = useRef<HTMLDivElement>(null)
   const signatureRef = useRef<HTMLDivElement>(null)
+
+  // Auto-save setup
+  const {
+    autoSaveStatus,
+    triggerAutoSave,
+    setIsSavingManually,
+    cancelAutoSave
+  } = useSmartAutoSave({
+    recordId: quotationId,
+    type: 'quotation',
+    getData: () => {
+      const company = companies.find(c => c.id === selectedCompanyId)
+      const billing = billings.find(b => b.id === selectedBillingId)
+      const signature = signatures.find(s => s.id === selectedSignatureId)
+      
+      if (!company || !billing || !signature || !productionDate) {
+        return null
+      }
+      
+      return {
+        companyName: company.name,
+        companyAddress: company.address,
+        companyCity: company.city,
+        companyProvince: company.province,
+        companyPostalCode: company.postalCode,
+        companyTelp: company.telp,
+        companyEmail: company.email,
+        productionDate: productionDate.toISOString(),
+        billTo: billTo.trim(),
+        notes: notes.trim() || null,
+        billingName: billing.name,
+        billingBankName: billing.bankName,
+        billingBankAccount: billing.bankAccount,
+        billingBankAccountName: billing.bankAccountName,
+        billingKtp: billing.ktp,
+        billingNpwp: billing.npwp,
+        signatureName: signature.name,
+        signatureRole: signature.role,
+        signatureImageData: signature.imageData,
+        pph,
+        totalAmount: items.reduce((sum, item) => sum + item.total, 0) + 
+                     (items.reduce((sum, item) => sum + item.total, 0) * (100 / (100 - parseFloat(pph))) - items.reduce((sum, item) => sum + item.total, 0)),
+        summaryOrder: summaryOrder.join(","),
+        termsAndConditions: showTerms ? termsAndConditions : null,
+        status: 'draft', // Always save as draft for auto-save
+        updatedAt: lastUpdatedAtRef.current,
+        remarks: remarks.map(remark => ({
+          id: remark.id,
+          text: remark.text,
+          isCompleted: remark.isCompleted
+        })),
+        customSignatures: customSignatures
+          .filter(s => s.position.trim())
+          .map((sig, index) => ({
+            id: sig.id,
+            name: sig.name.trim() || "_______________",
+            position: sig.position.trim(),
+            imageData: "",
+            order: index
+          })),
+        items: items.map(item => ({
+          id: item.id,
+          productName: item.productName,
+          total: item.total,
+          details: item.details
+            .filter(detail => detail.detail.trim() || parseFloat(detail.unitPrice) || parseFloat(detail.qty))
+            .map(detail => ({
+              id: detail.id,
+              detail: detail.detail,
+              unitPrice: parseFloat(detail.unitPrice) || 0,
+              qty: parseFloat(detail.qty) || 0,
+              amount: detail.amount
+            }))
+        }))
+      }
+    },
+    onSuccess: () => {
+      setHasUnsavedChanges(false)
+    },
+    onError: (error) => {
+      console.error('[AUTO-SAVE] Error:', error)
+    }
+  })
 
   // Fetch quotation data
   useEffect(() => {
@@ -300,6 +385,16 @@ export default function EditQuotationPage() {
     
     setHasUnsavedChanges(currentData !== initialDataRef.current)
   }, [selectedCompanyId, productionDate, billTo, notes, selectedBillingId, selectedSignatureId, pph, remarks, items, loading])
+
+  // Trigger auto-save when data changes (only if mandatory fields filled)
+  useEffect(() => {
+    if (loading || !quotationId) return
+    
+    // Only trigger if all mandatory fields are filled
+    if (selectedCompanyId && productionDate && billTo.trim() && selectedBillingId && selectedSignatureId) {
+      triggerAutoSave()
+    }
+  }, [selectedCompanyId, productionDate, billTo, selectedBillingId, selectedSignatureId, items, notes, pph, remarks, termsAndConditions, customSignatures, summaryOrder, loading, quotationId, triggerAutoSave])
 
   // Check for stale data when user returns to tab
   useEffect(() => {
@@ -642,10 +737,18 @@ export default function EditQuotationPage() {
 
   const handleSubmit = async (status: "draft" | "pending") => {
     if (saving) return
+    
+    // Cancel any pending auto-save
+    cancelAutoSave()
+    
+    // Mark as manual save
+    setIsSavingManually(true)
+    
     if (!validateForm()) {
       toast.error("Validation failed", {
         description: "Please fill in all required fields"
       })
+      setIsSavingManually(false)
       return
     }
 
@@ -654,6 +757,7 @@ export default function EditQuotationPage() {
         toast.warning("Cannot save as pending", {
           description: "Please add at least one item before saving as pending."
         })
+        setIsSavingManually(false)
         return
       }
 
@@ -662,6 +766,7 @@ export default function EditQuotationPage() {
         toast.warning("Cannot save as pending", {
           description: "All items must have a product name filled in."
         })
+        setIsSavingManually(false)
         return
       }
 
@@ -670,6 +775,7 @@ export default function EditQuotationPage() {
         toast.warning("Cannot save as pending", {
           description: "All products must have at least one detail."
         })
+        setIsSavingManually(false)
         return
       }
     }
@@ -705,6 +811,7 @@ export default function EditQuotationPage() {
         summaryOrder: summaryOrder.join(","),
         termsAndConditions: showTerms ? termsAndConditions : null,
         status,
+        updatedAt: lastUpdatedAtRef.current, // OPTIMISTIC LOCKING: Send version
         remarks: remarks.map(remark => ({
           id: remark.id,
           text: remark.text,
@@ -758,6 +865,21 @@ export default function EditQuotationPage() {
         }
       } else {
         const data = await response.json()
+        
+        // Handle optimistic lock conflict
+        if (data.code === "OPTIMISTIC_LOCK_ERROR") {
+          toast.error("Conflict Detected", {
+            description: data.message || "This quotation was modified by another user. Please refresh and try again.",
+            duration: 5000,
+            action: {
+              label: "Refresh",
+              onClick: () => window.location.reload()
+            }
+          })
+          setShowStaleDataDialog(true)
+          return
+        }
+        
         toast.error("Failed to update quotation", {
           description: data.error || "An error occurred while updating."
         })
@@ -769,6 +891,7 @@ export default function EditQuotationPage() {
       })
     } finally {
       setSaving(false)
+      setIsSavingManually(false)
     }
   }
 
@@ -852,6 +975,12 @@ export default function EditQuotationPage() {
             { label: "Quotations", href: "/quotation" },
             { label: quotationNumber || "Edit" }
           ]} />
+          
+          {/* Auto-save indicator */}
+          <div className="flex justify-end">
+            <AutoSaveIndicator status={autoSaveStatus} />
+          </div>
+          
           <Card>
             <CardContent className="space-y-6 pt-6">
               {/* Basic Information */}
