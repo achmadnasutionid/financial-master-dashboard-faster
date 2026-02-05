@@ -1,8 +1,16 @@
 import { prisma } from './prisma'
 
 /**
- * Optimized ID Generator with In-Memory Cache
- * Reduces database queries by caching the last number per year
+ * RACE-CONDITION-FREE ID Generator using Database Sequences
+ * 
+ * This implementation creates PostgreSQL sequences for each entity type.
+ * Sequences are atomic and guaranteed unique across all instances.
+ * 
+ * Strategy:
+ * - Use PostgreSQL sequences for atomic number generation
+ * - One sequence per prefix-year combination
+ * - Automatically create sequences if they don't exist
+ * - No locks needed - sequences are inherently atomic
  */
 
 interface IDCache {
@@ -11,109 +19,122 @@ interface IDCache {
   lastFetch: number
 }
 
-// In-memory cache for ID generation
+// In-memory cache (optimization only, not for correctness)
 const idCache = new Map<string, IDCache>()
-const CACHE_TTL = 60000 // 1 minute cache TTL
+const CACHE_TTL = 30000 // 30 seconds
 
-// Lock mechanism to prevent race conditions
-const generationLocks = new Map<string, Promise<string>>()
+/**
+ * Get sequence name for a prefix-year combination
+ */
+function getSequenceName(prefix: string, year: number): string {
+  return `id_seq_${prefix.toLowerCase()}_${year}`
+}
+
+/**
+ * Get the ID field name for a model
+ */
+function getIdField(modelName: string): string {
+  const fieldMap: Record<string, string> = {
+    'planning': 'planningId',
+    'quotation': 'quotationId',
+    'invoice': 'invoiceId',
+    'expense': 'expenseId',
+    'paragonTicket': 'ticketId',
+    'erhaTicket': 'ticketId'
+  }
+  return fieldMap[modelName] || `${modelName}Id`
+}
+
+/**
+ * Ensure sequence exists for this prefix-year
+ */
+async function ensureSequence(prefix: string, year: number, modelName: string): Promise<void> {
+  const sequenceName = getSequenceName(prefix, year)
+  
+  // Check if sequence exists
+  const existing = await prisma.$queryRaw<Array<{ exists: boolean }>>`
+    SELECT EXISTS (
+      SELECT FROM pg_sequences 
+      WHERE schemaname = 'public' AND sequencename = ${sequenceName}
+    ) as exists
+  `
+  
+  if (!existing[0]?.exists) {
+    // Find the current max number from database
+    const idField = getIdField(modelName)
+    const searchPrefix = `${prefix}-${year}-`
+    
+    const lastRecord = await (prisma as any)[modelName].findFirst({
+      where: {
+        [idField]: {
+          startsWith: searchPrefix
+        }
+      },
+      orderBy: {
+        [idField]: 'desc'
+      },
+      select: {
+        [idField]: true
+      }
+    })
+    
+    let startValue = 1
+    if (lastRecord) {
+      const parts = lastRecord[idField].split('-')
+      const lastNumber = parseInt(parts[2]) || 0
+      startValue = lastNumber + 1
+    }
+    
+    // Create sequence starting from the next number
+    try {
+      await prisma.$executeRawUnsafe(`
+        CREATE SEQUENCE IF NOT EXISTS "${sequenceName}" START WITH ${startValue}
+      `)
+    } catch (e) {
+      // Sequence might have been created by another process - that's OK
+    }
+  }
+}
 
 /**
  * Generate a unique ID with format PREFIX-YYYY-NNNN
- * Uses in-memory cache to minimize database queries
- * Thread-safe: prevents race conditions with lock mechanism
+ * Uses PostgreSQL sequences for true atomicity
  */
 export async function generateId(
   prefix: 'PLN' | 'QTN' | 'INV' | 'EXP' | 'PRG' | 'ERH',
   modelName: 'planning' | 'quotation' | 'invoice' | 'expense' | 'paragonTicket' | 'erhaTicket'
 ): Promise<string> {
   const year = new Date().getFullYear()
-  const cacheKey = `${prefix}-${year}`
-
-  // If there's already a generation in progress for this key, wait for it
-  const existingLock = generationLocks.get(cacheKey)
-  if (existingLock) {
-    await existingLock
-  }
-
-  // Create a new lock for this generation
-  const generationPromise = (async () => {
-    const now = Date.now()
-
-    // Check cache
-    let cached = idCache.get(cacheKey)
-
-    // Invalidate cache if year changed or TTL expired
-    if (!cached || cached.year !== year || (now - cached.lastFetch) > CACHE_TTL) {
-      // Fetch latest number from database
-      const idField = `${modelName}Id` as const
-      const searchPrefix = `${prefix}-${year}-`
-
-      const lastRecord = await (prisma as any)[modelName].findFirst({
-        where: {
-          [idField]: {
-            startsWith: searchPrefix
-          }
-        },
-        orderBy: {
-          [idField]: 'desc'
-        },
-        select: {
-          [idField]: true
-        }
-      })
-
-      let lastNumber = 0
-      if (lastRecord) {
-        const parts = lastRecord[idField].split('-')
-        lastNumber = parseInt(parts[2]) || 0
-      }
-
-      cached = {
-        year,
-        lastNumber,
-        lastFetch: now
-      }
-      idCache.set(cacheKey, cached)
-    }
-
-    // Increment and update cache atomically
-    cached.lastNumber++
-    cached.lastFetch = now
-    idCache.set(cacheKey, cached)
-
-    // Return formatted ID
-    return `${prefix}-${year}-${cached.lastNumber.toString().padStart(4, '0')}`
-  })()
-
-  // Store the promise to prevent concurrent generations
-  generationLocks.set(cacheKey, generationPromise)
-
-  try {
-    const result = await generationPromise
-    return result
-  } finally {
-    // Clean up the lock after a short delay to allow any waiting requests to proceed
-    setTimeout(() => generationLocks.delete(cacheKey), 100)
-  }
+  const sequenceName = getSequenceName(prefix, year)
+  
+  // Ensure sequence exists (idempotent)
+  await ensureSequence(prefix, year, modelName)
+  
+  // Get next value from sequence (atomic operation)
+  const result = await prisma.$queryRawUnsafe<Array<{ nextval: bigint }>>(
+    `SELECT nextval('"${sequenceName}"')`
+  )
+  
+  const nextNumber = Number(result[0].nextval)
+  
+  // Return formatted ID
+  return `${prefix}-${year}-${nextNumber.toString().padStart(4, '0')}`
 }
 
 /**
  * Clear cache for a specific prefix and year
- * Useful when you need to force a database refresh
+ * Note: This doesn't affect sequences, only the optimization cache
  */
 export function clearIdCache(prefix?: string, year?: number) {
   if (prefix && year) {
     idCache.delete(`${prefix}-${year}`)
   } else if (prefix) {
-    // Clear all entries for this prefix
     for (const key of idCache.keys()) {
       if (key.startsWith(`${prefix}-`)) {
         idCache.delete(key)
       }
     }
   } else {
-    // Clear entire cache
     idCache.clear()
   }
 }
