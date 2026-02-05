@@ -467,11 +467,14 @@ describe('🔴 CRITICAL: Invoice Complete Flow', () => {
       }
     })
 
-    // Create expense linked to invoice
+    // Create expense linked to invoice (with snapshot data)
     const expense = await prisma.expense.create({
       data: {
         expenseId: `EXP-TEST-${Date.now()}`,
-        invoiceId: invoice.id, // Link to invoice
+        invoiceId: invoice.id, // Keep old ID for backward compat
+        invoiceNumber: invoice.invoiceId, // Snapshot field
+        invoiceProductionDate: invoice.productionDate, // Snapshot field
+        invoiceTotalAmount: invoice.totalAmount, // Snapshot field
         projectName: 'Test Project',
         productionDate: new Date(),
         clientBudget: 10000000,
@@ -482,14 +485,14 @@ describe('🔴 CRITICAL: Invoice Complete Flow', () => {
     })
 
     expect(expense.invoiceId).toBe(invoice.id)
+    expect(expense.invoiceNumber).toBe(invoice.invoiceId)
 
-    // Verify relationship
-    const invoiceWithExpenses = await prisma.invoice.findUnique({
-      where: { id: invoice.id },
-      include: { expenses: true }
+    // Verify relationship (using snapshot field since FK removed)
+    const expensesForInvoice = await prisma.expense.findMany({
+      where: { invoiceNumber: invoice.invoiceId }
     })
-    expect(invoiceWithExpenses?.expenses.length).toBe(1)
-    expect(invoiceWithExpenses?.expenses[0].id).toBe(expense.id)
+    expect(expensesForInvoice.length).toBe(1)
+    expect(expensesForInvoice[0].id).toBe(expense.id)
 
     // Cleanup
     await prisma.expense.delete({ where: { id: expense.id } })

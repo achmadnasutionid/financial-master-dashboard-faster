@@ -48,6 +48,7 @@ export async function GET(request: Request) {
       where: includeDeleted ? {} : { deletedAt: null },
       include: {
         details: {
+          where: includeDeleted ? {} : { deletedAt: null }, // Exclude soft-deleted details
           orderBy: {
             createdAt: "asc"
           }

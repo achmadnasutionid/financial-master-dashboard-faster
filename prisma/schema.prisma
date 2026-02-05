@@ -63,16 +63,18 @@ model Product {
 }
 
 model ProductDetail {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   productId String
   detail    String
   unitPrice Float
   qty       Float
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  product   Product   @relation(fields: [productId], references: [id])
 
   @@index([productId])
+  @@index([deletedAt])
 }
 
 model Planning {
@@ -83,7 +85,8 @@ model Planning {
   clientBudget         Float
   notes                String?
   status               String         @default("draft")
-  generatedQuotationId String?
+  generatedQuotationId String?        @unique
+  generatedQuotation   Quotation?     @relation("GeneratedFromPlanning")
   deletedAt            DateTime?
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
@@ -94,6 +97,7 @@ model Planning {
   @@index([updatedAt])
   @@index([status, updatedAt, deletedAt])
   @@index([planningId, status, deletedAt])
+  @@index([generatedQuotationId])
 }
 
 model PlanningItem {
@@ -112,8 +116,8 @@ model PlanningItem {
 }
 
 model Quotation {
-  id                     String            @id @default(cuid())
-  quotationId            String            @unique
+  id                     String               @id @default(cuid())
+  quotationId            String               @unique
   companyName            String
   companyAddress         String
   companyCity            String
@@ -136,13 +140,16 @@ model Quotation {
   signatureImageData     String
   pph                    String
   totalAmount            Float
-  summaryOrder           String?           @default("subtotal,pph,total")
+  summaryOrder           String?              @default("subtotal,pph,total")
   termsAndConditions     String?
-  status                 String            @default("draft")
-  generatedInvoiceId     String?
+  status                 String               @default("draft")
+  generatedInvoiceId     String?              @unique
+  generatedInvoice       Invoice?             @relation("GeneratedFromQuotation")
+  sourcePlanningId       String?              @unique
+  sourcePlanning         Planning?            @relation("GeneratedFromPlanning", fields: [sourcePlanningId], references: [id], onDelete: SetNull)
   deletedAt              DateTime?
-  createdAt              DateTime          @default(now())
-  updatedAt              DateTime          @updatedAt
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
   items                  QuotationItem[]
   remarks                QuotationRemark[]
   signatures             QuotationSignature[]
@@ -154,6 +161,8 @@ model Quotation {
   @@index([productionDate, status, deletedAt])
   @@index([status, updatedAt, deletedAt])
   @@index([companyName])
+  @@index([generatedInvoiceId])
+  @@index([sourcePlanningId])
 }
 
 model QuotationItem {
@@ -200,23 +209,23 @@ model QuotationRemark {
 }
 
 model QuotationSignature {
-  id               String    @id @default(cuid())
-  quotationId      String
-  name             String
-  position         String
-  imageData        String
-  order            Int       @default(0)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  quotation        Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  quotationId String
+  name        String
+  position    String
+  imageData   String
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
 
   @@index([quotationId])
   @@index([quotationId, order])
 }
 
 model Invoice {
-  id                     String          @id @default(cuid())
-  invoiceId              String          @unique
+  id                     String             @id @default(cuid())
+  invoiceId              String             @unique
   planningId             String?
   companyName            String
   companyAddress         String
@@ -241,14 +250,16 @@ model Invoice {
   signatureImageData     String
   pph                    String
   totalAmount            Float
-  summaryOrder           String?           @default("subtotal,pph,total")
+  summaryOrder           String?            @default("subtotal,pph,total")
   termsAndConditions     String?
-  status                 String          @default("draft")
-  generatedExpenseId     String?
+  status                 String             @default("draft")
+  generatedExpenseId     String?            @unique
+  generatedExpense       Expense?           @relation("GeneratedFromInvoice")
+  sourceQuotationId      String?            @unique
+  sourceQuotation        Quotation?         @relation("GeneratedFromQuotation", fields: [sourceQuotationId], references: [id], onDelete: SetNull)
   deletedAt              DateTime?
-  createdAt              DateTime        @default(now())
-  updatedAt              DateTime            @updatedAt
-  expenses               Expense[]
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
   items                  InvoiceItem[]
   remarks                InvoiceRemark[]
   signatures             InvoiceSignature[]
@@ -262,6 +273,8 @@ model Invoice {
   @@index([companyName])
   @@index([planningId])
   @@index([paidDate, status, deletedAt])
+  @@index([generatedExpenseId])
+  @@index([sourceQuotationId])
 }
 
 model InvoiceItem {
@@ -308,38 +321,48 @@ model InvoiceRemark {
 }
 
 model InvoiceSignature {
-  id               String   @id @default(cuid())
-  invoiceId        String
-  name             String
-  position         String
-  imageData        String
-  order            Int      @default(0)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  invoice          Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  invoiceId String
+  name      String
+  position  String
+  imageData String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
   @@index([invoiceId, order])
 }
 
 model Expense {
-  id                   String        @id @default(cuid())
-  expenseId            String        @unique
-  invoiceId            String?
-  planningId           String?
-  projectName          String
-  productionDate       DateTime
-  clientBudget         Float         @default(0)
-  paidAmount           Float         @default(0)
-  totalItemBudgeted    Float         @default(0)
-  totalItemDifferences Float         @default(0)
-  notes                String?
-  status               String        @default("draft")
-  deletedAt            DateTime?
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
-  invoice              Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  items                ExpenseItem[]
+  id                    String        @id @default(cuid())
+  expenseId             String        @unique
+  invoiceId             String?
+  planningId            String?
+  // Snapshot fields for invoice reference (no FK cascade)
+  invoiceNumber         String?
+  invoiceProductionDate DateTime?
+  invoiceTotalAmount    Float?
+  invoicePaidDate       DateTime?
+  // Snapshot fields for planning reference
+  planningNumber        String?
+  planningClientName    String?
+  // Expense data
+  projectName           String
+  productionDate        DateTime
+  clientBudget          Float         @default(0)
+  paidAmount            Float         @default(0)
+  totalItemBudgeted     Float         @default(0)
+  totalItemDifferences  Float         @default(0)
+  notes                 String?
+  status                String        @default("draft")
+  deletedAt             DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  sourceInvoiceId       String?       @unique
+  sourceInvoice         Invoice?      @relation("GeneratedFromInvoice", fields: [sourceInvoiceId], references: [id], onDelete: SetNull)
+  items                 ExpenseItem[]
 
   @@index([status, deletedAt])
   @@index([expenseId])
@@ -349,6 +372,9 @@ model Expense {
   @@index([status, updatedAt, deletedAt])
   @@index([invoiceId])
   @@index([planningId])
+  @@index([invoiceNumber])
+  @@index([planningNumber])
+  @@index([sourceInvoiceId])
 }
 
 model ExpenseItem {

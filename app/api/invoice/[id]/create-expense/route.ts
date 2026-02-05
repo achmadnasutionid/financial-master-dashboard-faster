@@ -37,9 +37,9 @@ export async function POST(
       )
     }
 
-    // Check if expense already exists for this invoice
+    // Check if expense already exists for this invoice (using snapshot field)
     const existingExpense = await prisma.expense.findFirst({
-      where: { invoiceId }
+      where: { invoiceNumber: invoice.invoiceId }
     })
 
     if (existingExpense) {
@@ -54,17 +54,16 @@ export async function POST(
 
     // Get planning data if invoice has planning reference
     let planningItems: any[] = []
-    let clientBudget = 0
+    let planningData: any = null
     if (invoice.planningId) {
-      const planning = await prisma.planning.findUnique({
+      planningData = await prisma.planning.findUnique({
         where: { id: invoice.planningId },
         include: {
           items: true
         }
       })
-      if (planning) {
-        planningItems = planning.items
-        clientBudget = planning.clientBudget
+      if (planningData) {
+        planningItems = planningData.items
       }
     }
 
@@ -85,16 +84,26 @@ export async function POST(
       }
     })
 
-    // Create expense
+    // Create expense with SNAPSHOT data (no FK relationships)
     const expense = await prisma.expense.create({
       data: {
         expenseId,
+        // Keep old IDs for backward compatibility / queries
         invoiceId,
         planningId: invoice.planningId,
+        // NEW: Snapshot fields for invoice
+        invoiceNumber: invoice.invoiceId,
+        invoiceProductionDate: invoice.productionDate,
+        invoiceTotalAmount: invoice.totalAmount,
+        invoicePaidDate: invoice.paidDate,
+        // NEW: Snapshot fields for planning
+        planningNumber: planningData?.planningId || null,
+        planningClientName: planningData?.clientName || null,
+        // Expense data
         projectName: invoice.billTo,
-        productionDate: invoice.productionDate, // Auto-filled from invoice
-        clientBudget, // Auto-filled from planning or 0
-        paidAmount: invoice.totalAmount, // Amount actually paid (invoice total after tax)
+        productionDate: invoice.productionDate,
+        clientBudget: planningData?.clientBudget || 0,
+        paidAmount: invoice.totalAmount,
         notes: invoice.notes,
         status: "draft",
         items: {

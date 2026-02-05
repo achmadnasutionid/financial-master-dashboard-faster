@@ -158,6 +158,14 @@ export interface Expense {
   expenseId: string
   invoiceId: string | null
   planningId: string | null
+  // Snapshot fields (no FK relationships)
+  invoiceNumber: string | null
+  invoiceProductionDate: Date | null
+  invoiceTotalAmount: number | null
+  invoicePaidDate: Date | null
+  planningNumber: string | null
+  planningClientName: string | null
+  // Expense data
   projectName: string
   productionDate: Date
   clientBudget: number

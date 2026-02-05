@@ -12,6 +12,7 @@ export async function GET(
       where: { id, deletedAt: null },
       include: {
         details: {
+          where: { deletedAt: null }, // Also exclude soft-deleted details
           orderBy: {
             createdAt: "asc"
           }
@@ -106,7 +107,7 @@ export async function PUT(
   }
 }
 
-// DELETE product (soft delete)
+// DELETE product (soft delete with details)
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -114,10 +115,19 @@ export async function DELETE(
   try {
     const { id } = await params
     
-    await prisma.product.update({
-      where: { id },
-      data: { deletedAt: new Date() }
-    })
+    const now = new Date()
+    
+    // Soft-delete both product and its details in transaction
+    await prisma.$transaction([
+      prisma.product.update({
+        where: { id },
+        data: { deletedAt: now }
+      }),
+      prisma.productDetail.updateMany({
+        where: { productId: id },
+        data: { deletedAt: now }
+      })
+    ])
 
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -129,7 +139,7 @@ export async function DELETE(
   }
 }
 
-// PATCH restore product
+// PATCH restore product (with details)
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -139,10 +149,17 @@ export async function PATCH(
     const body = await request.json()
     
     if (body.action === "restore") {
-      await prisma.product.update({
-        where: { id },
-        data: { deletedAt: null }
-      })
+      // Restore both product and its details in transaction
+      await prisma.$transaction([
+        prisma.product.update({
+          where: { id },
+          data: { deletedAt: null }
+        }),
+        prisma.productDetail.updateMany({
+          where: { productId: id },
+          data: { deletedAt: null }
+        })
+      ])
       return NextResponse.json({ success: true })
     }
     

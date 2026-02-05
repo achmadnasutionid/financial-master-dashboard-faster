@@ -29,7 +29,8 @@ export async function GET(request: Request) {
     if (search) {
       where.OR = [
         { expenseId: { contains: search, mode: 'insensitive' } },
-        { projectName: { contains: search, mode: 'insensitive' } }
+        { projectName: { contains: search, mode: 'insensitive' } },
+        { invoiceNumber: { contains: search, mode: 'insensitive' } } // Search by snapshot
       ]
     }
 
@@ -49,12 +50,10 @@ export async function GET(request: Request) {
           status: true,
           createdAt: true,
           updatedAt: true,
-          // Only include invoice production date, not all invoice data
-          invoice: {
-            select: {
-              productionDate: true
-            }
-          },
+          // Snapshot fields
+          invoiceNumber: true,
+          invoiceProductionDate: true,
+          planningNumber: true,
           // Include items for calculation in list view
           items: {
             select: {
