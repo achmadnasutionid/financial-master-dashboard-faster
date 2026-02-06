@@ -55,6 +55,42 @@ describe('Smart Auto-Save Integration Tests', () => {
     if (testBilling?.id) await prisma.billing.delete({ where: { id: testBilling.id } })
     if (testSignature?.id) await prisma.signature.delete({ where: { id: testSignature.id } })
   })
+  
+  afterAll(async () => {
+    // Final cleanup: catch any stragglers from tests that create their own data
+    // Clean up any test planning records
+    const testPlannings = await prisma.planning.findMany({
+      where: {
+        OR: [
+          { projectName: { contains: 'Test Project' } },
+          { projectName: { contains: 'Updated Project' } },
+          { clientName: { contains: 'Test Client' } }
+        ]
+      }
+    })
+    
+    for (const planning of testPlannings) {
+      await prisma.planningItem.deleteMany({ where: { planningId: planning.id } })
+      await prisma.planning.delete({ where: { id: planning.id } })
+    }
+    
+    // Clean up any test expense records
+    const testExpenses = await prisma.expense.findMany({
+      where: {
+        OR: [
+          { projectName: { contains: 'Test Project' } },
+          { projectName: { contains: 'Updated Project' } },
+          { projectName: { contains: 'Test Expense' } },
+          { expenseId: { startsWith: 'E-' } } // Old prefix format
+        ]
+      }
+    })
+    
+    for (const expense of testExpenses) {
+      await prisma.expenseItem.deleteMany({ where: { expenseId: expense.id } })
+      await prisma.expense.delete({ where: { id: expense.id } })
+    }
+  })
 
   describe('1. Mandatory Field Validation', () => {
     it('should NOT auto-save when mandatory fields are missing', async () => {
