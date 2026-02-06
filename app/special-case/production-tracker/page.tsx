@@ -1,10 +1,19 @@
 "use client"
 
-import { useEffect, useState, useCallback, useRef } from "react"
+import { useEffect, useState, useCallback, useRef, useMemo } from "react"
 import { PageHeader } from "@/components/layout/page-header"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
+import { NumericFormat } from "react-number-format"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Plus, Trash2, Search, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -55,12 +64,14 @@ export default function ProductionTrackerPage() {
   const [trackers, setTrackers] = useState<ProductionTracker[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [selectedYear, setSelectedYear] = useState<string>("all")
   const [editingCell, setEditingCell] = useState<{rowId: string, field: string} | null>(null)
   const [editValue, setEditValue] = useState<any>("")
   const [creating, setCreating] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const tableRef = useRef<HTMLDivElement>(null)
+  const isClickingCell = useRef(false)
 
   // Calculate expense from all product columns except PHOTOGRAPHER
   const calculateExpense = (productAmounts: Record<string, number>) => {
@@ -103,10 +114,7 @@ export default function ProductionTrackerPage() {
 
   const fetchTrackers = useCallback(async () => {
     try {
-      const params = new URLSearchParams()
-      if (searchQuery.trim()) params.append("search", searchQuery.trim())
-
-      const response = await fetch(`/api/production-tracker?${params}`)
+      const response = await fetch(`/api/production-tracker`)
       if (response.ok) {
         const data = await response.json()
         setTrackers(data)
@@ -116,12 +124,46 @@ export default function ProductionTrackerPage() {
     } finally {
       setLoading(false)
     }
-  }, [searchQuery])
+  }, [])
 
+  // Fetch on mount only
   useEffect(() => {
-    setLoading(true)
     fetchTrackers()
   }, [fetchTrackers])
+
+  // Extract available years from trackers
+  const availableYears = useMemo(() => {
+    const years = new Set<number>()
+    trackers.forEach(tracker => {
+      const year = new Date(tracker.date).getFullYear()
+      if (!isNaN(year)) years.add(year)
+    })
+    return Array.from(years).sort((a, b) => b - a) // Sort descending (newest first)
+  }, [trackers])
+
+  // Filter by year first, then by search query
+  const filteredTrackers = useMemo(() => {
+    let filtered = trackers
+
+    // Filter by year
+    if (selectedYear !== "all") {
+      filtered = filtered.filter(tracker => {
+        const year = new Date(tracker.date).getFullYear()
+        return year.toString() === selectedYear
+      })
+    }
+
+    // Then filter by search query (expense ID or project name)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(tracker =>
+        tracker.expenseId.toLowerCase().includes(query) ||
+        tracker.projectName.toLowerCase().includes(query)
+      )
+    }
+
+    return filtered
+  }, [trackers, selectedYear, searchQuery])
 
   const handleCreateRow = async () => {
     if (creating) return
@@ -157,7 +199,14 @@ export default function ProductionTrackerPage() {
     }
   }
 
-  const handleCellClick = (tracker: ProductionTracker, field: string) => {
+  const handleCellClick = async (tracker: ProductionTracker, field: string) => {
+    // If we're currently editing another cell, save it first
+    if (editingCell && (editingCell.rowId !== tracker.id || editingCell.field !== field)) {
+      isClickingCell.current = true
+      await handleCellBlur()
+      isClickingCell.current = false
+    }
+    
     setEditingCell({ rowId: tracker.id, field })
     
     // Set initial value based on field type
@@ -330,7 +379,7 @@ export default function ProductionTrackerPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PageHeader title="Production Tracker" showBackButton={true} />
+      <PageHeader title="Production Tracker" showBackButton={true} hideThemeToggle={true} />
       <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-6">
         <div className="w-full max-w-[98vw] mx-auto space-y-4">
           {/* Controls */}
@@ -338,16 +387,31 @@ export default function ProductionTrackerPage() {
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search by ID, Expense ID, or Project..."
+                placeholder="Search by Expense ID or Project..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
               />
             </div>
-            <Button onClick={handleCreateRow} disabled={creating}>
-              <Plus className="mr-2 h-4 w-4" />
-              {creating ? "Creating..." : "New Row"}
-            </Button>
+            <div className="ml-auto flex items-center gap-3">
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select year" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Years</SelectItem>
+                  {availableYears.map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={handleCreateRow} disabled={creating}>
+                <Plus className="mr-2 h-4 w-4" />
+                {creating ? "Creating..." : "New Row"}
+              </Button>
+            </div>
           </div>
 
           {/* Full-width Table with Extended Sticky Columns */}
@@ -360,33 +424,30 @@ export default function ProductionTrackerPage() {
                 <tr>
                   {/* ID Columns - Gray */}
                   <th className="sticky left-0 z-40 border-r border-b border-border p-2 text-left font-semibold min-w-[110px] bg-gray-100 shadow-[2px_0_4px_rgba(0,0,0,0.1)]">
-                    Tracker ID
-                  </th>
-                  <th className="sticky left-[110px] z-40 border-r border-b border-border p-2 text-left font-semibold min-w-[110px] bg-gray-100">
                     Expense ID
                   </th>
                   
                   {/* Project Info - Blue */}
-                  <th className="sticky left-[220px] z-40 border-r border-b border-border p-2 text-left font-semibold min-w-[180px] bg-blue-50">
+                  <th className="sticky left-[110px] z-40 border-r border-b border-border p-2 text-left font-semibold min-w-[180px] bg-blue-50">
                     Project Name
                   </th>
-                  <th className="sticky left-[400px] z-40 border-r border-b border-border p-2 text-left font-semibold min-w-[85px] bg-blue-50">
+                  <th className="sticky left-[290px] z-40 border-r border-b border-border p-2 text-left font-semibold w-[180px] min-w-[180px] bg-blue-50">
                     Date
                   </th>
                   
                   {/* Financial Summary - Green */}
-                  <th className="sticky left-[485px] z-40 border-r border-b border-border p-2 text-left font-semibold w-[140px] min-w-[140px] bg-green-50">
+                  <th className="sticky left-[470px] z-40 border-r border-b border-border p-2 text-left font-semibold w-[140px] min-w-[140px] bg-green-50">
                     Subtotal
                   </th>
-                  <th className="sticky left-[625px] z-40 border-r border-b border-border p-2 text-left font-semibold w-[140px] min-w-[140px] bg-green-50">
+                  <th className="sticky left-[610px] z-40 border-r border-b border-border p-2 text-left font-semibold w-[140px] min-w-[140px] bg-green-50">
                     Total
                   </th>
                   
                   {/* Calculated Columns - Yellow/Orange */}
-                  <th className="sticky left-[765px] z-40 border-r border-b border-border p-2 text-left font-semibold w-[140px] min-w-[140px] bg-amber-50">
+                  <th className="sticky left-[750px] z-40 border-r border-b border-border p-2 text-left font-semibold w-[140px] min-w-[140px] bg-amber-50">
                     Expense
                   </th>
-                  <th className="sticky left-[905px] z-40 border-r border-b border-border p-2 text-left font-semibold w-[140px] min-w-[140px] bg-amber-50 shadow-[2px_0_4px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                  <th className="sticky left-[890px] z-40 border-r border-b border-border p-2 text-left font-semibold w-[140px] min-w-[140px] bg-amber-50 shadow-[2px_0_4px_rgba(0,0,0,0.1)] whitespace-nowrap">
                     PHOTOGRAPHER
                   </th>
                   
@@ -407,25 +468,70 @@ export default function ProductionTrackerPage() {
                 </tr>
               </thead>
               <tbody>
-                {trackers.length === 0 ? (
+                {loading ? (
+                  // Skeleton loading rows
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <tr key={`skeleton-${index}`}>
+                      {/* Expense ID - Gray */}
+                      <td className="sticky left-0 z-20 border-r border-b border-border p-2 bg-gray-50 shadow-[2px_0_4px_rgba(0,0,0,0.05)]">
+                        <Skeleton className="h-5 w-full" />
+                      </td>
+                      {/* Project Name - Blue */}
+                      <td className="sticky left-[110px] z-20 border-r border-b border-border p-2 bg-blue-50">
+                        <Skeleton className="h-5 w-full" />
+                      </td>
+                      {/* Date - Blue */}
+                      <td className="sticky left-[290px] z-20 border-r border-b border-border p-2 bg-blue-50 w-[180px] min-w-[180px]">
+                        <Skeleton className="h-5 w-full" />
+                      </td>
+                      {/* Subtotal - Green */}
+                      <td className="sticky left-[470px] z-20 border-r border-b border-border p-2 bg-green-50 w-[140px] min-w-[140px]">
+                        <Skeleton className="h-5 w-full" />
+                      </td>
+                      {/* Total - Green */}
+                      <td className="sticky left-[610px] z-20 border-r border-b border-border p-2 bg-green-50 w-[140px] min-w-[140px]">
+                        <Skeleton className="h-5 w-full" />
+                      </td>
+                      {/* Expense - Amber */}
+                      <td className="sticky left-[750px] z-20 border-r border-b border-border p-2 bg-amber-50 w-[140px] min-w-[140px]">
+                        <Skeleton className="h-5 w-full" />
+                      </td>
+                      {/* PHOTOGRAPHER - Amber */}
+                      <td className="sticky left-[890px] z-20 border-r border-b border-border p-2 bg-amber-50 w-[140px] min-w-[140px] shadow-[2px_0_4px_rgba(0,0,0,0.05)]">
+                        <Skeleton className="h-5 w-full" />
+                      </td>
+                      {/* Product Columns - Purple */}
+                      {PRODUCT_COLUMNS.slice(1).map((product, idx) => (
+                        <td key={product} className={cn(
+                          "border-r border-b border-border p-2 bg-purple-50 w-[140px] min-w-[140px]",
+                          idx === PRODUCT_COLUMNS.slice(1).length - 1 && "border-r-2"
+                        )}>
+                          <Skeleton className="h-5 w-full" />
+                        </td>
+                      ))}
+                      {/* Action Column - Red */}
+                      <td className="sticky right-0 z-20 border-l-2 border-b border-border p-2 bg-red-50 shadow-[-2px_0_4px_rgba(0,0,0,0.05)]">
+                        <Skeleton className="h-5 w-5 mx-auto" />
+                      </td>
+                    </tr>
+                  ))
+                ) : trackers.length === 0 ? (
                   <tr>
-                    <td colSpan={PRODUCT_COLUMNS.length + 8} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={PRODUCT_COLUMNS.length + 7} className="p-8 text-center text-muted-foreground">
                       No data yet. Click "New Row" to start.
                     </td>
                   </tr>
                 ) : (
-                  trackers.map((tracker) => {
+                  filteredTrackers.map((tracker) => {
                     return (
                       <tr key={tracker.id} className="transition-colors hover:bg-muted/30">
-                        {/* Tracker ID - Not editable - Gray */}
-                        <td className="sticky left-0 z-20 border-r border-b border-border p-2 text-xs bg-gray-50 shadow-[2px_0_4px_rgba(0,0,0,0.05)]">
-                          {tracker.trackerId}
-                        </td>
-                        
                         {/* Expense ID - Editable - Gray */}
                         <td 
-                          className="sticky left-[110px] z-20 border-r border-b border-border p-2 bg-gray-50 cursor-pointer hover:bg-gray-100"
-                          onClick={() => handleCellClick(tracker, 'expenseId')}
+                          className="sticky left-0 z-20 border-r border-b border-border p-2 bg-gray-50 cursor-pointer hover:bg-gray-100 shadow-[2px_0_4px_rgba(0,0,0,0.05)]"
+                          onMouseDown={(e) => {
+                            e.preventDefault()
+                            handleCellClick(tracker, 'expenseId')
+                          }}
                         >
                           {editingCell?.rowId === tracker.id && editingCell?.field === 'expenseId' ? (
                             <Input
@@ -443,8 +549,11 @@ export default function ProductionTrackerPage() {
                         
                         {/* Project Name - Editable - Blue */}
                         <td 
-                          className="sticky left-[220px] z-20 border-r border-b border-border p-2 bg-blue-50 cursor-pointer hover:bg-blue-100"
-                          onClick={() => handleCellClick(tracker, 'projectName')}
+                          className="sticky left-[110px] z-20 border-r border-b border-border p-2 bg-blue-50 cursor-pointer hover:bg-blue-100"
+                          onMouseDown={(e) => {
+                            e.preventDefault()
+                            handleCellClick(tracker, 'projectName')
+                          }}
                         >
                           {editingCell?.rowId === tracker.id && editingCell?.field === 'projectName' ? (
                             <Input
@@ -462,8 +571,11 @@ export default function ProductionTrackerPage() {
                         
                         {/* Date - Editable - Blue */}
                         <td 
-                          className="sticky left-[400px] z-20 border-r border-b border-border p-2 bg-blue-50 cursor-pointer hover:bg-blue-100"
-                          onClick={() => handleCellClick(tracker, 'date')}
+                          className="sticky left-[290px] z-20 border-r border-b border-border p-2 bg-blue-50 cursor-pointer hover:bg-blue-100 w-[180px] min-w-[180px]"
+                          onMouseDown={(e) => {
+                            e.preventDefault()
+                            handleCellClick(tracker, 'date')
+                          }}
                         >
                           {editingCell?.rowId === tracker.id && editingCell?.field === 'date' ? (
                             <Input
@@ -472,7 +584,7 @@ export default function ProductionTrackerPage() {
                               onChange={(e) => setEditValue(e.target.value)}
                               onBlur={handleBlur}
                               onKeyDown={handleKeyDown}
-                              className="h-7 text-xs"
+                              className="h-7 text-xs w-full"
                               autoFocus
                             />
                           ) : (
@@ -482,18 +594,24 @@ export default function ProductionTrackerPage() {
                         
                         {/* Subtotal - Editable - Green */}
                         <td 
-                          className="sticky left-[485px] z-20 border-r border-b border-border p-2 text-right bg-green-50 cursor-pointer hover:bg-green-100 w-[140px] min-w-[140px]"
-                          onClick={() => handleCellClick(tracker, 'subtotal')}
+                          className="sticky left-[470px] z-20 border-r border-b border-border p-2 text-right bg-green-50 cursor-pointer hover:bg-green-100 w-[140px] min-w-[140px]"
+                          onMouseDown={(e) => {
+                            e.preventDefault()
+                            handleCellClick(tracker, 'subtotal')
+                          }}
                         >
                           {editingCell?.rowId === tracker.id && editingCell?.field === 'subtotal' ? (
-                            <Input
-                              type="number"
+                            <NumericFormat
                               value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
+                              onValueChange={(values) => setEditValue(values.value)}
                               onBlur={handleBlur}
                               onKeyDown={handleKeyDown}
-                              className="h-7 text-xs text-right w-full"
+                              thousandSeparator="."
+                              decimalSeparator=","
+                              decimalScale={0}
+                              allowNegative={false}
                               placeholder="0"
+                              className="flex h-7 w-full rounded-md border border-input bg-background px-3 py-2 text-xs text-right ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                               autoFocus
                             />
                           ) : (
@@ -503,18 +621,24 @@ export default function ProductionTrackerPage() {
                         
                         {/* Total Amount - Editable - Green */}
                         <td 
-                          className="sticky left-[625px] z-20 border-r border-b border-border p-2 text-right bg-green-50 cursor-pointer hover:bg-green-100 w-[140px] min-w-[140px]"
-                          onClick={() => handleCellClick(tracker, 'totalAmount')}
+                          className="sticky left-[610px] z-20 border-r border-b border-border p-2 text-right bg-green-50 cursor-pointer hover:bg-green-100 w-[140px] min-w-[140px]"
+                          onMouseDown={(e) => {
+                            e.preventDefault()
+                            handleCellClick(tracker, 'totalAmount')
+                          }}
                         >
                           {editingCell?.rowId === tracker.id && editingCell?.field === 'totalAmount' ? (
-                            <Input
-                              type="number"
+                            <NumericFormat
                               value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
+                              onValueChange={(values) => setEditValue(values.value)}
                               onBlur={handleBlur}
                               onKeyDown={handleKeyDown}
-                              className="h-7 text-xs text-right w-full"
+                              thousandSeparator="."
+                              decimalSeparator=","
+                              decimalScale={0}
+                              allowNegative={false}
                               placeholder="0"
+                              className="flex h-7 w-full rounded-md border border-input bg-background px-3 py-2 text-xs text-right ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                               autoFocus
                             />
                           ) : (
@@ -524,7 +648,7 @@ export default function ProductionTrackerPage() {
                         
                         {/* Expense - Calculated (Non-editable) - Amber */}
                         <td 
-                          className="sticky left-[765px] z-20 border-r border-b border-border p-2 text-right bg-amber-50 w-[140px] min-w-[140px]"
+                          className="sticky left-[750px] z-20 border-r border-b border-border p-2 text-right bg-amber-50 w-[140px] min-w-[140px]"
                         >
                           <span className="text-xs font-medium text-amber-700">
                             {formatCurrency(calculateExpense(tracker.productAmounts || {}))}
@@ -533,7 +657,7 @@ export default function ProductionTrackerPage() {
                         
                         {/* PHOTOGRAPHER - Calculated (Non-editable) - Amber */}
                         <td 
-                          className="sticky left-[905px] z-20 border-r border-b border-border p-2 text-right bg-amber-50 shadow-[2px_0_4px_rgba(0,0,0,0.05)] w-[140px] min-w-[140px]"
+                          className="sticky left-[890px] z-20 border-r border-b border-border p-2 text-right bg-amber-50 shadow-[2px_0_4px_rgba(0,0,0,0.05)] w-[140px] min-w-[140px]"
                         >
                           <span className="text-xs font-medium text-amber-700">
                             {formatCurrency(calculatePhotographer(tracker.totalAmount, tracker.productAmounts || {}))}
@@ -553,17 +677,23 @@ export default function ProductionTrackerPage() {
                                 "border-r border-b border-border p-2 text-right bg-purple-50 cursor-pointer hover:bg-purple-100 w-[140px] min-w-[140px]",
                                 index === PRODUCT_COLUMNS.slice(1).length - 1 && "border-r-2"
                               )}
-                              onClick={() => handleCellClick(tracker, fieldName)}
+                              onMouseDown={(e) => {
+                                e.preventDefault()
+                                handleCellClick(tracker, fieldName)
+                              }}
                             >
                               {isEditing ? (
-                                <Input
-                                  type="number"
+                                <NumericFormat
                                   value={editValue}
-                                  onChange={(e) => setEditValue(e.target.value)}
+                                  onValueChange={(values) => setEditValue(values.value)}
                                   onBlur={handleBlur}
                                   onKeyDown={handleKeyDown}
-                                  className="h-7 text-xs text-right w-full"
+                                  thousandSeparator="."
+                                  decimalSeparator=","
+                                  decimalScale={0}
+                                  allowNegative={false}
                                   placeholder="0"
+                                  className="flex h-7 w-full rounded-md border border-input bg-background px-3 py-2 text-xs text-right ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                   autoFocus
                                 />
                               ) : (
@@ -593,6 +723,13 @@ export default function ProductionTrackerPage() {
               </tbody>
             </table>
           </div>
+
+          {/* No search results message - outside table, centered */}
+          {!loading && trackers.length > 0 && filteredTrackers.length === 0 && searchQuery.trim() && (
+            <div className="text-center py-8 text-muted-foreground">
+              No trackers found matching your search.
+            </div>
+          )}
         </div>
       </main>
       <Footer />

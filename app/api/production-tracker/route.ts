@@ -14,10 +14,15 @@ export async function GET(request: Request) {
     }
     
     if (search) {
-      where.OR = [
-        { trackerId: { contains: search, mode: 'insensitive' } },
-        { expenseId: { contains: search, mode: 'insensitive' } },
-        { projectName: { contains: search, mode: 'insensitive' } }
+      where.AND = [
+        { deletedAt: null },
+        {
+          OR: [
+            { trackerId: { contains: search, mode: 'insensitive' } },
+            { expenseId: { contains: search, mode: 'insensitive' } },
+            { projectName: { contains: search, mode: 'insensitive' } }
+          ]
+        }
       ]
     }
 

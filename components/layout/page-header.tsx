@@ -11,9 +11,10 @@ interface PageHeaderProps {
   showBackButton?: boolean
   backTo?: string
   onBackClick?: () => void
+  hideThemeToggle?: boolean
 }
 
-export function PageHeader({ title, showBackButton = false, backTo = "/", onBackClick }: PageHeaderProps) {
+export function PageHeader({ title, showBackButton = false, backTo = "/", onBackClick, hideThemeToggle = false }: PageHeaderProps) {
   const [currentDate, setCurrentDate] = useState("")
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -102,20 +103,22 @@ export function PageHeader({ title, showBackButton = false, backTo = "/", onBack
             {currentDate}
           </span>
           
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="h-9 w-9"
-            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {theme === "dark" ? (
-              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all" />
-            ) : (
-              <Moon className="h-5 w-5 rotate-0 scale-100 transition-all" />
-            )}
-            <span className="sr-only">Toggle theme</span>
-          </Button>
+          {!hideThemeToggle && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="h-9 w-9"
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {theme === "dark" ? (
+                <Sun className="h-5 w-5 rotate-0 scale-100 transition-all" />
+              ) : (
+                <Moon className="h-5 w-5 rotate-0 scale-100 transition-all" />
+              )}
+              <span className="sr-only">Toggle theme</span>
+            </Button>
+          )}
         </div>
       </div>
     </header>
