@@ -91,7 +91,7 @@ describe('Expense-Tracker Sync Integration Tests', () => {
   })
   
   afterAll(async () => {
-    // Cleanup
+    // Cleanup main test data
     if (testExpense?.id) {
       await prisma.expenseItem.deleteMany({ where: { expenseId: testExpense.id } })
       await prisma.expense.delete({ where: { id: testExpense.id } })
@@ -99,6 +99,31 @@ describe('Expense-Tracker Sync Integration Tests', () => {
     if (testTracker?.id) {
       await prisma.productionTracker.delete({ where: { id: testTracker.id } })
     }
+    
+    // Clean up any additional test data created in individual tests
+    const testExpenses = await prisma.expense.findMany({
+      where: {
+        OR: [
+          { projectName: { contains: 'Sync Test Project' } },
+          { projectName: { contains: 'Budget Preservation Test' } },
+          { projectName: { contains: 'Difference Test' } }
+        ]
+      }
+    })
+    
+    for (const expense of testExpenses) {
+      await prisma.expenseItem.deleteMany({ where: { expenseId: expense.id } })
+      await prisma.expense.delete({ where: { id: expense.id } })
+    }
+    
+    await prisma.productionTracker.deleteMany({
+      where: {
+        OR: [
+          { projectName: { contains: 'Sync Test Project' } },
+          { projectName: { contains: 'Budget Preservation Test' } }
+        ]
+      }
+    })
   })
   
   describe('1. Sync Button Functionality', () => {

@@ -55,21 +55,38 @@ describe('Production Tracker Integration Tests', () => {
   })
   
   afterAll(async () => {
-    // Cleanup
+    // Cleanup expenses created from invoice
+    if (testInvoice?.invoiceId) {
+      const expenses = await prisma.expense.findMany({
+        where: { invoiceNumber: testInvoice.invoiceId }
+      })
+      for (const expense of expenses) {
+        await prisma.expenseItem.deleteMany({ where: { expenseId: expense.id } })
+        await prisma.expense.delete({ where: { id: expense.id } })
+      }
+    }
+    
+    // Cleanup trackers
     if (testTracker?.id) {
       await prisma.productionTracker.delete({ where: { id: testTracker.id } }).catch(() => {})
     }
+    
+    // Cleanup invoice
     if (testInvoice?.id) {
       await prisma.invoiceItem.deleteMany({ where: { invoiceId: testInvoice.id } })
       await prisma.invoice.delete({ where: { id: testInvoice.id } })
     }
     
-    // Clean up any trackers created during tests
+    // Clean up any remaining test trackers
     await prisma.productionTracker.deleteMany({
       where: {
         OR: [
           { projectName: { contains: 'Test Client Project' } },
-          { projectName: { contains: 'Manual Test Project' } }
+          { projectName: { contains: 'Manual Test Project' } },
+          { projectName: { contains: 'Update Test Project' } },
+          { projectName: { contains: 'Delete Test Project' } },
+          { projectName: { contains: 'JSON Test Project' } },
+          { projectName: { contains: 'API Test Project' } }
         ]
       }
     })
