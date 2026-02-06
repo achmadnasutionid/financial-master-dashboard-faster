@@ -70,6 +70,8 @@ export default function EditExpensePage() {
     paidAmount: 0
   })
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [showSyncDialog, setShowSyncDialog] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const initialDataRef = useRef<string>("")
   const lastUpdatedAtRef = useRef<string>("")
   const [showStaleDataDialog, setShowStaleDataDialog] = useState(false)
@@ -438,6 +440,85 @@ export default function EditExpensePage() {
     await saveExpense(status)
   }
 
+  const handleSyncFromTracker = async () => {
+    setSyncing(true)
+    try {
+      console.log("Syncing from tracker, expense number:", expenseNumber)
+      
+      // Find production tracker with matching expense ID
+      const response = await fetch(`/api/production-tracker?search=${expenseNumber}`)
+      if (!response.ok) {
+        toast.error("Failed to fetch tracker data")
+        console.error("Fetch failed:", response.status)
+        return
+      }
+
+      const trackers = await response.json()
+      console.log("Trackers found:", trackers)
+      
+      const tracker = trackers.find((t: any) => t.expenseId === expenseNumber)
+      console.log("Matched tracker:", tracker)
+
+      if (!tracker) {
+        toast.error("No production tracker found for this expense", {
+          description: `No tracker with expense ID: ${expenseNumber}`
+        })
+        return
+      }
+
+      console.log("Tracker product amounts:", tracker.productAmounts)
+      console.log("Paid amount:", paidAmount)
+
+      // Replace all items with tracker products
+      const newItems = Object.entries(tracker.productAmounts).map(([productName, amount]) => {
+        // Find existing item to preserve budgeted amount if it exists
+        const existingItem = items.find(item => item.productName === productName)
+        
+        // Special handling for PHOTOGRAPHER
+        if (productName === "PHOTOGRAPHER") {
+          // PHOTOGRAPHER: Budget = paidAmount from expense, Actual = 0
+          // Difference = paidAmount (shows the total revenue/paid amount)
+          const photographerBudget = parseFloat(paidAmount) || 0
+          return {
+            id: existingItem?.id || `temp-${Date.now()}-${Math.random()}`,
+            productName: productName,
+            budgeted: photographerBudget.toString(),
+            actual: "0",
+            difference: photographerBudget // Budget - 0 = paid amount
+          }
+        }
+        
+        // For other products: keep existing budget, fill actual from tracker
+        const budgetedAmount = existingItem ? existingItem.budgeted : "0"
+        const actualAmount = (amount as number)
+        
+        return {
+          id: existingItem?.id || `temp-${Date.now()}-${Math.random()}`,
+          productName: productName,
+          budgeted: budgetedAmount,
+          actual: actualAmount.toString(),
+          difference: (parseFloat(budgetedAmount) || 0) - actualAmount
+        }
+      })
+
+      console.log("New items from tracker:", newItems)
+      setItems(newItems)
+      setHasUnsavedChanges(true)
+      
+      toast.success("Synced from production tracker", {
+        description: `Replaced with ${newItems.length} products from tracker.`
+      })
+    } catch (error) {
+      console.error("Error syncing from tracker:", error)
+      toast.error("Failed to sync from tracker", {
+        description: error instanceof Error ? error.message : "Unknown error"
+      })
+    } finally {
+      setSyncing(false)
+      setShowSyncDialog(false)
+    }
+  }
+
   const saveExpense = async (status: "draft" | "final") => {
     setSaving(true)
     try {
@@ -730,6 +811,15 @@ export default function EditExpensePage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">Expense Items</h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSyncDialog(true)}
+                    disabled={syncing || !expenseNumber}
+                  >
+                    {syncing ? "Syncing..." : "Sync from Tracker"}
+                  </Button>
                 </div>
                 
                 {/* Header Row */}
@@ -927,6 +1017,28 @@ export default function EditExpensePage() {
               disabled={saving}
             >
               Yes, Finalize
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Sync from Tracker Confirmation Dialog */}
+      <AlertDialog open={showSyncDialog} onOpenChange={setShowSyncDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sync from Production Tracker?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will replace all "Actual" amounts in the expense items with the data from the Production Tracker. 
+              Any manually entered actual amounts will be overwritten. Are you sure you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={syncing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleSyncFromTracker}
+              disabled={syncing}
+            >
+              {syncing ? "Syncing..." : "Yes, Sync Data"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -62,11 +62,17 @@ export async function PUT(
 
     // Use transaction for atomic updates with UPSERT pattern
     const expense = await prisma.$transaction(async (tx) => {
+      // Validate mandatory fields
+      if (!body.productionDate) {
+        throw new Error('Production date is required')
+      }
+
       // Update main expense data
       const updated = await tx.expense.update({
         where: { id },
         data: {
           projectName: body.projectName,
+          productionDate: new Date(body.productionDate),
           clientBudget: parseFloat(body.clientBudget),
           paidAmount: parseFloat(body.paidAmount) || 0,
           notes: body.notes || null,

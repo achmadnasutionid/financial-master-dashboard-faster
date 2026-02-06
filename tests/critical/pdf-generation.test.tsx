@@ -16,7 +16,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { QuotationPDF } from '@/components/pdf/quotation-pdf'
 import { InvoicePDF } from '@/components/pdf/invoice-pdf'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import { 
   createTestCompany, 
   createTestBilling, 

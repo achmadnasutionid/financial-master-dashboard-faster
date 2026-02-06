@@ -78,174 +78,89 @@ export function FinancialTrendsSection({
           </Card>
         </div>
       ) : (
-        <>
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Profit Trends Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">
-                  Gross & Net Profit Trends
-                </CardTitle>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Amounts in Juta Rupiah (Millions)
-                </p>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={320}>
-                  <LineChart data={trends}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip
-                      formatter={(value) =>
-                        `Rp ${Math.round(Number(value))} Juta`
-                      }
-                      contentStyle={{
-                        backgroundColor: "rgba(255, 255, 255, 0.95)",
-                        border: "1px solid #ccc",
-                      }}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="grossProfit"
-                      stroke="#2563eb"
-                      strokeWidth={2}
-                      name="Gross Profit"
-                      dot={{ r: 4 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="netProfit"
-                      stroke="#dc2626"
-                      strokeWidth={2}
-                      name="Net Profit"
-                      dot={{ r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Profit Trends Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">
+                Gross & Net Profit Trends
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                Amounts in Juta Rupiah (Millions)
+              </p>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={320}>
+                <LineChart data={trends}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip
+                    formatter={(value) =>
+                      `Rp ${Math.round(Number(value))} Juta`
+                    }
+                    contentStyle={{
+                      backgroundColor: "rgba(255, 255, 255, 0.95)",
+                      border: "1px solid #ccc",
+                    }}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="grossProfit"
+                    stroke="#2563eb"
+                    strokeWidth={2}
+                    name="Gross Profit"
+                    dot={{ r: 4 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="netProfit"
+                    stroke="#dc2626"
+                    strokeWidth={2}
+                    name="Net Profit"
+                    dot={{ r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-            {/* Budget Trends Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Budget Trends</CardTitle>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Amounts in Juta Rupiah (Millions)
-                </p>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={320}>
-                  <LineChart data={trends}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip
-                      formatter={(value) =>
-                        `Rp ${Math.round(Number(value))} Juta`
-                      }
-                      contentStyle={{
-                        backgroundColor: "rgba(255, 255, 255, 0.95)",
-                        border: "1px solid #ccc",
-                      }}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="underBudget"
-                      stroke="#2563eb"
-                      strokeWidth={2}
-                      name="Under Budget"
-                      dot={{ r: 4 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="overBudget"
-                      stroke="#dc2626"
-                      strokeWidth={2}
-                      name="Over Budget"
-                      dot={{ r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Second Row - Profit Margin and Project Volume */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Profit Margin Trend */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Profit Margin Trend</CardTitle>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Percentage of net profit to gross profit
-                </p>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={320}>
-                  <LineChart data={trends}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis label={{ value: "%", position: "insideLeft" }} />
-                    <Tooltip
-                      formatter={(value) => `${Number(value).toFixed(0)}%`}
-                      contentStyle={{
-                        backgroundColor: "rgba(255, 255, 255, 0.95)",
-                        border: "1px solid #ccc",
-                      }}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="profitMargin"
-                      stroke="#2563eb"
-                      strokeWidth={3}
-                      name="Profit Margin"
-                      dot={{ r: 5 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {/* Project Volume Trend */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Project Volume Trend</CardTitle>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Number of completed projects per month
-                </p>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={320}>
-                  <LineChart data={trends}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip
-                      formatter={(value) => `${value} projects`}
-                      contentStyle={{
-                        backgroundColor: "rgba(255, 255, 255, 0.95)",
-                        border: "1px solid #ccc",
-                      }}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="projectCount"
-                      stroke="#2563eb"
-                      strokeWidth={3}
-                      name="Project Count"
-                      dot={{ r: 5 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-        </>
+          {/* Project Volume Trend */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Project Volume Trend</CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                Number of completed projects per month
+              </p>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={320}>
+                <LineChart data={trends}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip
+                    formatter={(value) => `${value} projects`}
+                    contentStyle={{
+                      backgroundColor: "rgba(255, 255, 255, 0.95)",
+                      border: "1px solid #ccc",
+                    }}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="projectCount"
+                    stroke="#2563eb"
+                    strokeWidth={3}
+                    name="Project Count"
+                    dot={{ r: 5 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   )

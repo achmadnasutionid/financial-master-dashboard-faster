@@ -121,6 +121,86 @@ export async function POST(
       data: { generatedExpenseId: expense.id }
     })
 
+    // Create or Update Production Tracker entry
+    try {
+      // Check if a production tracker already exists with the same project name
+      const existingTracker = await prisma.productionTracker.findFirst({
+        where: {
+          projectName: invoice.billTo,
+          deletedAt: null
+        }
+      })
+
+      // Calculate subtotal from invoice items (sum of all items before PPH)
+      const subtotal = Math.round(invoice.items.reduce((sum, item) => sum + item.total, 0))
+      const totalAmount = Math.round(invoice.totalAmount)
+
+      if (existingTracker) {
+        // Update existing tracker - keep existing product amounts, only update financial data
+        const existingProductAmounts = (existingTracker.productAmounts as Record<string, number>) || {}
+        
+        // Calculate expense from existing product amounts
+        const expenseProducts = ['PROPS/SET', 'VIDEOGRAPHER', 'RETOUCHER', 'MUA HAIR', 'MODEL/HANDMODEL', 'STUDIO/LIGHTING', 'FASHION STYLIST', 'GRAFFER', 'MANAGER', 'FOOD & DRINK', 'ACCOMMODATION', 'PRINT']
+        const calculatedExpense = expenseProducts.reduce((sum, product) => {
+          return sum + (existingProductAmounts[product] || 0)
+        }, 0)
+
+        // Recalculate PHOTOGRAPHER from new Total - existing Expense
+        existingProductAmounts['PHOTOGRAPHER'] = totalAmount - calculatedExpense
+
+        await prisma.productionTracker.update({
+          where: { id: existingTracker.id },
+          data: {
+            expenseId: expense.expenseId,
+            invoiceId: invoice.invoiceId,
+            date: invoice.productionDate,
+            subtotal: subtotal,
+            totalAmount: totalAmount,
+            expense: calculatedExpense,
+            productAmounts: existingProductAmounts,
+            notes: invoice.notes
+          }
+        })
+      } else {
+        // Create new tracker
+        const trackerId = await generateId('PT', 'productionTracker')
+        
+        // Convert expense items to productAmounts object
+        const productAmounts: Record<string, number> = {}
+        expenseItems.forEach(item => {
+          productAmounts[item.productName] = Math.round(item.actual)
+        })
+
+      // Calculate expense (sum of all products except PHOTOGRAPHER)
+      const expenseProducts = ['PROPS/SET', 'VIDEOGRAPHER', 'RETOUCHER', 'MUA HAIR', 'MODEL/HANDMODEL', 'STUDIO/LIGHTING', 'FASHION STYLIST', 'GRAFFER', 'MANAGER', 'FOOD & DRINK', 'ACCOMMODATION', 'PRINT']
+        const calculatedExpense = expenseProducts.reduce((sum, product) => {
+          return sum + (productAmounts[product] || 0)
+        }, 0)
+
+        // Calculate PHOTOGRAPHER from Total - Expense
+        const calculatedPhotographer = totalAmount - calculatedExpense
+        productAmounts['PHOTOGRAPHER'] = calculatedPhotographer
+
+        await prisma.productionTracker.create({
+          data: {
+            trackerId,
+            expenseId: expense.expenseId,
+            invoiceId: invoice.invoiceId,
+            projectName: invoice.billTo,
+            date: invoice.productionDate,
+            subtotal: subtotal,
+            totalAmount: totalAmount,
+            expense: calculatedExpense,
+            productAmounts,
+            notes: invoice.notes
+          }
+        })
+      }
+    } catch (error) {
+      console.error("Error creating/updating production tracker:", error)
+      // Don't fail the whole operation if tracker creation fails
+    }
+
     return NextResponse.json(expense, { status: 201 })
   } catch (error) {
     console.error("Error creating expense:", error)

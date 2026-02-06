@@ -252,11 +252,8 @@ export interface MonthlyTrend {
   month: string
   grossProfit: number
   netProfit: number
-  underBudget: number
-  overBudget: number
   projectCount: number
   totalInvoiceValue: number
-  profitMargin: number
   averageValue: number
 }
 

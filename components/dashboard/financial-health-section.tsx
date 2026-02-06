@@ -64,18 +64,6 @@ export function FinancialHealthSection({
               </div>
             </CardContent>
           </Card>
-          <Card className="animate-pulse">
-            <CardContent className="pt-6">
-              <div className="grid gap-6 lg:grid-cols-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="space-y-2">
-                    <div className="h-4 w-24 bg-muted rounded" />
-                    <div className="h-8 w-32 bg-muted rounded" />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
           <Card className="animate-pulse border-2">
             <CardContent className="pt-6">
               <div className="grid gap-6 lg:grid-cols-3">
@@ -91,55 +79,6 @@ export function FinancialHealthSection({
         </>
       ) : (
         <>
-          <Card className="border-2">
-            <CardContent className="pt-6">
-              <div className="grid gap-6 lg:grid-cols-3">
-                {/* Under Budget */}
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Under Budget
-                  </p>
-                  <p className="text-2xl sm:text-3xl font-bold text-[hsl(142_76%_36%)] break-words">
-                    {formatCurrency(expenseStats.totalUnderBudget)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Total savings</p>
-                </div>
-
-                {/* Over Budget */}
-                <div className="space-y-2 border-l border-r px-6">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Over Budget
-                  </p>
-                  <p className="text-2xl sm:text-3xl font-bold text-red-600 break-words">
-                    {formatCurrency(expenseStats.totalOverBudget)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Total overspend
-                  </p>
-                </div>
-
-                {/* Efficiency */}
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Efficiency
-                  </p>
-                  <p
-                    className={`text-2xl sm:text-3xl font-bold break-words ${
-                      expenseStats.averageEfficiency >= 0
-                        ? "text-[hsl(142_76%_36%)]"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {expenseStats.averageEfficiency.toFixed(0)}%
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Average efficiency
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           <Card className="border-2">
             <CardContent className="pt-6">
               <div className="grid gap-6 lg:grid-cols-3">

@@ -4,17 +4,17 @@ import { prisma } from "@/lib/prisma"
 // Default products to seed
 const DEFAULT_PRODUCTS = [
   "PHOTOGRAPHER",
-  "RETOUCHER",
-  "PROPS / SET",
+  "PROPS/SET",
   "VIDEOGRAPHER",
+  "RETOUCHER",
   "MUA HAIR",
-  "MODEL / HAND MODEL",
-  "STUDIO / LIGHTING",
+  "MODEL/HANDMODEL",
+  "STUDIO/LIGHTING",
   "FASHION STYLIST",
   "GRAFFER",
   "MANAGER",
   "FOOD & DRINK",
-  "ACOMODATION",
+  "ACCOMMODATION",
   "PRINT"
 ]
 

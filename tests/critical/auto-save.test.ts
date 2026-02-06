@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import { 
   createTestCompany, 
   createTestBilling, 

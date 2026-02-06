@@ -208,11 +208,8 @@ export function calculateMonthlyTrends(
       month,
       grossProfit: 0,
       netProfit: 0,
-      underBudget: 0,
-      overBudget: 0,
       projectCount: 0,
       totalInvoiceValue: 0,
-      profitMargin: 0,
       averageValue: 0,
     }
   })
@@ -230,18 +227,10 @@ export function calculateMonthlyTrends(
     monthlyData[month].netProfit += difference / 1000000
     monthlyData[month].projectCount += 1
     monthlyData[month].totalInvoiceValue += totalPaid
-
-    if (difference >= 0) {
-      monthlyData[month].underBudget += difference / 1000000
-    } else {
-      monthlyData[month].overBudget += Math.abs(difference) / 1000000
-    }
   })
 
   Object.keys(monthlyData).forEach((monthKey) => {
     const data = monthlyData[parseInt(monthKey)]
-    data.profitMargin =
-      data.grossProfit > 0 ? (data.netProfit / data.grossProfit) * 100 : 0
     data.averageValue =
       data.projectCount > 0 ? data.totalInvoiceValue / data.projectCount / 1000000 : 0
   })
