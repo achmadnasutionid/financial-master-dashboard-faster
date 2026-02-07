@@ -501,4 +501,229 @@ describe('Production Tracker Integration Tests', () => {
       await prisma.productionTracker.delete({ where: { id: tracker.id } })
     })
   })
+  
+  describe('6. Status Field Management', () => {
+    it('should create tracker with default "pending" status', async () => {
+      const trackerId = await generateId('PT', 'productionTracker')
+      const expenseId = await generateId('EXP', 'expense')
+      
+      const response = await fetch('http://localhost:3000/api/production-tracker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          expenseId,
+          projectName: 'Status Test Project',
+          date: new Date().toISOString(),
+          subtotal: 1000000,
+          totalAmount: 1020000,
+          expense: 800000,
+          productAmounts: {
+            'PHOTOGRAPHER': 220000,
+            'PROPS/SET': 800000
+          }
+        })
+      })
+      
+      expect(response.ok).toBe(true)
+      
+      const tracker = await response.json()
+      expect(tracker.status).toBe('pending')
+      
+      // Cleanup
+      await prisma.productionTracker.delete({ where: { id: tracker.id } })
+    })
+    
+    it('should update status from pending to in progress', async () => {
+      const trackerId = await generateId('PT', 'productionTracker')
+      const expenseId = await generateId('EXP', 'expense')
+      
+      const tracker = await prisma.productionTracker.create({
+        data: {
+          trackerId,
+          expenseId,
+          projectName: 'Status Update Test',
+          date: new Date(),
+          subtotal: 1000000,
+          totalAmount: 1020000,
+          expense: 800000,
+          productAmounts: {
+            'PHOTOGRAPHER': 220000,
+            'PROPS/SET': 800000
+          },
+          status: 'pending'
+        }
+      })
+      
+      const response = await fetch(`http://localhost:3000/api/production-tracker/${tracker.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'in progress'
+        })
+      })
+      
+      expect(response.ok).toBe(true)
+      
+      const updated = await prisma.productionTracker.findUnique({
+        where: { id: tracker.id }
+      })
+      
+      expect(updated?.status).toBe('in progress')
+      
+      // Cleanup
+      await prisma.productionTracker.delete({ where: { id: tracker.id } })
+    })
+    
+    it('should update status from in progress to paid', async () => {
+      const trackerId = await generateId('PT', 'productionTracker')
+      const expenseId = await generateId('EXP', 'expense')
+      
+      const tracker = await prisma.productionTracker.create({
+        data: {
+          trackerId,
+          expenseId,
+          projectName: 'Status Paid Test',
+          date: new Date(),
+          subtotal: 2000000,
+          totalAmount: 2040000,
+          expense: 1500000,
+          productAmounts: {
+            'PHOTOGRAPHER': 540000,
+            'PROPS/SET': 1500000
+          },
+          status: 'in progress'
+        }
+      })
+      
+      const response = await fetch(`http://localhost:3000/api/production-tracker/${tracker.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'paid'
+        })
+      })
+      
+      expect(response.ok).toBe(true)
+      
+      const updated = await prisma.productionTracker.findUnique({
+        where: { id: tracker.id }
+      })
+      
+      expect(updated?.status).toBe('paid')
+      
+      // Cleanup
+      await prisma.productionTracker.delete({ where: { id: tracker.id } })
+    })
+    
+    it('should auto-create tracker with "pending" status when invoice is paid', async () => {
+      // Create a new test invoice
+      const invoiceId = await generateId('INV', 'invoice')
+      const invoice = await prisma.invoice.create({
+        data: {
+          invoiceId,
+          companyName: 'Status Test Company',
+          companyAddress: 'Test Address',
+          companyCity: 'Jakarta',
+          companyProvince: 'DKI Jakarta',
+          productionDate: new Date(),
+          billTo: 'Status Auto-Create Project',
+          billingName: 'Test Billing',
+          billingBankName: 'Test Bank',
+          billingBankAccount: '1234567890',
+          billingBankAccountName: 'Test Account',
+          signatureName: 'Test Signature',
+          signatureImageData: 'data:image/png;base64,test',
+          pph: '2',
+          totalAmount: 5000000,
+          status: 'paid',
+          paidDate: new Date()
+        }
+      })
+      
+      await prisma.invoiceItem.create({
+        data: {
+          invoiceId: invoice.id,
+          productName: 'Test Service',
+          total: 4900000,
+          order: 0
+        }
+      })
+      
+      // Create expense (should auto-create tracker)
+      const response = await fetch(`http://localhost:3000/api/invoice/${invoice.id}/create-expense`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paidDate: new Date().toISOString()
+        })
+      })
+      
+      expect(response.ok).toBe(true)
+      
+      // Check tracker was created with pending status
+      const tracker = await prisma.productionTracker.findFirst({
+        where: {
+          projectName: 'Status Auto-Create Project',
+          deletedAt: null
+        }
+      })
+      
+      expect(tracker).toBeDefined()
+      expect(tracker?.status).toBe('pending')
+      
+      // Cleanup
+      if (tracker) {
+        await prisma.productionTracker.delete({ where: { id: tracker.id } })
+      }
+      const expense = await prisma.expense.findFirst({
+        where: { invoiceNumber: invoice.invoiceId }
+      })
+      if (expense) {
+        await prisma.expenseItem.deleteMany({ where: { expenseId: expense.id } })
+        await prisma.expense.delete({ where: { id: expense.id } })
+      }
+      await prisma.invoiceItem.deleteMany({ where: { invoiceId: invoice.id } })
+      await prisma.invoice.delete({ where: { id: invoice.id } })
+    })
+    
+    it('should return status field in API responses', async () => {
+      const trackerId = await generateId('PT', 'productionTracker')
+      const expenseId = await generateId('EXP', 'expense')
+      
+      const tracker = await prisma.productionTracker.create({
+        data: {
+          trackerId,
+          expenseId,
+          projectName: 'API Status Test',
+          date: new Date(),
+          subtotal: 1000000,
+          totalAmount: 1020000,
+          expense: 800000,
+          productAmounts: {
+            'PHOTOGRAPHER': 220000,
+            'PROPS/SET': 800000
+          },
+          status: 'in progress'
+        }
+      })
+      
+      // GET single tracker
+      const getResponse = await fetch(`http://localhost:3000/api/production-tracker/${tracker.id}`)
+      expect(getResponse.ok).toBe(true)
+      
+      const getTracker = await getResponse.json()
+      expect(getTracker.status).toBe('in progress')
+      
+      // GET all trackers
+      const listResponse = await fetch('http://localhost:3000/api/production-tracker')
+      expect(listResponse.ok).toBe(true)
+      
+      const trackers = await listResponse.json()
+      const foundTracker = trackers.find((t: any) => t.id === tracker.id)
+      expect(foundTracker?.status).toBe('in progress')
+      
+      // Cleanup
+      await prisma.productionTracker.delete({ where: { id: tracker.id } })
+    })
+  })
 })

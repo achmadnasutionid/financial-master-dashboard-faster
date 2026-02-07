@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     const trackers = await prisma.productionTracker.findMany({
       where,
       orderBy: {
-        date: sortBy === "oldest" ? "asc" : "desc"
+        createdAt: sortBy === "oldest" ? "asc" : "desc"
       }
     })
 
@@ -63,7 +63,8 @@ export async function POST(request: Request) {
         totalAmount: parseFloat(body.totalAmount) || 0,
         expense: parseFloat(body.expense) || 0,
         productAmounts: body.productAmounts || {},
-        notes: body.notes || null
+        notes: body.notes || null,
+        status: body.status || "pending"
       }
     })
 

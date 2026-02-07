@@ -40,6 +40,7 @@ interface ProductionTracker {
   expense: number
   productAmounts: Record<string, number>
   notes?: string | null
+  status: string
   createdAt: string
   updatedAt: string
 }
@@ -58,6 +59,12 @@ const PRODUCT_COLUMNS = [
   "FOOD & DRINK",
   "ACCOMMODATION",
   "PRINT"
+]
+
+const STATUS_OPTIONS = [
+  { value: "pending", label: "Pending", color: "bg-yellow-50 text-yellow-700 border-yellow-200" },
+  { value: "in progress", label: "In Progress", color: "bg-blue-50 text-blue-700 border-blue-200" },
+  { value: "paid", label: "Paid", color: "bg-green-50 text-green-700 border-green-200" }
 ]
 
 export default function ProductionTrackerPage() {
@@ -180,7 +187,8 @@ export default function ProductionTrackerPage() {
           subtotal: 0,
           totalAmount: 0,
           expense: 0, // Will be 0 since all products start at 0
-          productAmounts: {}
+          productAmounts: {},
+          status: "pending"
         })
       })
 
@@ -207,6 +215,9 @@ export default function ProductionTrackerPage() {
       isClickingCell.current = false
     }
     
+    // Don't allow editing status via cell click (use dropdown instead)
+    if (field === 'status') return
+    
     setEditingCell({ rowId: tracker.id, field })
     
     // Set initial value based on field type
@@ -217,6 +228,27 @@ export default function ProductionTrackerPage() {
       setEditValue(tracker.date ? new Date(tracker.date).toISOString().split('T')[0] : "")
     } else {
       setEditValue((tracker as any)[field] || "")
+    }
+  }
+
+  const handleStatusChange = async (trackerId: string, newStatus: string) => {
+    try {
+      const response = await fetch(`/api/production-tracker/${trackerId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus })
+      })
+
+      if (response.ok) {
+        const updated = await response.json()
+        setTrackers(trackers.map(t => t.id === trackerId ? updated : t))
+        toast.success("Status updated")
+      } else {
+        toast.error("Failed to update status")
+      }
+    } catch (error) {
+      console.error("Error updating status:", error)
+      toast.error("Failed to update status")
     }
   }
 
@@ -461,8 +493,13 @@ export default function ProductionTrackerPage() {
                     </th>
                   ))}
                   
-                  {/* Action Column - Red */}
-                  <th className="sticky right-0 z-40 border-l-2 border-b border-border p-2 text-center font-semibold min-w-[60px] bg-red-50 shadow-[-2px_0_4px_rgba(0,0,0,0.1)]">
+                  {/* Status Column - Sticky Right - Red */}
+                  <th className="sticky right-[60px] z-40 border-r border-b border-border p-2 text-center font-semibold min-w-[140px] bg-red-50 shadow-[-2px_0_4px_rgba(0,0,0,0.1)]">
+                    Status
+                  </th>
+                  
+                  {/* Action Column - Red (no left border for unified look) */}
+                  <th className="sticky right-0 z-40 border-b border-border p-2 text-center font-semibold min-w-[60px] bg-red-50">
                     Action
                   </th>
                 </tr>
@@ -509,15 +546,19 @@ export default function ProductionTrackerPage() {
                           <Skeleton className="h-5 w-full" />
                         </td>
                       ))}
-                      {/* Action Column - Red */}
-                      <td className="sticky right-0 z-20 border-l-2 border-b border-border p-2 bg-red-50 shadow-[-2px_0_4px_rgba(0,0,0,0.05)]">
+                      {/* Status Column - Red */}
+                      <td className="sticky right-[60px] z-20 border-r border-b border-border p-2 bg-red-50 shadow-[-2px_0_4px_rgba(0,0,0,0.05)]">
+                        <Skeleton className="h-5 w-full" />
+                      </td>
+                      {/* Action Column - Red (no left border) */}
+                      <td className="sticky right-0 z-20 border-b border-border p-2 bg-red-50">
                         <Skeleton className="h-5 w-5 mx-auto" />
                       </td>
                     </tr>
                   ))
                 ) : trackers.length === 0 ? (
                   <tr>
-                    <td colSpan={PRODUCT_COLUMNS.length + 7} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={PRODUCT_COLUMNS.length + 8} className="p-8 text-center text-muted-foreground">
                       No data yet. Click "New Row" to start.
                     </td>
                   </tr>
@@ -705,8 +746,29 @@ export default function ProductionTrackerPage() {
                           )
                         })}
                         
-                        {/* Action Column - Sticky Right - Red */}
-                        <td className="sticky right-0 z-20 border-l-2 border-b border-border p-2 text-center bg-red-50 shadow-[-2px_0_4px_rgba(0,0,0,0.05)]">
+                        {/* Status Column - Sticky Right - Red */}
+                        <td className="sticky right-[60px] z-20 border-r border-b border-border p-2 text-center bg-red-50 shadow-[-2px_0_4px_rgba(0,0,0,0.05)]">
+                          <Select value={tracker.status} onValueChange={(value) => handleStatusChange(tracker.id, value)}>
+                            <SelectTrigger className={cn(
+                              "h-7 text-xs border",
+                              STATUS_OPTIONS.find(s => s.value === tracker.status)?.color
+                            )}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {STATUS_OPTIONS.map((status) => (
+                                <SelectItem key={status.value} value={status.value}>
+                                  <span className={cn("px-2 py-1 rounded", status.color)}>
+                                    {status.label}
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        
+                        {/* Action Column - Sticky Right - Red (no left border for unified look) */}
+                        <td className="sticky right-0 z-20 border-b border-border p-2 text-center bg-red-50">
                           <Button
                             variant="ghost"
                             size="icon"

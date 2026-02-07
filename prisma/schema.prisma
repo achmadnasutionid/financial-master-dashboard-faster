@@ -643,6 +643,7 @@ model ProductionTracker {
   expense        Float     @default(0)
   productAmounts Json      @default("{}")
   notes          String?
+  status         String    @default("pending")
   deletedAt      DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -653,4 +654,5 @@ model ProductionTracker {
   @@index([date])
   @@index([deletedAt])
   @@index([date, deletedAt])
+  @@index([status])
 }

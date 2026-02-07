@@ -192,7 +192,8 @@ export async function POST(
             totalAmount: totalAmount,
             expense: calculatedExpense,
             productAmounts,
-            notes: invoice.notes
+            notes: invoice.notes,
+            status: "pending"
           }
         })
       }
