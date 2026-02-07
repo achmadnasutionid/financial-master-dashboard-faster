@@ -726,4 +726,284 @@ describe('Production Tracker Integration Tests', () => {
       await prisma.productionTracker.delete({ where: { id: tracker.id } })
     })
   })
+  
+  describe('7. Invoice ID Column and Link Functionality', () => {
+    it('should store and display invoice ID when tracker is created from invoice', async () => {
+      // Create a test invoice
+      const invoiceId = await generateId('INV', 'invoice')
+      const invoice = await prisma.invoice.create({
+        data: {
+          invoiceId,
+          companyName: 'Invoice Link Test Company',
+          companyAddress: 'Test Address',
+          companyCity: 'Jakarta',
+          companyProvince: 'DKI Jakarta',
+          productionDate: new Date(),
+          billTo: 'Invoice Link Test Project',
+          billingName: 'Test Billing',
+          billingBankName: 'Test Bank',
+          billingBankAccount: '1234567890',
+          billingBankAccountName: 'Test Account',
+          signatureName: 'Test Signature',
+          signatureImageData: 'data:image/png;base64,test',
+          pph: '2',
+          totalAmount: 5000000,
+          status: 'paid',
+          paidDate: new Date()
+        }
+      })
+      
+      await prisma.invoiceItem.create({
+        data: {
+          invoiceId: invoice.id,
+          productName: 'Test Service',
+          total: 4900000,
+          order: 0
+        }
+      })
+      
+      // Create expense (should auto-create tracker with invoice ID)
+      const response = await fetch(`http://localhost:3000/api/invoice/${invoice.id}/create-expense`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paidDate: new Date().toISOString()
+        })
+      })
+      
+      expect(response.ok).toBe(true)
+      
+      // Check tracker was created with invoice ID
+      const tracker = await prisma.productionTracker.findFirst({
+        where: {
+          projectName: 'Invoice Link Test Project',
+          deletedAt: null
+        }
+      })
+      
+      expect(tracker).toBeDefined()
+      expect(tracker?.invoiceId).toBe(invoiceId)
+      expect(tracker?.invoiceId).toMatch(/^INV-\d{4}-\d{4}$/)
+      
+      // Cleanup
+      if (tracker) {
+        await prisma.productionTracker.delete({ where: { id: tracker.id } })
+      }
+      const expense = await prisma.expense.findFirst({
+        where: { invoiceNumber: invoice.invoiceId }
+      })
+      if (expense) {
+        await prisma.expenseItem.deleteMany({ where: { expenseId: expense.id } })
+        await prisma.expense.delete({ where: { id: expense.id } })
+      }
+      await prisma.invoiceItem.deleteMany({ where: { invoiceId: invoice.id } })
+      await prisma.invoice.delete({ where: { id: invoice.id } })
+    })
+    
+    it('should allow manual entry without invoice ID', async () => {
+      const trackerId = await generateId('PT', 'productionTracker')
+      const expenseId = await generateId('EXP', 'expense')
+      
+      const response = await fetch('http://localhost:3000/api/production-tracker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          expenseId,
+          projectName: 'Manual Entry Test',
+          date: new Date().toISOString(),
+          subtotal: 1000000,
+          totalAmount: 1020000,
+          expense: 800000,
+          productAmounts: {
+            'PHOTOGRAPHER': 220000,
+            'PROPS/SET': 800000
+          }
+          // No invoiceId provided
+        })
+      })
+      
+      expect(response.ok).toBe(true)
+      
+      const tracker = await response.json()
+      expect(tracker.invoiceId).toBeNull()
+      
+      // Cleanup
+      await prisma.productionTracker.delete({ where: { id: tracker.id } })
+    })
+    
+    it('should update invoice ID via API', async () => {
+      const trackerId = await generateId('PT', 'productionTracker')
+      const expenseId = await generateId('EXP', 'expense')
+      
+      const tracker = await prisma.productionTracker.create({
+        data: {
+          trackerId,
+          expenseId,
+          projectName: 'Invoice ID Update Test',
+          date: new Date(),
+          subtotal: 1000000,
+          totalAmount: 1020000,
+          expense: 800000,
+          productAmounts: {
+            'PHOTOGRAPHER': 220000,
+            'PROPS/SET': 800000
+          },
+          invoiceId: null
+        }
+      })
+      
+      const newInvoiceId = 'INV-2024-9999'
+      
+      const response = await fetch(`http://localhost:3000/api/production-tracker/${tracker.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoiceId: newInvoiceId
+        })
+      })
+      
+      expect(response.ok).toBe(true)
+      
+      const updated = await prisma.productionTracker.findUnique({
+        where: { id: tracker.id }
+      })
+      
+      expect(updated?.invoiceId).toBe(newInvoiceId)
+      
+      // Cleanup
+      await prisma.productionTracker.delete({ where: { id: tracker.id } })
+    })
+    
+    it('should return invoice ID in API responses', async () => {
+      const trackerId = await generateId('PT', 'productionTracker')
+      const expenseId = await generateId('EXP', 'expense')
+      const invoiceId = 'INV-2024-1234'
+      
+      const tracker = await prisma.productionTracker.create({
+        data: {
+          trackerId,
+          expenseId,
+          invoiceId,
+          projectName: 'API Invoice ID Test',
+          date: new Date(),
+          subtotal: 1000000,
+          totalAmount: 1020000,
+          expense: 800000,
+          productAmounts: {
+            'PHOTOGRAPHER': 220000,
+            'PROPS/SET': 800000
+          }
+        }
+      })
+      
+      // GET single tracker
+      const getResponse = await fetch(`http://localhost:3000/api/production-tracker/${tracker.id}`)
+      expect(getResponse.ok).toBe(true)
+      
+      const getTracker = await getResponse.json()
+      expect(getTracker.invoiceId).toBe(invoiceId)
+      
+      // GET all trackers
+      const listResponse = await fetch('http://localhost:3000/api/production-tracker')
+      expect(listResponse.ok).toBe(true)
+      
+      const trackers = await listResponse.json()
+      const foundTracker = trackers.find((t: any) => t.id === tracker.id)
+      expect(foundTracker?.invoiceId).toBe(invoiceId)
+      
+      // Cleanup
+      await prisma.productionTracker.delete({ where: { id: tracker.id } })
+    })
+    
+    it('should differentiate between invoice-generated and manual entries', async () => {
+      // Create invoice-generated tracker
+      const invoiceId = await generateId('INV', 'invoice')
+      const invoice = await prisma.invoice.create({
+        data: {
+          invoiceId,
+          companyName: 'Differentiation Test',
+          companyAddress: 'Test Address',
+          companyCity: 'Jakarta',
+          companyProvince: 'DKI Jakarta',
+          productionDate: new Date(),
+          billTo: 'Generated Entry',
+          billingName: 'Test Billing',
+          billingBankName: 'Test Bank',
+          billingBankAccount: '1234567890',
+          billingBankAccountName: 'Test Account',
+          signatureName: 'Test Signature',
+          signatureImageData: 'data:image/png;base64,test',
+          pph: '2',
+          totalAmount: 5000000,
+          status: 'paid',
+          paidDate: new Date()
+        }
+      })
+      
+      await prisma.invoiceItem.create({
+        data: {
+          invoiceId: invoice.id,
+          productName: 'Test Service',
+          total: 4900000,
+          order: 0
+        }
+      })
+      
+      await fetch(`http://localhost:3000/api/invoice/${invoice.id}/create-expense`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paidDate: new Date().toISOString() })
+      })
+      
+      // Create manual tracker
+      const trackerId = await generateId('PT', 'productionTracker')
+      const expenseId = await generateId('EXP', 'expense')
+      
+      const manualTracker = await prisma.productionTracker.create({
+        data: {
+          trackerId,
+          expenseId,
+          projectName: 'Manual Entry',
+          date: new Date(),
+          subtotal: 1000000,
+          totalAmount: 1020000,
+          expense: 800000,
+          productAmounts: { 'PHOTOGRAPHER': 220000, 'PROPS/SET': 800000 }
+        }
+      })
+      
+      // Fetch all trackers
+      const response = await fetch('http://localhost:3000/api/production-tracker')
+      const trackers = await response.json()
+      
+      const generatedTracker = trackers.find((t: any) => t.projectName === 'Generated Entry')
+      const manualEntry = trackers.find((t: any) => t.projectName === 'Manual Entry')
+      
+      // Invoice-generated should have invoiceId
+      expect(generatedTracker?.invoiceId).toBeTruthy()
+      expect(generatedTracker?.invoiceId).toMatch(/^INV-\d{4}-\d{4}$/)
+      
+      // Manual entry should have null invoiceId
+      expect(manualEntry?.invoiceId).toBeNull()
+      
+      // Cleanup
+      await prisma.productionTracker.deleteMany({
+        where: {
+          OR: [
+            { projectName: 'Generated Entry' },
+            { projectName: 'Manual Entry' }
+          ]
+        }
+      })
+      const expense = await prisma.expense.findFirst({
+        where: { invoiceNumber: invoice.invoiceId }
+      })
+      if (expense) {
+        await prisma.expenseItem.deleteMany({ where: { expenseId: expense.id } })
+        await prisma.expense.delete({ where: { id: expense.id } })
+      }
+      await prisma.invoiceItem.deleteMany({ where: { invoiceId: invoice.id } })
+      await prisma.invoice.delete({ where: { id: invoice.id } })
+    })
+  })
 })

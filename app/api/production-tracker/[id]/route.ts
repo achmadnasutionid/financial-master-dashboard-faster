@@ -42,6 +42,7 @@ export async function PUT(
       where: { id },
       data: {
         expenseId: body.expenseId,
+        invoiceId: body.invoiceId !== undefined ? body.invoiceId : undefined,
         projectName: body.projectName,
         date: body.date ? new Date(body.date) : undefined,
         subtotal: body.subtotal !== undefined ? parseFloat(body.subtotal) : undefined,
