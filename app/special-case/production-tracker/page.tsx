@@ -432,7 +432,7 @@ export default function ProductionTrackerPage() {
     const date = new Date(dateString)
     const day = date.getDate().toString().padStart(2, '0')
     const month = (date.getMonth() + 1).toString().padStart(2, '0')
-    const year = date.getFullYear().toString().slice(-2)
+    const year = date.getFullYear()
     return `${day}/${month}/${year}`
   }
 
@@ -668,46 +668,50 @@ export default function ProductionTrackerPage() {
                           )}
                         </td>
                         
-                        {/* Date - Editable with Popover - Blue */}
+                        {/* Date - Click to pick - Blue */}
                         <td 
                           className="sticky left-[340px] z-20 border-r border-b border-border p-2 bg-blue-50 w-[110px] min-w-[110px]"
                         >
-                          {editingCell?.rowId === tracker.id && editingCell?.field === 'date' ? (
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  className="h-7 w-full text-xs justify-start font-normal"
-                                >
-                                  <Calendar className="mr-1 h-3 w-3" />
-                                  {editValue ? formatDate(new Date(editValue).toISOString()) : "Pick"}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Input
-                                  type="date"
-                                  value={editValue}
-                                  onChange={(e) => {
-                                    setEditValue(e.target.value)
-                                    handleBlur()
-                                  }}
-                                  className="h-9 text-xs"
-                                  autoFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-                          ) : (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleCellClick(tracker, 'date')
-                              }}
-                              className="flex items-center gap-1 text-xs hover:underline"
-                            >
-                              <Calendar className="h-3 w-3" />
-                              {formatDate(tracker.date)}
-                            </button>
-                          )}
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button className="flex items-center gap-1 text-xs hover:underline">
+                                <Calendar className="h-3 w-3" />
+                                {formatDate(tracker.date)}
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-2" align="start">
+                              <Input
+                                type="date"
+                                defaultValue={tracker.date ? new Date(tracker.date).toISOString().split('T')[0] : ""}
+                                onChange={async (e) => {
+                                  const newDate = e.target.value
+                                  if (newDate) {
+                                    try {
+                                      const response = await fetch(`/api/production-tracker/${tracker.id}`, {
+                                        method: "PUT",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ date: new Date(newDate).toISOString() })
+                                      })
+                                      if (response.ok) {
+                                        const updated = await response.json()
+                                        setTrackers(trackers.map(t => t.id === tracker.id ? updated : t))
+                                        toast.success("Date updated")
+                                        // Close popover by triggering a click outside
+                                        document.body.click()
+                                      } else {
+                                        toast.error("Failed to update date")
+                                      }
+                                    } catch (error) {
+                                      console.error("Error updating date:", error)
+                                      toast.error("Failed to update date")
+                                    }
+                                  }
+                                }}
+                                className="h-9 text-xs"
+                                autoFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
                         </td>
                         
                         {/* Status Column - Left Sticky - Red */}
