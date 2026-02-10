@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react"
 import { useRouter } from "next/navigation"
+import DatePicker from "react-datepicker"
+import "react-datepicker/dist/react-datepicker.css"
 import { PageHeader } from "@/components/layout/page-header"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
@@ -674,42 +676,43 @@ export default function ProductionTrackerPage() {
                         >
                           <Popover>
                             <PopoverTrigger asChild>
-                              <button className="flex items-center gap-1 text-xs hover:underline">
+                              <button className="flex items-center gap-1 text-xs hover:underline w-full justify-start">
                                 <Calendar className="h-3 w-3" />
                                 {formatDate(tracker.date)}
                               </button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-2" align="start">
-                              <Input
-                                type="date"
-                                defaultValue={tracker.date ? new Date(tracker.date).toISOString().split('T')[0] : ""}
-                                onChange={async (e) => {
-                                  const newDate = e.target.value
-                                  if (newDate) {
-                                    try {
-                                      const response = await fetch(`/api/production-tracker/${tracker.id}`, {
-                                        method: "PUT",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({ date: new Date(newDate).toISOString() })
-                                      })
-                                      if (response.ok) {
-                                        const updated = await response.json()
-                                        setTrackers(trackers.map(t => t.id === tracker.id ? updated : t))
-                                        toast.success("Date updated")
-                                        // Close popover by triggering a click outside
-                                        document.body.click()
-                                      } else {
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <div className="p-3">
+                                <DatePicker
+                                  selected={tracker.date ? new Date(tracker.date) : new Date()}
+                                  onChange={async (date: Date | null) => {
+                                    if (date) {
+                                      try {
+                                        const response = await fetch(`/api/production-tracker/${tracker.id}`, {
+                                          method: "PUT",
+                                          headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({ date: date.toISOString() })
+                                        })
+                                        if (response.ok) {
+                                          const updated = await response.json()
+                                          setTrackers(trackers.map(t => t.id === tracker.id ? updated : t))
+                                          toast.success("Date updated")
+                                          // Close popover
+                                          document.body.click()
+                                        } else {
+                                          toast.error("Failed to update date")
+                                        }
+                                      } catch (error) {
+                                        console.error("Error updating date:", error)
                                         toast.error("Failed to update date")
                                       }
-                                    } catch (error) {
-                                      console.error("Error updating date:", error)
-                                      toast.error("Failed to update date")
                                     }
-                                  }
-                                }}
-                                className="h-9 text-xs"
-                                autoFocus
-                              />
+                                  }}
+                                  dateFormat="dd/MM/yyyy"
+                                  className="h-9 text-xs border border-input rounded-md px-3 py-2"
+                                  inline
+                                />
+                              </div>
                             </PopoverContent>
                           </Popover>
                         </td>
