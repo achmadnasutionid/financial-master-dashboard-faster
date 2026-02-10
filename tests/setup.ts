@@ -20,7 +20,11 @@ afterAll(async () => {
       where: {
         OR: [
           { expenseId: { contains: 'TEST-' } },
-          { expenseId: { contains: 'EXP-TEST-' } }
+          { expenseId: { contains: 'EXP-TEST-' } },
+          { projectName: { equals: 'Test Project' } },
+          { projectName: { equals: 'test' } },
+          { projectName: { startsWith: 'Test ' } },
+          { projectName: { startsWith: 'test ' } }
         ]
       }
     })
@@ -80,7 +84,9 @@ afterAll(async () => {
           { projectName: { contains: 'RACE_TEST' } },
           { projectName: { contains: 'CASCADE_TEST' } },
           { projectName: { contains: 'REF_TRACK_TEST' } },
-          { projectName: { contains: 'Test Expense ' } }
+          { projectName: { contains: 'Test Expense ' } },
+          { projectName: { equals: 'Test Project' } },
+          { projectName: { startsWith: 'Test ' } }
         ]
       }
     })
