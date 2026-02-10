@@ -297,17 +297,15 @@ export default function ProductionTrackerPage() {
         // Recalculate PHOTOGRAPHER
         const photographer = calculatePhotographer(tracker.totalAmount, updateData.productAmounts)
         updateData.productAmounts['PHOTOGRAPHER'] = photographer
-      } else if (field === 'subtotal' || field === 'totalAmount') {
+      } else if (field === 'totalAmount') {
         updateData[field] = parseFloat(editValue) || 0
         // If totalAmount changed, recalculate PHOTOGRAPHER
-        if (field === 'totalAmount') {
-          const photographer = calculatePhotographer(parseFloat(editValue) || 0, tracker.productAmounts || {})
-          updateData.productAmounts = {
-            ...tracker.productAmounts,
-            'PHOTOGRAPHER': photographer
-          }
-          updateData.expense = calculateExpense(tracker.productAmounts || {})
+        const photographer = calculatePhotographer(parseFloat(editValue) || 0, tracker.productAmounts || {})
+        updateData.productAmounts = {
+          ...tracker.productAmounts,
+          'PHOTOGRAPHER': photographer
         }
+        updateData.expense = calculateExpense(tracker.productAmounts || {})
       } else if (field === 'date') {
         updateData[field] = editValue ? new Date(editValue).toISOString() : tracker.date
       } else {
@@ -500,17 +498,14 @@ export default function ProductionTrackerPage() {
                   
                   {/* Financial Summary - Green */}
                   <th className="sticky left-[520px] z-40 border-r border-b border-border p-2 text-left font-semibold w-[140px] min-w-[140px] bg-green-50">
-                    Subtotal
-                  </th>
-                  <th className="sticky left-[660px] z-40 border-r border-b border-border p-2 text-left font-semibold w-[140px] min-w-[140px] bg-green-50">
                     Total
                   </th>
                   
                   {/* Calculated Columns - Yellow/Orange */}
-                  <th className="sticky left-[800px] z-40 border-r border-b border-border p-2 text-left font-semibold w-[140px] min-w-[140px] bg-amber-50">
+                  <th className="sticky left-[660px] z-40 border-r border-b border-border p-2 text-left font-semibold w-[140px] min-w-[140px] bg-amber-50">
                     Expense
                   </th>
-                  <th className="sticky left-[940px] z-40 border-r border-b border-border p-2 text-left font-semibold w-[140px] min-w-[140px] bg-amber-50 shadow-[2px_0_4px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                  <th className="sticky left-[800px] z-40 border-r border-b border-border p-2 text-left font-semibold w-[140px] min-w-[140px] bg-amber-50 shadow-[2px_0_4px_rgba(0,0,0,0.1)] whitespace-nowrap">
                     PHOTOGRAPHER
                   </th>
                   
@@ -556,20 +551,16 @@ export default function ProductionTrackerPage() {
                       <td className="sticky left-[340px] z-20 border-r border-b border-border p-2 bg-blue-50 w-[180px] min-w-[180px]">
                         <Skeleton className="h-5 w-full" />
                       </td>
-                      {/* Subtotal - Green */}
+                      {/* Total - Green */}
                       <td className="sticky left-[520px] z-20 border-r border-b border-border p-2 bg-green-50 w-[140px] min-w-[140px]">
                         <Skeleton className="h-5 w-full" />
                       </td>
-                      {/* Total - Green */}
-                      <td className="sticky left-[660px] z-20 border-r border-b border-border p-2 bg-green-50 w-[140px] min-w-[140px]">
-                        <Skeleton className="h-5 w-full" />
-                      </td>
                       {/* Expense - Amber */}
-                      <td className="sticky left-[800px] z-20 border-r border-b border-border p-2 bg-amber-50 w-[140px] min-w-[140px]">
+                      <td className="sticky left-[660px] z-20 border-r border-b border-border p-2 bg-amber-50 w-[140px] min-w-[140px]">
                         <Skeleton className="h-5 w-full" />
                       </td>
                       {/* PHOTOGRAPHER - Amber */}
-                      <td className="sticky left-[940px] z-20 border-r border-b border-border p-2 bg-amber-50 w-[140px] min-w-[140px] shadow-[2px_0_4px_rgba(0,0,0,0.05)]">
+                      <td className="sticky left-[800px] z-20 border-r border-b border-border p-2 bg-amber-50 w-[140px] min-w-[140px] shadow-[2px_0_4px_rgba(0,0,0,0.05)]">
                         <Skeleton className="h-5 w-full" />
                       </td>
                       {/* Product Columns - Purple */}
@@ -593,7 +584,7 @@ export default function ProductionTrackerPage() {
                   ))
                 ) : trackers.length === 0 ? (
                   <tr>
-                    <td colSpan={PRODUCT_COLUMNS.length + 9} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={PRODUCT_COLUMNS.length + 8} className="p-8 text-center text-muted-foreground">
                       No data yet. Click "New Row" to start.
                     </td>
                   </tr>
@@ -685,36 +676,9 @@ export default function ProductionTrackerPage() {
                           )}
                         </td>
                         
-                        {/* Subtotal - Editable - Green */}
-                        <td 
-                          className="sticky left-[520px] z-20 border-r border-b border-border p-2 text-right bg-green-50 cursor-pointer hover:bg-green-100 w-[140px] min-w-[140px]"
-                          onMouseDown={(e) => {
-                            e.preventDefault()
-                            handleCellClick(tracker, 'subtotal')
-                          }}
-                        >
-                          {editingCell?.rowId === tracker.id && editingCell?.field === 'subtotal' ? (
-                            <NumericFormat
-                              value={editValue}
-                              onValueChange={(values) => setEditValue(values.value)}
-                              onBlur={handleBlur}
-                              onKeyDown={handleKeyDown}
-                              thousandSeparator="."
-                              decimalSeparator=","
-                              decimalScale={0}
-                              allowNegative={false}
-                              placeholder="0"
-                              className="flex h-7 w-full rounded-md border border-input bg-background px-3 py-2 text-xs text-right ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                              autoFocus
-                            />
-                          ) : (
-                            <span className="text-xs font-medium">{formatCurrency(tracker.subtotal)}</span>
-                          )}
-                        </td>
-                        
                         {/* Total Amount - Editable - Green */}
                         <td 
-                          className="sticky left-[660px] z-20 border-r border-b border-border p-2 text-right bg-green-50 cursor-pointer hover:bg-green-100 w-[140px] min-w-[140px]"
+                          className="sticky left-[520px] z-20 border-r border-b border-border p-2 text-right bg-green-50 cursor-pointer hover:bg-green-100 w-[140px] min-w-[140px]"
                           onMouseDown={(e) => {
                             e.preventDefault()
                             handleCellClick(tracker, 'totalAmount')
@@ -741,7 +705,7 @@ export default function ProductionTrackerPage() {
                         
                         {/* Expense - Calculated (Non-editable) - Amber */}
                         <td 
-                          className="sticky left-[800px] z-20 border-r border-b border-border p-2 text-right bg-amber-50 w-[140px] min-w-[140px]"
+                          className="sticky left-[660px] z-20 border-r border-b border-border p-2 text-right bg-amber-50 w-[140px] min-w-[140px]"
                         >
                           <span className="text-xs font-medium text-amber-700">
                             {formatCurrency(calculateExpense(tracker.productAmounts || {}))}
@@ -750,7 +714,7 @@ export default function ProductionTrackerPage() {
                         
                         {/* PHOTOGRAPHER - Calculated (Non-editable) - Amber */}
                         <td 
-                          className="sticky left-[940px] z-20 border-r border-b border-border p-2 text-right bg-amber-50 shadow-[2px_0_4px_rgba(0,0,0,0.05)] w-[140px] min-w-[140px]"
+                          className="sticky left-[800px] z-20 border-r border-b border-border p-2 text-right bg-amber-50 shadow-[2px_0_4px_rgba(0,0,0,0.05)] w-[140px] min-w-[140px]"
                         >
                           <span className="text-xs font-medium text-amber-700">
                             {formatCurrency(calculatePhotographer(tracker.totalAmount, tracker.productAmounts || {}))}
