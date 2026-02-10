@@ -62,6 +62,12 @@ const PRODUCT_COLUMNS = [
   "PRINT"
 ]
 
+// Display names for headers (shorter versions)
+const PRODUCT_DISPLAY_NAMES: Record<string, string> = {
+  "MODEL/HANDMODEL": "MODEL",
+  "ACCOMMODATION": "ACCOM"
+}
+
 const STATUS_OPTIONS = [
   { value: "pending", label: "Pending", color: "bg-yellow-50 text-yellow-700 border-yellow-200" },
   { value: "in progress", label: "In Progress", color: "bg-blue-50 text-blue-700 border-blue-200" },
@@ -504,10 +510,10 @@ export default function ProductionTrackerPage() {
                   {/* Product Columns - Purple */}
                   {PRODUCT_COLUMNS.slice(1).map((product, index) => (
                     <th key={product} className={cn(
-                      "border-r border-b border-border p-2 text-left font-semibold w-[140px] min-w-[140px] whitespace-nowrap bg-purple-50",
+                      "border-r border-b border-border p-2 text-left font-semibold w-[110px] min-w-[110px] whitespace-nowrap bg-purple-50",
                       index === PRODUCT_COLUMNS.slice(1).length - 1 && "border-r-2"
                     )}>
-                      {product}
+                      {PRODUCT_DISPLAY_NAMES[product] || product}
                     </th>
                   ))}
                   
@@ -558,7 +564,7 @@ export default function ProductionTrackerPage() {
                       {/* Product Columns - Purple */}
                       {PRODUCT_COLUMNS.slice(1).map((product, idx) => (
                         <td key={product} className={cn(
-                          "border-r border-b border-border p-2 bg-purple-50 w-[140px] min-w-[140px]",
+                          "border-r border-b border-border p-2 bg-purple-50 w-[110px] min-w-[110px]",
                           idx === PRODUCT_COLUMNS.slice(1).length - 1 && "border-r-2"
                         )}>
                           <Skeleton className="h-5 w-full" />
@@ -707,7 +713,7 @@ export default function ProductionTrackerPage() {
                             <td 
                               key={product}
                               className={cn(
-                                "border-r border-b border-border p-2 text-right bg-purple-50 cursor-pointer hover:bg-purple-100 w-[140px] min-w-[140px]",
+                                "border-r border-b border-border p-2 text-right bg-purple-50 cursor-pointer hover:bg-purple-100 w-[110px] min-w-[110px]",
                                 index === PRODUCT_COLUMNS.slice(1).length - 1 && "border-r-2"
                               )}
                               onMouseDown={(e) => {
