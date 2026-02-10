@@ -24,7 +24,12 @@ afterAll(async () => {
           { projectName: { equals: 'Test Project' } },
           { projectName: { equals: 'test' } },
           { projectName: { startsWith: 'Test ' } },
-          { projectName: { startsWith: 'test ' } }
+          { projectName: { startsWith: 'test ' } },
+          { projectName: { contains: 'API Invoice ID' } },
+          { projectName: { contains: 'Invoice ID Update' } },
+          { projectName: { contains: 'API Status' } },
+          { projectName: { contains: 'Status Paid' } },
+          { projectName: { contains: 'Status Update' } }
         ]
       }
     })
@@ -37,7 +42,11 @@ afterAll(async () => {
           { invoiceId: { contains: 'INV-ITEMS-' } },
           { billTo: { contains: 'RACE_TEST' } },
           { billTo: { contains: 'CASCADE_TEST' } },
-          { billTo: { contains: 'REF_TRACK_TEST' } }
+          { billTo: { contains: 'REF_TRACK_TEST' } },
+          { billTo: { contains: 'Generated Entry' } },
+          { billTo: { contains: 'Invoice Link' } },
+          { billTo: { contains: 'Status Auto-Create' } },
+          { billTo: { contains: 'Test Project' } }
         ]
       }
     })

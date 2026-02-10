@@ -86,10 +86,38 @@ describe('Production Tracker Integration Tests', () => {
           { projectName: { contains: 'Update Test Project' } },
           { projectName: { contains: 'Delete Test Project' } },
           { projectName: { contains: 'JSON Test Project' } },
-          { projectName: { contains: 'API Test Project' } }
+          { projectName: { contains: 'API Test Project' } },
+          { projectName: { contains: 'Status Update Test' } },
+          { projectName: { contains: 'Status Paid Test' } },
+          { projectName: { contains: 'API Status Test' } },
+          { projectName: { contains: 'Invoice ID Update Test' } },
+          { projectName: { contains: 'API Invoice ID Test' } },
+          { projectName: { contains: 'Status Auto-Create' } },
+          { projectName: { contains: 'Invoice Link Test' } },
+          { projectName: { contains: 'Generated Entry' } }
         ]
       }
     })
+
+    // Clean up test invoices with specific patterns
+    const testInvoices = await prisma.invoice.findMany({
+      where: {
+        OR: [
+          { billTo: { contains: 'Status Auto-Create' } },
+          { billTo: { contains: 'Invoice Link Test' } },
+          { billTo: { contains: 'Generated Entry' } }
+        ]
+      }
+    })
+    for (const invoice of testInvoices) {
+      await prisma.invoiceItemDetail.deleteMany({
+        where: { invoiceItem: { invoiceId: invoice.id } }
+      })
+      await prisma.invoiceItem.deleteMany({ where: { invoiceId: invoice.id } })
+      await prisma.invoiceRemark.deleteMany({ where: { invoiceId: invoice.id } })
+      await prisma.invoiceSignature.deleteMany({ where: { invoiceId: invoice.id } })
+      await prisma.invoice.delete({ where: { id: invoice.id } })
+    }
   })
   
   describe('1. Manual CRUD Operations', () => {
