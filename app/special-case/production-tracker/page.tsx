@@ -525,7 +525,7 @@ export default function ProductionTrackerPage() {
                   </th>
                   
                   {/* Action Column - Right Sticky - Red */}
-                  <th className="sticky right-0 z-40 border-b border-border p-2 text-center font-semibold min-w-[200px] bg-red-50">
+                  <th className="sticky right-0 z-40 border-b border-border p-2 text-center font-semibold min-w-[60px] bg-red-50">
                     Action
                   </th>
                 </tr>
