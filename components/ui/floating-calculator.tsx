@@ -17,6 +17,16 @@ export function FloatingCalculator() {
     if (!isOpen) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept keyboard events if user is typing in an input, textarea, or contenteditable element
+      const target = e.target as HTMLElement
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return
+      }
+
       // Prevent default for calculator keys
       if (/^[0-9+\-*/.=]$/.test(e.key) || e.key === "Enter" || e.key === "Escape" || e.key === "Backspace") {
         e.preventDefault()
