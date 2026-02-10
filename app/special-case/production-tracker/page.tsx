@@ -15,9 +15,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Plus, Trash2, Search, Loader2, ExternalLink } from "lucide-react"
+import { Plus, Trash2, Search, Loader2, ExternalLink, Calendar } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -424,7 +429,11 @@ export default function ProductionTrackerPage() {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-GB')
+    const date = new Date(dateString)
+    const day = date.getDate().toString().padStart(2, '0')
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const year = date.getFullYear().toString().slice(-2)
+    return `${day}/${month}/${year}`
   }
 
   if (loading) {
@@ -498,12 +507,12 @@ export default function ProductionTrackerPage() {
                   <th className="sticky left-[160px] z-40 border-r border-b border-border p-2 text-left font-semibold min-w-[180px] bg-blue-50">
                     Project Name
                   </th>
-                  <th className="sticky left-[340px] z-40 border-r border-b border-border p-2 text-left font-semibold w-[180px] min-w-[180px] bg-blue-50">
+                  <th className="sticky left-[340px] z-40 border-r border-b border-border p-2 text-left font-semibold w-[110px] min-w-[110px] bg-blue-50">
                     Date
                   </th>
                   
                   {/* Status Column - Left Sticky - Red */}
-                  <th className="sticky left-[520px] z-40 border-r border-b border-border p-2 text-center font-semibold min-w-[140px] bg-red-50 shadow-[2px_0_4px_rgba(0,0,0,0.1)]">
+                  <th className="sticky left-[450px] z-40 border-r border-b border-border p-2 text-center font-semibold min-w-[140px] bg-red-50 shadow-[2px_0_4px_rgba(0,0,0,0.1)]">
                     Status
                   </th>
                   
@@ -554,11 +563,11 @@ export default function ProductionTrackerPage() {
                         <Skeleton className="h-5 w-full" />
                       </td>
                       {/* Date - Blue */}
-                      <td className="sticky left-[340px] z-20 border-r border-b border-border p-2 bg-blue-50 w-[180px] min-w-[180px]">
+                      <td className="sticky left-[340px] z-20 border-r border-b border-border p-2 bg-blue-50 w-[110px] min-w-[110px]">
                         <Skeleton className="h-5 w-full" />
                       </td>
                       {/* Status Column - Left Sticky - Red */}
-                      <td className="sticky left-[520px] z-20 border-r border-b border-border p-2 bg-red-50 shadow-[2px_0_4px_rgba(0,0,0,0.05)]">
+                      <td className="sticky left-[450px] z-20 border-r border-b border-border p-2 bg-red-50 shadow-[2px_0_4px_rgba(0,0,0,0.05)]">
                         <Skeleton className="h-5 w-full" />
                       </td>
                       {/* Product Columns - Purple */}
@@ -659,31 +668,50 @@ export default function ProductionTrackerPage() {
                           )}
                         </td>
                         
-                        {/* Date - Editable - Blue */}
+                        {/* Date - Editable with Popover - Blue */}
                         <td 
-                          className="sticky left-[340px] z-20 border-r border-b border-border p-2 bg-blue-50 cursor-pointer hover:bg-blue-100 w-[180px] min-w-[180px]"
-                          onMouseDown={(e) => {
-                            e.preventDefault()
-                            handleCellClick(tracker, 'date')
-                          }}
+                          className="sticky left-[340px] z-20 border-r border-b border-border p-2 bg-blue-50 w-[110px] min-w-[110px]"
                         >
                           {editingCell?.rowId === tracker.id && editingCell?.field === 'date' ? (
-                            <Input
-                              type="date"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={handleBlur}
-                              onKeyDown={handleKeyDown}
-                              className="h-7 text-xs w-full"
-                              autoFocus
-                            />
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className="h-7 w-full text-xs justify-start font-normal"
+                                >
+                                  <Calendar className="mr-1 h-3 w-3" />
+                                  {editValue ? formatDate(new Date(editValue).toISOString()) : "Pick"}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Input
+                                  type="date"
+                                  value={editValue}
+                                  onChange={(e) => {
+                                    setEditValue(e.target.value)
+                                    handleBlur()
+                                  }}
+                                  className="h-9 text-xs"
+                                  autoFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
                           ) : (
-                            <span className="text-xs">{formatDate(tracker.date)}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleCellClick(tracker, 'date')
+                              }}
+                              className="flex items-center gap-1 text-xs hover:underline"
+                            >
+                              <Calendar className="h-3 w-3" />
+                              {formatDate(tracker.date)}
+                            </button>
                           )}
                         </td>
                         
                         {/* Status Column - Left Sticky - Red */}
-                        <td className="sticky left-[520px] z-20 border-r border-b border-border p-2 text-center bg-red-50 shadow-[2px_0_4px_rgba(0,0,0,0.05)]">
+                        <td className="sticky left-[450px] z-20 border-r border-b border-border p-2 text-center bg-red-50 shadow-[2px_0_4px_rgba(0,0,0,0.05)]">
                           <Select value={tracker.status} onValueChange={(value) => handleStatusChange(tracker.id, value)}>
                             <SelectTrigger className={cn(
                               "h-7 text-xs border",
