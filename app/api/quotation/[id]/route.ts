@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { verifyRecordVersion, OptimisticLockError } from "@/lib/optimistic-locking"
+import { cache, cacheKeys } from "@/lib/redis"
 
 // GET single quotation
 export async function GET(
@@ -397,6 +398,13 @@ export async function PUT(
       return result
     })
 
+    // Invalidate caches after updating quotation
+    await Promise.all([
+      cache.delete(cacheKeys.dashboardStats()),
+      cache.delete('quotation:list:*'),
+      cache.delete(cacheKeys.quotation(id)),
+    ])
+
     return NextResponse.json(quotation)
   } catch (error) {
     console.error("Error updating quotation:", error)
@@ -431,6 +439,13 @@ export async function DELETE(
     await prisma.quotation.delete({
       where: { id }
     })
+
+    // Invalidate caches after deleting quotation
+    await Promise.all([
+      cache.delete(cacheKeys.dashboardStats()),
+      cache.delete('quotation:list:*'),
+      cache.delete(cacheKeys.quotation(id)),
+    ])
 
     return NextResponse.json({ success: true })
   } catch (error) {

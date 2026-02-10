@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { cache, cacheKeys } from "@/lib/redis"
 
 // GET single expense
 export async function GET(
@@ -164,6 +165,13 @@ export async function PUT(
       })
     })
 
+    // Invalidate caches after updating expense
+    await Promise.all([
+      cache.delete(cacheKeys.dashboardStats()),
+      cache.delete('expense:list:*'),
+      cache.delete(cacheKeys.expense(id)),
+    ])
+
     return NextResponse.json(expense)
   } catch (error) {
     console.error("Error updating expense:", error)
@@ -186,6 +194,13 @@ export async function DELETE(
     await prisma.expense.delete({
       where: { id }
     })
+
+    // Invalidate caches after deleting expense
+    await Promise.all([
+      cache.delete(cacheKeys.dashboardStats()),
+      cache.delete('expense:list:*'),
+      cache.delete(cacheKeys.expense(id)),
+    ])
 
     return NextResponse.json({ success: true })
   } catch (error) {

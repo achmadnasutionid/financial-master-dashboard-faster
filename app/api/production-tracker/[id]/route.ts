@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { cache, cacheKeys } from "@/lib/redis"
 
 // GET single production tracker
 export async function GET(
@@ -54,6 +55,13 @@ export async function PUT(
       }
     })
 
+    // Invalidate caches after updating tracker
+    await Promise.all([
+      cache.delete(cacheKeys.dashboardStats()),
+      cache.delete('tracker:list:*'),
+      cache.delete(cacheKeys.tracker(id)),
+    ])
+
     return NextResponse.json(tracker)
   } catch (error) {
     console.error("Error updating production tracker:", error)
@@ -79,6 +87,13 @@ export async function DELETE(
         deletedAt: new Date()
       }
     })
+
+    // Invalidate caches after deleting tracker
+    await Promise.all([
+      cache.delete(cacheKeys.dashboardStats()),
+      cache.delete('tracker:list:*'),
+      cache.delete(cacheKeys.tracker(id)),
+    ])
 
     return NextResponse.json({ success: true })
   } catch (error) {
