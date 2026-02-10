@@ -11,9 +11,11 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
       url: process.env.DATABASE_URL,
     },
   },
-  // Optimize connection pooling for Railway/Vercel
-  // Default pool size is 10, but you can adjust based on your plan
-  // Railway hobby plan can handle ~20 connections
+  // Optimized connection pooling for Railway Hobby plan
+  // Railway Hobby can handle ~95 connections, but we limit to be safe
+  // Formula: (serverless_functions * connection_limit) should be < 95
+  // For Railway: 5 instances * 10 connections = 50 connections max
+  // Leaves headroom for direct connections, migrations, etc.
 })
 
 // Query optimization middleware

@@ -1,19 +1,23 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { cache, cacheKeys } from "@/lib/redis"
+import { getPayloadSize, logPerformance } from "@/lib/performance"
 
 /**
  * Consolidated Dashboard API
  * Returns all dashboard data in a single request for better performance
  * Instead of 6 separate API calls, we make 1
  * 
- * Now with Redis caching:
- * - First request: Fetches from DB and caches for 5 minutes
- * - Subsequent requests: Serves from cache (much faster!)
- * - Cache auto-expires after 5 minutes
- * - Cache is invalidated when data is created/updated/deleted
+ * Performance optimizations:
+ * - Redis caching (5min TTL)
+ * - Field selection (only necessary fields)
+ * - Parallel queries
+ * - Response compression (automatic via Next.js)
+ * - Performance monitoring
  */
 export async function GET(request: Request) {
+  const startTime = Date.now()
+  
   try {
     const { searchParams } = new URL(request.url)
     const year = searchParams.get("year") // Optional year filter
@@ -23,10 +27,27 @@ export async function GET(request: Request) {
     if (!skipCache) {
       const cached = await cache.get(cacheKeys.dashboardStats())
       if (cached) {
+        const duration = Date.now() - startTime
+        const payloadSize = getPayloadSize(cached)
+        
+        // Log cache hit performance
+        logPerformance({
+          endpoint: '/api/dashboard-stats',
+          method: 'GET',
+          duration,
+          responseSize: payloadSize,
+          cacheHit: true,
+          timestamp: new Date().toISOString()
+        })
+        
         return NextResponse.json({
           ...cached,
           fromCache: true,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          _meta: {
+            duration,
+            payloadSize,
+          }
         })
       }
     }
@@ -67,10 +88,20 @@ export async function GET(request: Request) {
         },
       }),
       
-      // Expenses - with items for calculations
+      // Expenses - with items for calculations (optimized)
       prisma.expense.findMany({
         where: { deletedAt: null },
-        include: {
+        select: {
+          id: true,
+          expenseId: true,
+          projectName: true,
+          productionDate: true,
+          clientBudget: true,
+          paidAmount: true,
+          totalItemBudgeted: true,
+          totalItemDifferences: true,
+          status: true,
+          updatedAt: true,
           items: {
             select: {
               productName: true,
@@ -144,9 +175,26 @@ export async function GET(request: Request) {
     // Cache for 5 minutes (300 seconds)
     await cache.set(cacheKeys.dashboardStats(), responseData, 300)
 
+    const duration = Date.now() - startTime
+    const payloadSize = getPayloadSize(responseData)
+    
+    // Log performance metrics in development
+    logPerformance({
+      endpoint: '/api/dashboard-stats',
+      method: 'GET',
+      duration,
+      responseSize: payloadSize,
+      cacheHit: false,
+      timestamp: new Date().toISOString()
+    })
+
     return NextResponse.json({
       ...responseData,
-      fromCache: false
+      fromCache: false,
+      _meta: {
+        duration,
+        payloadSize,
+      }
     })
   } catch (error) {
     console.error("Error fetching dashboard stats:", error)
