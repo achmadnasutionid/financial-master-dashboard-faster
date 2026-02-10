@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { verifyRecordVersion, OptimisticLockError } from "@/lib/optimistic-locking"
+import { cache, cacheKeys } from "@/lib/redis"
 
 // GET single invoice
 export async function GET(
@@ -395,6 +396,13 @@ export async function PUT(
       })
     })
 
+    // Invalidate caches after updating invoice
+    await Promise.all([
+      cache.delete(cacheKeys.dashboardStats()),
+      cache.delete('invoice:list:*'),
+      cache.delete(cacheKeys.invoice(id)),
+    ])
+
     return NextResponse.json(invoice)
   } catch (error) {
     console.error("Error updating invoice:", error)
@@ -428,6 +436,13 @@ export async function DELETE(
     await prisma.invoice.delete({
       where: { id }
     })
+
+    // Invalidate caches after deleting invoice
+    await Promise.all([
+      cache.delete(cacheKeys.dashboardStats()),
+      cache.delete('invoice:list:*'),
+      cache.delete(cacheKeys.invoice(id)),
+    ])
 
     return NextResponse.json({ success: true })
   } catch (error) {

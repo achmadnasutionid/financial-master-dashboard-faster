@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { generateId } from "@/lib/id-generator"
+import { cache, cacheKeys } from "@/lib/redis"
 
 // GET all expenses (optimized with pagination)
 export async function GET(request: Request) {
@@ -139,6 +140,12 @@ export async function POST(request: Request) {
         items: true
       }
     })
+
+    // Invalidate caches after creating expense
+    await Promise.all([
+      cache.delete(cacheKeys.dashboardStats()),
+      cache.delete('expense:list:*'),
+    ])
 
     return NextResponse.json(expense, { status: 201 })
   } catch (error: any) {

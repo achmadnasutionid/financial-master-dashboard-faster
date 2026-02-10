@@ -1,15 +1,35 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { cache, cacheKeys } from "@/lib/redis"
 
 /**
  * Consolidated Dashboard API
  * Returns all dashboard data in a single request for better performance
  * Instead of 6 separate API calls, we make 1
+ * 
+ * Now with Redis caching:
+ * - First request: Fetches from DB and caches for 5 minutes
+ * - Subsequent requests: Serves from cache (much faster!)
+ * - Cache auto-expires after 5 minutes
+ * - Cache is invalidated when data is created/updated/deleted
  */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const year = searchParams.get("year") // Optional year filter
+    const skipCache = searchParams.get("skipCache") === "true" // Force fresh data
+
+    // Try to get from cache first
+    if (!skipCache) {
+      const cached = await cache.get(cacheKeys.dashboardStats())
+      if (cached) {
+        return NextResponse.json({
+          ...cached,
+          fromCache: true,
+          timestamp: new Date().toISOString()
+        })
+      }
+    }
 
     // Fetch all data in parallel for maximum speed
     const [
@@ -110,7 +130,7 @@ export async function GET(request: Request) {
     ])
 
     // Return all data in one response
-    return NextResponse.json({
+    const responseData = {
       invoices,
       quotations,
       expenses,
@@ -119,6 +139,14 @@ export async function GET(request: Request) {
       bigExpenses,
       planning,
       timestamp: new Date().toISOString(), // For cache debugging
+    }
+
+    // Cache for 5 minutes (300 seconds)
+    await cache.set(cacheKeys.dashboardStats(), responseData, 300)
+
+    return NextResponse.json({
+      ...responseData,
+      fromCache: false
     })
   } catch (error) {
     console.error("Error fetching dashboard stats:", error)

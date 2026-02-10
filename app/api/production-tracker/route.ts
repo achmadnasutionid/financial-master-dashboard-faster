@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { generateId } from "@/lib/id-generator"
+import { cache, cacheKeys } from "@/lib/redis"
 
 // GET all production trackers
 export async function GET(request: Request) {
@@ -67,6 +68,12 @@ export async function POST(request: Request) {
         status: body.status || "pending"
       }
     })
+
+    // Invalidate caches after creating tracker
+    await Promise.all([
+      cache.delete(cacheKeys.dashboardStats()),
+      cache.delete('tracker:list:*'),
+    ])
 
     return NextResponse.json(tracker, { status: 201 })
   } catch (error: any) {
