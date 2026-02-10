@@ -15,7 +15,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { prisma } from '@/lib/prisma'
 import { generateId } from '@/lib/id-generator'
 
-describe('Production Tracker Integration Tests', () => {
+describe('Tracker Integration Tests', () => {
   let testInvoice: any
   let testTracker: any
   

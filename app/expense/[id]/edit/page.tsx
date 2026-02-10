@@ -1026,9 +1026,9 @@ export default function EditExpensePage() {
       <AlertDialog open={showSyncDialog} onOpenChange={setShowSyncDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Sync from Production Tracker?</AlertDialogTitle>
+            <AlertDialogTitle>Sync from Tracker?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will replace all "Actual" amounts in the expense items with the data from the Production Tracker. 
+              This will replace all "Actual" amounts in the expense items with the data from the Tracker. 
               Any manually entered actual amounts will be overwritten. Are you sure you want to continue?
             </AlertDialogDescription>
           </AlertDialogHeader>

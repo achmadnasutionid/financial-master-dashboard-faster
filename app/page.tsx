@@ -73,7 +73,7 @@ const ALL_CARDS: DashboardCard[] = [
   { id: "quotation", section: "Quick Action", title: "Quotation", keywords: "quotation quote qtn", route: "/quotation", icon: "file-check" },
   { id: "invoice", section: "Quick Action", title: "Invoice", keywords: "invoice inv payment bill", route: "/invoice", icon: "receipt" },
   { id: "expenses", section: "Quick Action", title: "Expenses", keywords: "expenses expense exp cost", route: "/expense", icon: "wallet" },
-  { id: "production-tracker", section: "Quick Action", title: "Production Tracker", keywords: "production tracker entry expenses actual", route: "/special-case/production-tracker", icon: "table" },
+  { id: "production-tracker", section: "Quick Action", title: "Tracker", keywords: "tracker production entry expenses actual", route: "/special-case/production-tracker", icon: "table" },
   
   // Special Case
   { id: "paragon", section: "Special Case", title: "Paragon", keywords: "paragon special", route: "/special-case/paragon", icon: "building" },

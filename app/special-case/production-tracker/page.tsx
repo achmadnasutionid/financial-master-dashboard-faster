@@ -426,7 +426,7 @@ export default function ProductionTrackerPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col">
-        <PageHeader title="Production Tracker" showBackButton={true} />
+        <PageHeader title="Tracker" showBackButton={true} />
         <main className="flex flex-1 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin" />
         </main>
@@ -437,7 +437,7 @@ export default function ProductionTrackerPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PageHeader title="Production Tracker" showBackButton={true} hideThemeToggle={true} />
+      <PageHeader title="Tracker" showBackButton={true} hideThemeToggle={true} />
       <main className="flex flex-1 flex-col bg-gradient-to-br from-background via-background to-muted px-4 py-6">
         <div className="w-full max-w-[98vw] mx-auto space-y-4">
           {/* Controls */}

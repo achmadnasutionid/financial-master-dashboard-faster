@@ -121,9 +121,9 @@ export async function POST(
       data: { generatedExpenseId: expense.id }
     })
 
-    // Create or Update Production Tracker entry
+    // Create or Update Tracker entry
     try {
-      // Check if a production tracker already exists with the same project name
+      // Check if a tracker already exists with the same project name
       const existingTracker = await prisma.productionTracker.findFirst({
         where: {
           projectName: invoice.billTo,
