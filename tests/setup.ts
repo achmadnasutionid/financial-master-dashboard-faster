@@ -51,13 +51,20 @@ afterAll(async () => {
       }
     })
     for (const invoice of testInvoices) {
-      await prisma.invoiceItemDetail.deleteMany({
-        where: { invoiceItem: { invoiceId: invoice.id } }
-      })
-      await prisma.invoiceItem.deleteMany({ where: { invoiceId: invoice.id } })
-      await prisma.invoiceRemark.deleteMany({ where: { invoiceId: invoice.id } })
-      await prisma.invoiceSignature.deleteMany({ where: { invoiceId: invoice.id } })
-      await prisma.invoice.delete({ where: { id: invoice.id } })
+      try {
+        await prisma.invoiceItemDetail.deleteMany({
+          where: { invoiceItem: { invoiceId: invoice.id } }
+        })
+        await prisma.invoiceItem.deleteMany({ where: { invoiceId: invoice.id } })
+        await prisma.invoiceRemark.deleteMany({ where: { invoiceId: invoice.id } })
+        await prisma.invoiceSignature.deleteMany({ where: { invoiceId: invoice.id } })
+        await prisma.invoice.delete({ where: { id: invoice.id } })
+      } catch (error: any) {
+        // Ignore P2025 (record not found) errors - record was already deleted
+        if (error.code !== 'P2025') {
+          throw error
+        }
+      }
     }
 
     // Clean up quotations (with nested relations)
@@ -75,13 +82,20 @@ afterAll(async () => {
       }
     })
     for (const quotation of testQuotations) {
-      await prisma.quotationItemDetail.deleteMany({
-        where: { quotationItem: { quotationId: quotation.id } }
-      })
-      await prisma.quotationItem.deleteMany({ where: { quotationId: quotation.id } })
-      await prisma.quotationRemark.deleteMany({ where: { quotationId: quotation.id } })
-      await prisma.quotationSignature.deleteMany({ where: { quotationId: quotation.id } })
-      await prisma.quotation.delete({ where: { id: quotation.id } })
+      try {
+        await prisma.quotationItemDetail.deleteMany({
+          where: { quotationItem: { quotationId: quotation.id } }
+        })
+        await prisma.quotationItem.deleteMany({ where: { quotationId: quotation.id } })
+        await prisma.quotationRemark.deleteMany({ where: { quotationId: quotation.id } })
+        await prisma.quotationSignature.deleteMany({ where: { quotationId: quotation.id } })
+        await prisma.quotation.delete({ where: { id: quotation.id } })
+      } catch (error: any) {
+        // Ignore P2025 (record not found) errors - record was already deleted
+        if (error.code !== 'P2025') {
+          throw error
+        }
+      }
     }
 
     // Clean up expenses (with nested relations)
@@ -100,8 +114,15 @@ afterAll(async () => {
       }
     })
     for (const expense of testExpenses) {
-      await prisma.expenseItem.deleteMany({ where: { expenseId: expense.id } })
-      await prisma.expense.delete({ where: { id: expense.id } })
+      try {
+        await prisma.expenseItem.deleteMany({ where: { expenseId: expense.id } })
+        await prisma.expense.delete({ where: { id: expense.id } })
+      } catch (error: any) {
+        // Ignore P2025 (record not found) errors - record was already deleted
+        if (error.code !== 'P2025') {
+          throw error
+        }
+      }
     }
 
     // Clean up planning
@@ -118,8 +139,45 @@ afterAll(async () => {
       }
     })
     for (const planning of testPlannings) {
-      await prisma.planningItem.deleteMany({ where: { planningId: planning.id } })
-      await prisma.planning.delete({ where: { id: planning.id } })
+      try {
+        await prisma.planningItem.deleteMany({ where: { planningId: planning.id } })
+        await prisma.planning.delete({ where: { id: planning.id } })
+      } catch (error: any) {
+        // Ignore P2025 (record not found) errors - record was already deleted
+        if (error.code !== 'P2025') {
+          throw error
+        }
+      }
+    }
+
+    // Clean up production trackers
+    const testTrackers = await prisma.productionTracker.findMany({
+      where: {
+        OR: [
+          { trackerId: { contains: 'PT-TEST-' } },
+          { trackerId: { contains: 'TEST-PT-' } },
+          { projectName: { contains: 'TEST-' } },
+          { projectName: { contains: 'Test ' } },
+          { projectName: { startsWith: 'Status Update Test' } },
+          { projectName: { startsWith: 'Status Paid Test' } },
+          { projectName: { startsWith: 'API Status Test' } },
+          { projectName: { startsWith: 'Invoice ID Update Test' } },
+          { projectName: { startsWith: 'API Invoice ID Test' } },
+          { projectName: { startsWith: 'Status Auto-Create' } },
+          { projectName: { startsWith: 'Invoice Link Test' } },
+          { projectName: { startsWith: 'Generated Entry' } }
+        ]
+      }
+    })
+    for (const tracker of testTrackers) {
+      try {
+        await prisma.productionTracker.delete({ where: { id: tracker.id } })
+      } catch (error: any) {
+        // Ignore P2025 (record not found) errors - record was already deleted
+        if (error.code !== 'P2025') {
+          throw error
+        }
+      }
     }
 
     // Clean up products
@@ -131,8 +189,15 @@ afterAll(async () => {
       }
     })
     for (const product of testProducts) {
-      await prisma.productDetail.deleteMany({ where: { productId: product.id } })
-      await prisma.product.delete({ where: { id: product.id } })
+      try {
+        await prisma.productDetail.deleteMany({ where: { productId: product.id } })
+        await prisma.product.delete({ where: { id: product.id } })
+      } catch (error: any) {
+        // Ignore P2025 (record not found) errors - record was already deleted
+        if (error.code !== 'P2025') {
+          throw error
+        }
+      }
     }
 
     // Clean up master data (be careful)
