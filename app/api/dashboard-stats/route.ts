@@ -9,7 +9,8 @@ import { getPayloadSize, logPerformance } from "@/lib/performance"
  * Instead of 6 separate API calls, we make 1
  * 
  * Performance optimizations:
- * - Redis caching (5min TTL)
+ * - Year-based filtering (default: current year) for faster queries
+ * - Redis caching (5min TTL) per year
  * - Field selection (only necessary fields)
  * - Parallel queries
  * - Response compression (automatic via Next.js)
@@ -20,12 +21,23 @@ export async function GET(request: Request) {
   
   try {
     const { searchParams } = new URL(request.url)
-    const year = searchParams.get("year") // Optional year filter
+    const yearParam = searchParams.get("year")
     const skipCache = searchParams.get("skipCache") === "true" // Force fresh data
+
+    // Default to current year if not specified
+    const currentYear = new Date().getFullYear()
+    const selectedYear = yearParam ? parseInt(yearParam) : currentYear
+
+    // Build date range for the selected year
+    const yearStart = new Date(selectedYear, 0, 1) // Jan 1
+    const yearEnd = new Date(selectedYear + 1, 0, 1) // Jan 1 next year
+
+    // Cache key includes year for separate caching
+    const cacheKey = `${cacheKeys.dashboardStats()}:${selectedYear}`
 
     // Try to get from cache first
     if (!skipCache) {
-      const cached = await cache.get(cacheKeys.dashboardStats())
+      const cached = await cache.get(cacheKey)
       if (cached) {
         const duration = Date.now() - startTime
         const payloadSize = getPayloadSize(cached)
@@ -53,6 +65,7 @@ export async function GET(request: Request) {
     }
 
     // Fetch all data in parallel for maximum speed
+    // OPTIMIZED: Only fetch data for selected year
     const [
       invoices,
       quotations,
@@ -62,9 +75,15 @@ export async function GET(request: Request) {
       bigExpenses,
       planning,
     ] = await Promise.all([
-      // Invoices - all active records
+      // Invoices - current year only
       prisma.invoice.findMany({
-        where: { deletedAt: null },
+        where: { 
+          deletedAt: null,
+          productionDate: {
+            gte: yearStart,
+            lt: yearEnd,
+          }
+        },
         select: {
           id: true,
           invoiceId: true,
@@ -75,9 +94,15 @@ export async function GET(request: Request) {
         },
       }),
       
-      // Quotations - all active records
+      // Quotations - current year only
       prisma.quotation.findMany({
-        where: { deletedAt: null },
+        where: { 
+          deletedAt: null,
+          productionDate: {
+            gte: yearStart,
+            lt: yearEnd,
+          }
+        },
         select: {
           id: true,
           quotationId: true,
@@ -88,9 +113,15 @@ export async function GET(request: Request) {
         },
       }),
       
-      // Expenses - with items for calculations (optimized)
+      // Expenses - current year only (with items for calculations)
       prisma.expense.findMany({
-        where: { deletedAt: null },
+        where: { 
+          deletedAt: null,
+          productionDate: {
+            gte: yearStart,
+            lt: yearEnd,
+          }
+        },
         select: {
           id: true,
           expenseId: true,
@@ -113,7 +144,7 @@ export async function GET(request: Request) {
         },
       }),
       
-      // Products - for master data dropdown
+      // Products - for master data dropdown (no year filter)
       prisma.product.findMany({
         where: { deletedAt: null },
         select: {
@@ -122,9 +153,12 @@ export async function GET(request: Request) {
         },
       }),
       
-      // Gear Expenses - all active records
+      // Gear Expenses - current year only
       prisma.gearExpense.findMany({
-        where: { deletedAt: null },
+        where: { 
+          deletedAt: null,
+          year: selectedYear,
+        },
         select: {
           id: true,
           name: true,
@@ -133,9 +167,12 @@ export async function GET(request: Request) {
         },
       }),
       
-      // Big Expenses - all active records
+      // Big Expenses - current year only
       prisma.bigExpense.findMany({
-        where: { deletedAt: null },
+        where: { 
+          deletedAt: null,
+          year: selectedYear,
+        },
         select: {
           id: true,
           name: true,
@@ -144,7 +181,7 @@ export async function GET(request: Request) {
         },
       }),
       
-      // Planning - for recent activities
+      // Planning - for recent activities (limit to recent 50, no year filter)
       prisma.planning.findMany({
         where: { deletedAt: null },
         select: {
@@ -169,11 +206,12 @@ export async function GET(request: Request) {
       gearExpenses,
       bigExpenses,
       planning,
+      selectedYear, // Include selected year in response
       timestamp: new Date().toISOString(), // For cache debugging
     }
 
-    // Cache for 5 minutes (300 seconds)
-    await cache.set(cacheKeys.dashboardStats(), responseData, 300)
+    // Cache for 5 minutes (300 seconds) - separate cache per year
+    await cache.set(cacheKey, responseData, 300)
 
     const duration = Date.now() - startTime
     const payloadSize = getPayloadSize(responseData)

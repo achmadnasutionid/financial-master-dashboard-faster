@@ -2,15 +2,16 @@
 
 /**
  * PERFORMANCE OPTIMIZATION:
- * This dashboard has been optimized to prevent multiple re-renders:
+ * This dashboard has been optimized to minimize data loading:
  * 
- * 1. Data is fetched ONCE on mount (not on year filter changes)
- * 2. All calculations use useMemo to only recalculate when specific dependencies change
- * 3. Each year filter has its own isolated memoized calculation
- * 4. State updates only trigger when memoized values actually change
+ * 1. Data is fetched FOR THE SELECTED YEAR ONLY (not all years)
+ * 2. API refetches when user changes year (fast because only 1 year of data)
+ * 3. All calculations use useMemo to only recalculate when specific dependencies change
+ * 4. Each year filter has its own isolated memoized calculation
+ * 5. State updates only trigger when memoized values actually change
  * 
- * Previous Issue: Changing any year filter triggered 4+ cascading re-calculations
- * Current: Each filter change triggers only 1 targeted recalculation
+ * Previous: Load ALL years → slow initial load, fast year filters
+ * Current: Load CURRENT year → fast initial load, fast API refetch on year change
  */
 
 import { useRouter } from "next/navigation"
@@ -155,13 +156,15 @@ export default function Home() {
     setSelectedProductsYear(year)
   }, [])
 
-  // Fetch all dashboard data (only once on mount)
+  // Fetch all dashboard data (refetches when currentYear changes)
   useEffect(() => {
-    if (!isClient) return
+    if (!isClient || !currentYear) return
     
     const fetchStats = async () => {
+      setLoading(true)
       try {
-        const response = await fetch("/api/dashboard-stats", { cache: "no-store" })
+        // Fetch data for the current year from API
+        const response = await fetch(`/api/dashboard-stats?year=${currentYear}`, { cache: "no-store" })
         const data: DashboardStatsResponse = await response.json()
         
         const { invoices, quotations, expenses, products, gearExpenses, bigExpenses, planning } = data
@@ -175,7 +178,7 @@ export default function Home() {
         setAllBigExpenses(bigExpenses)
         setAllPlanning(planning)
 
-        // Extract years
+        // Extract years from the data (for year selector dropdowns)
         const years = extractAvailableYears(invoices, quotations, expenses)
         setAvailableYears(years)
 
@@ -191,14 +194,15 @@ export default function Home() {
     }
 
     fetchStats()
-  }, [isClient]) // Only depends on isClient - fetch once!
+  }, [isClient, currentYear]) // Refetch when currentYear changes!
 
   // ========================================
   // OPTIMIZED: All calculations using useMemo
-  // These only recalculate when their specific dependencies change
+  // Data is already filtered by year from API, so calculations are simpler
+  // Only recalculate when data changes (e.g., after year selection triggers refetch)
   // ========================================
 
-  // Invoice & Quotation Stats (recalculates only when selectedYear changes)
+  // Invoice & Quotation Stats
   const memoizedInvoiceQuotationStats = useMemo(() => {
     if (allInvoices.length === 0 && allQuotations.length === 0) {
       return {

@@ -10,9 +10,11 @@ import { cache, cacheKeys } from './redis'
 /**
  * Invalidate dashboard stats cache
  * Call this after ANY change to invoices, quotations, expenses, gear/big expenses, or planning
+ * Clears cache for all years since we don't know which year was affected
  */
 export async function invalidateDashboardCache(): Promise<void> {
-  await cache.delete(cacheKeys.dashboardStats())
+  // Clear all year-based dashboard caches using wildcard
+  await cache.delete('dashboard:stats:*')
 }
 
 /**
