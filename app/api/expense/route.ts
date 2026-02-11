@@ -2,8 +2,9 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { generateId } from "@/lib/id-generator"
 import { invalidateExpenseCaches } from "@/lib/cache-invalidation"
+import { cache, cacheKeys } from "@/lib/redis"
 
-// GET all expenses (optimized with pagination)
+// GET all expenses (optimized with pagination + Redis caching)
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -16,6 +17,20 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get("page") || "1")
     const limit = parseInt(searchParams.get("limit") || "50")
     const skip = (page - 1) * limit
+
+    // Build cache key (only cache non-search queries to avoid cache pollution)
+    const shouldCache = !search && !includeDeleted
+    const cacheKey = shouldCache 
+      ? `${cacheKeys.expenseList(page)}:${status || 'all'}:${sortBy}:${limit}`
+      : null
+
+    // Try to get from cache first
+    if (cacheKey) {
+      const cached = await cache.get(cacheKey)
+      if (cached) {
+        return NextResponse.json({ ...cached, fromCache: true })
+      }
+    }
 
     // Build where clause
     const where: any = {}
@@ -71,16 +86,24 @@ export async function GET(request: Request) {
       prisma.expense.count({ where })
     ])
 
-    // Return paginated response
-    return NextResponse.json({
+    const response = {
       data: expenses,
       pagination: {
         page,
         limit,
         total,
         totalPages: Math.ceil(total / limit)
-      }
-    })
+      },
+      fromCache: false
+    }
+
+    // Cache for 2 minutes (common list queries)
+    if (cacheKey) {
+      await cache.set(cacheKey, response, 120)
+    }
+
+    // Return paginated response
+    return NextResponse.json(response)
   } catch (error) {
     console.error("Error fetching expenses:", error)
     return NextResponse.json(

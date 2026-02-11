@@ -58,6 +58,14 @@ export function middleware(request: NextRequest) {
     
     // Enable compression hint
     response.headers.set("Vary", "Accept-Encoding")
+    
+    // Performance hints for browsers
+    response.headers.set("X-DNS-Prefetch-Control", "on")
+    
+    // Add timing information header in development
+    if (process.env.NODE_ENV === 'development') {
+      response.headers.set("Server-Timing", `middleware;dur=0`)
+    }
   }
 
   // Add security headers
@@ -68,6 +76,16 @@ export function middleware(request: NextRequest) {
   
   // Prevent search engine indexing via headers
   response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet, noimageindex")
+
+  // Performance optimization: Early hints for critical resources
+  // This tells the browser to preload critical assets while the server is processing
+  if (request.nextUrl.pathname === "/" || request.nextUrl.pathname.startsWith("/invoice") 
+      || request.nextUrl.pathname.startsWith("/quotation")) {
+    response.headers.set("Link", [
+      "</fonts/inter.woff2>; rel=preload; as=font; crossorigin",
+      "</api/dashboard-stats>; rel=preconnect",
+    ].join(", "))
+  }
 
   return response
 }

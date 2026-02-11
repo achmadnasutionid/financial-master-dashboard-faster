@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { createSlowQueryMiddleware } from './slow-query-logger'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -18,7 +19,10 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   // Leaves headroom for direct connections, migrations, etc.
 })
 
-// Query optimization middleware
+// Query optimization middleware - tracks slow queries
+prisma.$use(createSlowQueryMiddleware(1000)) // Log queries over 1 second
+
+// Additional performance monitoring middleware
 prisma.$use(async (params, next) => {
   const before = Date.now()
   const result = await next(params)
