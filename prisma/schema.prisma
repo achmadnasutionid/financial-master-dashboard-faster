@@ -163,6 +163,10 @@ model Quotation {
   @@index([companyName])
   @@index([generatedInvoiceId])
   @@index([sourcePlanningId])
+  // NEW: Optimized indexes for dashboard queries
+  @@index([status, productionDate, deletedAt]) // Pending/accepted quotations by year
+  @@index([deletedAt, updatedAt])              // Recent activity queries
+  @@index([status, totalAmount, deletedAt])    // Financial stats by status
 }
 
 model QuotationItem {
@@ -275,6 +279,10 @@ model Invoice {
   @@index([paidDate, status, deletedAt])
   @@index([generatedExpenseId])
   @@index([sourceQuotationId])
+  // NEW: Optimized indexes for dashboard queries
+  @@index([status, productionDate, deletedAt]) // Pending/paid invoices by year
+  @@index([deletedAt, updatedAt])              // Recent activity queries
+  @@index([status, totalAmount, deletedAt])    // Financial stats by status
 }
 
 model InvoiceItem {
@@ -375,6 +383,11 @@ model Expense {
   @@index([invoiceNumber])
   @@index([planningNumber])
   @@index([sourceInvoiceId])
+  // NEW: Optimized indexes for dashboard and financial calculations
+  @@index([deletedAt, productionDate])          // Year-based expense queries
+  @@index([deletedAt, updatedAt])               // Recent activity queries
+  @@index([status, productionDate, deletedAt])  // Draft expenses by year
+  @@index([productionDate, deletedAt, status])  // Monthly trends calculation
 }
 
 model ExpenseItem {
@@ -392,6 +405,8 @@ model ExpenseItem {
   @@index([expenseId])
   @@index([productName])
   @@index([expenseId, order])
+  // NEW: Optimized index for product expense aggregations
+  @@index([expenseId, productName]) // Product-based expense calculations
 }
 
 model ParagonTicket {
@@ -433,6 +448,9 @@ model ParagonTicket {
   @@index([productionDate, status, deletedAt])
   @@index([status, updatedAt, deletedAt])
   @@index([companyName, status, deletedAt])
+  // NEW: Optimized indexes for dashboard queries
+  @@index([deletedAt, updatedAt])              // Recent activity queries
+  @@index([productionDate, deletedAt])         // Year-based filtering
 }
 
 model ParagonTicketItem {
@@ -524,6 +542,9 @@ model ErhaTicket {
   @@index([productionDate, status, deletedAt])
   @@index([status, updatedAt, deletedAt])
   @@index([companyName, status, deletedAt])
+  // NEW: Optimized indexes for dashboard queries
+  @@index([deletedAt, updatedAt])              // Recent activity queries
+  @@index([productionDate, deletedAt])         // Year-based filtering
 }
 
 model ErhaTicketItem {
@@ -580,6 +601,8 @@ model GearExpense {
   updatedAt DateTime  @updatedAt
 
   @@index([year, deletedAt])
+  // NEW: Optimized index for year-based filtering (most common query)
+  @@index([deletedAt, year]) // Reverse order for better selectivity
 }
 
 model BigExpense {
@@ -593,6 +616,8 @@ model BigExpense {
   updatedAt DateTime  @updatedAt
 
   @@index([year, deletedAt])
+  // NEW: Optimized index for year-based filtering (most common query)
+  @@index([deletedAt, year]) // Reverse order for better selectivity
 }
 
 model QuotationTemplate {
@@ -655,4 +680,8 @@ model ProductionTracker {
   @@index([deletedAt])
   @@index([date, deletedAt])
   @@index([status])
+  // NEW: Optimized indexes for common queries
+  @@index([status, deletedAt])        // Status filtering
+  @@index([deletedAt, date])          // Date range queries with soft delete
+  @@index([expenseId, deletedAt])     // Expense lookup
 }
