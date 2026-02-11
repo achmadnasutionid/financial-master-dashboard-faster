@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { NextRequest, NextResponse } from "next/server"
+import { invalidateBigExpenseCaches } from "@/lib/cache-invalidation"
 
 // GET all big expenses (with optional year filter)
 export async function GET(request: NextRequest) {
@@ -54,6 +55,9 @@ export async function POST(request: NextRequest) {
         year: parseInt(year),
       },
     })
+
+    // Invalidate caches after creating big expense
+    await invalidateBigExpenseCaches()
 
     return NextResponse.json(expense)
   } catch (error) {

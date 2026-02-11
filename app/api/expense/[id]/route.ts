@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { cache, cacheKeys } from "@/lib/redis"
+import { invalidateExpenseCaches } from "@/lib/cache-invalidation"
 
 // GET single expense
 export async function GET(
@@ -166,11 +166,7 @@ export async function PUT(
     })
 
     // Invalidate caches after updating expense
-    await Promise.all([
-      cache.delete(cacheKeys.dashboardStats()),
-      cache.delete('expense:list:*'),
-      cache.delete(cacheKeys.expense(id)),
-    ])
+    await invalidateExpenseCaches(id)
 
     return NextResponse.json(expense)
   } catch (error) {
@@ -196,11 +192,7 @@ export async function DELETE(
     })
 
     // Invalidate caches after deleting expense
-    await Promise.all([
-      cache.delete(cacheKeys.dashboardStats()),
-      cache.delete('expense:list:*'),
-      cache.delete(cacheKeys.expense(id)),
-    ])
+    await invalidateExpenseCaches(id)
 
     return NextResponse.json({ success: true })
   } catch (error) {

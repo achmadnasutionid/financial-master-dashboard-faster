@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { invalidatePlanningCaches } from "@/lib/cache-invalidation"
 
 // GET single planning by ID
 export async function GET(
@@ -146,6 +147,9 @@ export async function PUT(
       })
     })
 
+    // Invalidate caches after updating planning
+    await invalidatePlanningCaches(id)
+
     return NextResponse.json(planning)
   } catch (error) {
     console.error("Error updating planning:", error)
@@ -166,6 +170,9 @@ export async function DELETE(
     await prisma.planning.delete({
       where: { id }
     })
+
+    // Invalidate caches after deleting planning
+    await invalidatePlanningCaches(id)
 
     return NextResponse.json({ success: true })
   } catch (error) {

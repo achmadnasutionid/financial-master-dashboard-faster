@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { invalidateParagonCaches } from "@/lib/cache-invalidation"
 
 // GET single paragon ticket
 export async function GET(
@@ -309,6 +310,9 @@ export async function PUT(
       })
     })
 
+    // Invalidate caches after updating paragon ticket
+    await invalidateParagonCaches(id)
+
     return NextResponse.json(ticket)
   } catch (error) {
     console.error("Error updating paragon ticket:", error)
@@ -329,6 +333,9 @@ export async function DELETE(
     await prisma.paragonTicket.delete({
       where: { id }
     })
+
+    // Invalidate caches after deleting paragon ticket
+    await invalidateParagonCaches(id)
 
     return NextResponse.json({ success: true })
   } catch (error) {

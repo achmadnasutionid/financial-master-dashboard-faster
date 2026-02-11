@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { invalidateParagonCaches } from "@/lib/cache-invalidation"
 
 // GET all paragon tickets (optimized with pagination)
 export async function GET(request: Request) {

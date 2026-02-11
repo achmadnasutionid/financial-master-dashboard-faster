@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { NextRequest, NextResponse } from "next/server"
+import { invalidateGearExpenseCaches } from "@/lib/cache-invalidation"
 
 // GET single gear expense
 export async function GET(
@@ -50,6 +51,9 @@ export async function PUT(
       },
     })
 
+    // Invalidate caches after updating gear expense
+    await invalidateGearExpenseCaches()
+
     return NextResponse.json(expense)
   } catch (error) {
     console.error("Error updating gear expense:", error)
@@ -72,6 +76,9 @@ export async function DELETE(
       where: { id },
       data: { deletedAt: new Date() },
     })
+
+    // Invalidate caches after deleting gear expense
+    await invalidateGearExpenseCaches()
 
     return NextResponse.json(expense)
   } catch (error) {

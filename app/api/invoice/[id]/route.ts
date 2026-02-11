@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { verifyRecordVersion, OptimisticLockError } from "@/lib/optimistic-locking"
-import { cache, cacheKeys } from "@/lib/redis"
+import { invalidateInvoiceCaches } from "@/lib/cache-invalidation"
 
 // GET single invoice
 export async function GET(
@@ -397,11 +397,7 @@ export async function PUT(
     })
 
     // Invalidate caches after updating invoice
-    await Promise.all([
-      cache.delete(cacheKeys.dashboardStats()),
-      cache.delete('invoice:list:*'),
-      cache.delete(cacheKeys.invoice(id)),
-    ])
+    await invalidateInvoiceCaches(id)
 
     return NextResponse.json(invoice)
   } catch (error) {
@@ -438,11 +434,7 @@ export async function DELETE(
     })
 
     // Invalidate caches after deleting invoice
-    await Promise.all([
-      cache.delete(cacheKeys.dashboardStats()),
-      cache.delete('invoice:list:*'),
-      cache.delete(cacheKeys.invoice(id)),
-    ])
+    await invalidateInvoiceCaches(id)
 
     return NextResponse.json({ success: true })
   } catch (error) {

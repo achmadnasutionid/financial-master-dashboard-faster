@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { invalidateErhaCaches } from "@/lib/cache-invalidation"
 
 // GET single erha ticket
 export async function GET(
@@ -315,6 +316,9 @@ export async function PUT(
       })
     })
 
+    // Invalidate caches after updating erha ticket
+    await invalidateErhaCaches(id)
+
     return NextResponse.json(ticket)
   } catch (error) {
     console.error("Error updating erha ticket:", error)
@@ -335,6 +339,9 @@ export async function DELETE(
     await prisma.erhaTicket.delete({
       where: { id }
     })
+
+    // Invalidate caches after deleting erha ticket
+    await invalidateErhaCaches(id)
 
     return NextResponse.json({ success: true })
   } catch (error) {

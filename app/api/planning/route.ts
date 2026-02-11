@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { generateId } from "@/lib/id-generator"
+import { invalidatePlanningCaches } from "@/lib/cache-invalidation"
 
 // GET all plannings with optional filters (optimized with pagination)
 export async function GET(request: Request) {
@@ -116,6 +117,9 @@ export async function POST(request: Request) {
         items: true
       }
     })
+
+    // Invalidate caches after creating planning
+    await invalidatePlanningCaches()
 
     return NextResponse.json(planning, { status: 201 })
   } catch (error) {

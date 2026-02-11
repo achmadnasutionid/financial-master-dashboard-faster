@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { NextRequest, NextResponse } from "next/server"
+import { invalidateGearExpenseCaches } from "@/lib/cache-invalidation"
 
 // GET all gear expenses (with optional year filter)
 export async function GET(request: NextRequest) {
@@ -54,6 +55,9 @@ export async function POST(request: NextRequest) {
         year: parseInt(year),
       },
     })
+
+    // Invalidate caches after creating gear expense
+    await invalidateGearExpenseCaches()
 
     return NextResponse.json(expense)
   } catch (error) {
