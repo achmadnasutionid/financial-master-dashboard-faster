@@ -25,6 +25,7 @@ interface FinancialTrendsSectionProps {
   availableYears: number[]
   onYearChange: (year: string) => void
   loading: boolean
+  hideYearFilter?: boolean
 }
 
 export function FinancialTrendsSection({
@@ -33,6 +34,7 @@ export function FinancialTrendsSection({
   availableYears,
   onYearChange,
   loading,
+  hideYearFilter = false,
 }: FinancialTrendsSectionProps) {
   return (
     <div className="space-y-6">
@@ -43,19 +45,21 @@ export function FinancialTrendsSection({
             Financial Trends
           </h2>
         </div>
-        <Select value={selectedYear} onValueChange={onYearChange}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select year" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Years</SelectItem>
-            {availableYears.map((year) => (
-              <SelectItem key={year} value={year.toString()}>
-                {year}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {!hideYearFilter && (
+          <Select value={selectedYear} onValueChange={onYearChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select year" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Years</SelectItem>
+              {availableYears.map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {loading ? (

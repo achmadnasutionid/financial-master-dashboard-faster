@@ -18,6 +18,7 @@ interface QuotationsInvoicesSectionProps {
   loading: boolean
   formatCurrency: (amount: number) => string
   onNavigate: (path: string) => void
+  hideYearFilter?: boolean
 }
 
 export function QuotationsInvoicesSection({
@@ -29,6 +30,7 @@ export function QuotationsInvoicesSection({
   loading,
   formatCurrency,
   onNavigate,
+  hideYearFilter = false,
 }: QuotationsInvoicesSectionProps) {
   return (
     <div className="space-y-6">
@@ -39,19 +41,21 @@ export function QuotationsInvoicesSection({
             Quotations & Invoices
           </h2>
         </div>
-        <Select value={selectedYear} onValueChange={onYearChange}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select year" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Years</SelectItem>
-            {availableYears.map((year) => (
-              <SelectItem key={year} value={year.toString()}>
-                {year}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {!hideYearFilter && (
+          <Select value={selectedYear} onValueChange={onYearChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select year" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Years</SelectItem>
+              {availableYears.map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {loading ? (

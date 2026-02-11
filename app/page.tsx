@@ -110,13 +110,9 @@ export default function Home() {
   const [etcExpenses, setEtcExpenses] = useState<ProductExpense[]>([])
   const [showAllProducts, setShowAllProducts] = useState(false)
   
-  // Year filters
+  // Year filter - ONE filter for all sections
   const [currentYear, setCurrentYear] = useState<string>("")
   const [availableYears, setAvailableYears] = useState<number[]>([])
-  const [selectedYear, setSelectedYear] = useState<string>("")
-  const [selectedFinancialYear, setSelectedFinancialYear] = useState<string>("")
-  const [selectedTrendsYear, setSelectedTrendsYear] = useState<string>("")
-  const [selectedProductsYear, setSelectedProductsYear] = useState<string>("")
   
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -150,10 +146,6 @@ export default function Home() {
     setIsClient(true)
     const year = new Date().getFullYear().toString()
     setCurrentYear(year)
-    setSelectedYear(year)
-    setSelectedFinancialYear(year)
-    setSelectedTrendsYear(year)
-    setSelectedProductsYear(year)
   }, [])
 
   // Fetch all dashboard data (refetches when currentYear changes)
@@ -199,7 +191,7 @@ export default function Home() {
   // ========================================
   // OPTIMIZED: All calculations using useMemo
   // Data is already filtered by year from API, so calculations are simpler
-  // Only recalculate when data changes (e.g., after year selection triggers refetch)
+  // All sections use the same year (currentYear)
   // ========================================
 
   // Invoice & Quotation Stats
@@ -210,10 +202,10 @@ export default function Home() {
         quotationStats: { total: 0, draft: 0, pending: 0, accepted: 0 }
       }
     }
-    return calculateStats(allInvoices, allQuotations, selectedYear)
-  }, [allInvoices, allQuotations, selectedYear])
+    return calculateStats(allInvoices, allQuotations, currentYear)
+  }, [allInvoices, allQuotations, currentYear])
 
-  // Financial Health Stats (recalculates only when selectedFinancialYear changes)
+  // Financial Health Stats
   const memoizedFinancialStats = useMemo(() => {
     if (allExpenses.length === 0 && allGearExpenses.length === 0 && allBigExpenses.length === 0) {
       return {
@@ -229,24 +221,24 @@ export default function Home() {
       }
     }
     return {
-      expenseStats: calculateExpenseStats(allExpenses, selectedFinancialYear),
-      extraExpenses: calculateExtraExpenses(allGearExpenses, allBigExpenses, selectedFinancialYear)
+      expenseStats: calculateExpenseStats(allExpenses, currentYear),
+      extraExpenses: calculateExtraExpenses(allGearExpenses, allBigExpenses, currentYear)
     }
-  }, [allExpenses, allGearExpenses, allBigExpenses, selectedFinancialYear])
+  }, [allExpenses, allGearExpenses, allBigExpenses, currentYear])
 
-  // Monthly Trends (recalculates only when selectedTrendsYear changes)
+  // Monthly Trends
   const memoizedMonthlyTrends = useMemo(() => {
     if (allExpenses.length === 0) return []
-    return calculateMonthlyTrends(allExpenses, selectedTrendsYear)
-  }, [allExpenses, selectedTrendsYear])
+    return calculateMonthlyTrends(allExpenses, currentYear)
+  }, [allExpenses, currentYear])
 
-  // Product Expenses (recalculates only when selectedProductsYear changes)
+  // Product Expenses
   const memoizedProductExpenses = useMemo(() => {
     if (allExpenses.length === 0 || allProducts.length === 0) {
       return { productExpenses: [], etcExpenses: [] }
     }
-    return calculateProductExpenses(allExpenses, allProducts, selectedProductsYear)
-  }, [allExpenses, allProducts, selectedProductsYear])
+    return calculateProductExpenses(allExpenses, allProducts, currentYear)
+  }, [allExpenses, allProducts, currentYear])
 
   // Update state from memoized values (only when memo values actually change)
   useEffect(() => {
@@ -399,54 +391,70 @@ export default function Home() {
 
               {/* Quotations & Invoices Section */}
               {!searchQuery && (
-                <QuotationsInvoicesSection
-                  invoiceStats={invoiceStats}
-                  quotationStats={quotationStats}
-                  selectedYear={selectedYear}
-                  availableYears={availableYears}
-                  onYearChange={setSelectedYear}
-                  loading={loading}
-                  formatCurrency={formatCurrency}
-                  onNavigate={handleNavigate}
-                />
-              )}
+                <div className="space-y-8 border border-border rounded-lg p-6 bg-card">
+                  {/* Global Year Filter */}
+                  <div className="flex items-center justify-between pb-4 border-b">
+                    <h2 className="text-2xl font-bold">Annual Statistics</h2>
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-muted-foreground">Year:</label>
+                      <select
+                        value={currentYear}
+                        onChange={(e) => setCurrentYear(e.target.value)}
+                        className="px-3 py-1.5 rounded-md border border-input bg-background text-sm"
+                      >
+                        {availableYears.map((year) => (
+                          <option key={year} value={year.toString()}>
+                            {year}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
 
-              {/* Financial Health Section */}
-              {!searchQuery && (
-                <FinancialHealthSection
-                  expenseStats={expenseStats}
-                  extraExpenses={extraExpenses}
-                  selectedYear={selectedFinancialYear}
-                  availableYears={availableYears}
-                  onYearChange={setSelectedFinancialYear}
-                  loading={loading}
-                  formatCurrency={formatCurrency}
-                />
-              )}
+                  <QuotationsInvoicesSection
+                    invoiceStats={invoiceStats}
+                    quotationStats={quotationStats}
+                    selectedYear={currentYear}
+                    availableYears={availableYears}
+                    onYearChange={setCurrentYear}
+                    loading={loading}
+                    formatCurrency={formatCurrency}
+                    onNavigate={handleNavigate}
+                    hideYearFilter={true}
+                  />
 
-              {/* Financial Trends Section */}
-              {!searchQuery && (
-                <FinancialTrendsSection
-                  trends={monthlyTrends}
-                  selectedYear={selectedTrendsYear}
-                  availableYears={availableYears}
-                  onYearChange={setSelectedTrendsYear}
-                  loading={loading}
-                />
-              )}
+                  <FinancialHealthSection
+                    expenseStats={expenseStats}
+                    extraExpenses={extraExpenses}
+                    selectedYear={currentYear}
+                    availableYears={availableYears}
+                    onYearChange={setCurrentYear}
+                    loading={loading}
+                    formatCurrency={formatCurrency}
+                    hideYearFilter={true}
+                  />
 
-              {/* Products Overview Section */}
-              {!searchQuery && (
-                <ProductsOverviewSection
-                  products={productExpenses}
-                  showAllProducts={showAllProducts}
-                  onToggleShowAll={() => setShowAllProducts(!showAllProducts)}
-                  selectedYear={selectedProductsYear}
-                  availableYears={availableYears}
-                  onYearChange={setSelectedProductsYear}
-                  loading={loading}
-                  onNavigate={handleNavigate}
-                />
+                  <FinancialTrendsSection
+                    trends={monthlyTrends}
+                    selectedYear={currentYear}
+                    availableYears={availableYears}
+                    onYearChange={setCurrentYear}
+                    loading={loading}
+                    hideYearFilter={true}
+                  />
+
+                  <ProductsOverviewSection
+                    products={productExpenses}
+                    showAllProducts={showAllProducts}
+                    onToggleShowAll={() => setShowAllProducts(!showAllProducts)}
+                    selectedYear={currentYear}
+                    availableYears={availableYears}
+                    onYearChange={setCurrentYear}
+                    loading={loading}
+                    onNavigate={handleNavigate}
+                    hideYearFilter={true}
+                  />
+                </div>
               )}
 
               {/* Special Case Section */}

@@ -29,6 +29,7 @@ interface ProductsOverviewSectionProps {
   onYearChange: (year: string) => void
   loading: boolean
   onNavigate: (path: string) => void
+  hideYearFilter?: boolean
 }
 
 export function ProductsOverviewSection({
@@ -40,6 +41,7 @@ export function ProductsOverviewSection({
   onYearChange,
   loading,
   onNavigate,
+  hideYearFilter = false,
 }: ProductsOverviewSectionProps) {
   const getLeastExpense = () => {
     // Start from the end (least) and find first non-PHOTOGRAPHER product
@@ -62,19 +64,21 @@ export function ProductsOverviewSection({
             Products Overview
           </h2>
         </div>
-        <Select value={selectedYear} onValueChange={onYearChange}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select year" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Years</SelectItem>
-            {availableYears.map((year) => (
-              <SelectItem key={year} value={year.toString()}>
-                {year}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {!hideYearFilter && (
+          <Select value={selectedYear} onValueChange={onYearChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select year" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Years</SelectItem>
+              {availableYears.map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {loading ? (

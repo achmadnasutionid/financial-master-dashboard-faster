@@ -17,6 +17,7 @@ interface FinancialHealthSectionProps {
   onYearChange: (year: string) => void
   loading: boolean
   formatCurrency: (amount: number) => string
+  hideYearFilter?: boolean
 }
 
 export function FinancialHealthSection({
@@ -27,6 +28,7 @@ export function FinancialHealthSection({
   onYearChange,
   loading,
   formatCurrency,
+  hideYearFilter = false,
 }: FinancialHealthSectionProps) {
   return (
     <div className="space-y-6">
@@ -35,19 +37,21 @@ export function FinancialHealthSection({
           <Wallet className="h-5 w-5 text-primary" />
           <h2 className="text-xl font-bold tracking-tight">Financial Health</h2>
         </div>
-        <Select value={selectedYear} onValueChange={onYearChange}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select year" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Years</SelectItem>
-            {availableYears.map((year) => (
-              <SelectItem key={year} value={year.toString()}>
-                {year}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {!hideYearFilter && (
+          <Select value={selectedYear} onValueChange={onYearChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select year" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Years</SelectItem>
+              {availableYears.map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {loading ? (
