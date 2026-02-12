@@ -870,37 +870,37 @@ export default function ProductionTrackerPage() {
               </tbody>
               
               {/* Totals Footer - Sticky Bottom */}
-              <tfoot className="sticky bottom-0 z-30 bg-primary/10 border-t-2 border-primary">
+              <tfoot className="sticky bottom-0 z-30 bg-muted border-t-2 border-primary">
                 <tr className="font-bold">
                   {/* Invoice ID Column - Gray */}
-                  <td className="sticky left-0 z-40 border-r border-border p-2 bg-primary/20 shadow-[2px_0_4px_rgba(0,0,0,0.1)]">
+                  <td className="sticky left-0 z-40 border-r border-border p-2 bg-gray-100 shadow-[2px_0_4px_rgba(0,0,0,0.1)]">
                     <span className="text-xs">TOTAL</span>
                   </td>
                   
                   {/* Link Column - Gray */}
-                  <td className="sticky left-[110px] z-40 border-r border-border p-2 text-center bg-primary/20">
+                  <td className="sticky left-[110px] z-40 border-r border-border p-2 text-center bg-gray-100">
                     <span className="text-xs">-</span>
                   </td>
                   
                   {/* Project Name - Blue */}
-                  <td className="sticky left-[160px] z-40 border-r border-border p-2 bg-primary/20 min-w-[300px]">
+                  <td className="sticky left-[160px] z-40 border-r border-border p-2 bg-blue-50 min-w-[300px]">
                     <span className="text-xs">{filteredTrackers.length} row(s)</span>
                   </td>
                   
                   {/* Date - Blue */}
-                  <td className="sticky left-[460px] z-40 border-r border-border p-2 bg-primary/20 w-[110px] min-w-[110px]">
+                  <td className="sticky left-[460px] z-40 border-r border-border p-2 bg-blue-50 w-[110px] min-w-[110px]">
                     <span className="text-xs">-</span>
                   </td>
                   
                   {/* Status Column - Red */}
-                  <td className="sticky left-[570px] z-40 border-r border-border p-2 text-center bg-primary/20 shadow-[2px_0_4px_rgba(0,0,0,0.1)]">
+                  <td className="sticky left-[570px] z-40 border-r border-border p-2 text-center bg-red-50 shadow-[2px_0_4px_rgba(0,0,0,0.1)]">
                     <span className="text-xs">-</span>
                   </td>
                   
                   {/* Product Columns - Purple */}
                   {PRODUCT_COLUMNS.slice(1).map((product, index) => (
                     <td key={product} className={cn(
-                      "border-r border-border p-2 text-right bg-primary/20 w-[110px] min-w-[110px]",
+                      "border-r border-border p-2 text-right bg-purple-50 w-[110px] min-w-[110px]",
                       index === PRODUCT_COLUMNS.slice(1).length - 1 && "border-r-2"
                     )}>
                       <span className="text-xs">
@@ -910,22 +910,22 @@ export default function ProductionTrackerPage() {
                   ))}
                   
                   {/* Total Amount - Right Sticky - Green */}
-                  <td className="sticky right-[280px] z-40 border-r border-border p-2 text-right bg-primary/20 w-[110px] min-w-[110px] shadow-[-2px_0_4px_rgba(0,0,0,0.1)]">
+                  <td className="sticky right-[280px] z-40 border-r border-border p-2 text-right bg-green-50 w-[110px] min-w-[110px] shadow-[-2px_0_4px_rgba(0,0,0,0.1)]">
                     <span className="text-xs">{formatCurrency(totals.totalAmount)}</span>
                   </td>
                   
                   {/* Expense - Right Sticky - Amber */}
-                  <td className="sticky right-[170px] z-40 border-r border-border p-2 text-right bg-primary/20 w-[110px] min-w-[110px]">
+                  <td className="sticky right-[170px] z-40 border-r border-border p-2 text-right bg-amber-50 w-[110px] min-w-[110px]">
                     <span className="text-xs">{formatCurrency(totals.expense)}</span>
                   </td>
                   
                   {/* PHOTOGRAPHER - Right Sticky - Amber */}
-                  <td className="sticky right-[60px] z-40 border-r border-border p-2 text-right bg-primary/20 w-[110px] min-w-[110px]">
+                  <td className="sticky right-[60px] z-40 border-r border-border p-2 text-right bg-amber-50 w-[110px] min-w-[110px]">
                     <span className="text-xs">{formatCurrency(totals.photographer)}</span>
                   </td>
                   
                   {/* Action Column - Right Sticky - Red */}
-                  <td className="sticky right-0 z-40 border-border p-2 text-center bg-primary/20">
+                  <td className="sticky right-0 z-40 border-border p-2 text-center bg-red-50">
                     <span className="text-xs">-</span>
                   </td>
                 </tr>
