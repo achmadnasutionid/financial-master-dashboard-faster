@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { TrendingUp, TrendingDown } from "lucide-react"
 
 interface YearlyProfitSectionProps {
   grossProfit: number
@@ -51,17 +50,10 @@ export function YearlyProfitSection({
       <div className="grid gap-6 md:grid-cols-2">
         {/* Net Profit Card */}
         <Card className="border-2">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">
               Net Profit
             </CardTitle>
-            <div className={`rounded-full p-2 ${netProfit >= 0 ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'}`}>
-              {netProfit >= 0 ? (
-                <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-              ) : (
-                <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
-              )}
-            </div>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -87,13 +79,10 @@ export function YearlyProfitSection({
 
         {/* Gross Profit Card */}
         <Card className="border-2">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">
               Gross Profit
             </CardTitle>
-            <div className="rounded-full p-2 bg-blue-100 dark:bg-blue-900">
-              <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            </div>
           </CardHeader>
           <CardContent>
             {loading ? (
