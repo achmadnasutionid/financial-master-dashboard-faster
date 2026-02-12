@@ -28,7 +28,7 @@ export function YearlyProfitSection({
     <div className="space-y-4">
       {/* Header with Year Filter */}
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Yearly Profit</h2>
+        <h2 className="text-xl font-bold">Yearly Profit</h2>
         <div className="flex items-center gap-2">
           <label className="text-sm text-muted-foreground">Year:</label>
           <select
