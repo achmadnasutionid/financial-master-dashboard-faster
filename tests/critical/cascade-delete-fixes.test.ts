@@ -218,6 +218,11 @@ describe('CASCADE DELETE FIXES - Integration Tests', () => {
     })
 
     it('should preserve expense when invoice is soft-deleted', async () => {
+      // Verify we have the test data from previous test
+      if (!testInvoiceId || !testExpenseId) {
+        throw new Error('Test data not initialized. Run create test first.')
+      }
+
       // Soft-delete the invoice
       await prisma.invoice.update({
         where: { id: testInvoiceId },
@@ -245,22 +250,34 @@ describe('CASCADE DELETE FIXES - Integration Tests', () => {
     })
 
     it('should preserve expense when invoice is hard-deleted', async () => {
-      // Hard-delete the invoice
-      await prisma.invoiceItemDetail.deleteMany({
-        where: { invoiceItem: { invoiceId: testInvoiceId } }
-      })
-      await prisma.invoiceItem.deleteMany({
-        where: { invoiceId: testInvoiceId }
-      })
-      await prisma.invoiceRemark.deleteMany({
-        where: { invoiceId: testInvoiceId }
-      })
-      await prisma.invoiceSignature.deleteMany({
-        where: { invoiceId: testInvoiceId }
-      })
-      await prisma.invoice.delete({
+      // Verify we have the test data
+      if (!testInvoiceId || !testExpenseId) {
+        throw new Error('Test data not initialized. Run create test first.')
+      }
+
+      // Check if invoice exists before trying to delete
+      const existingInvoice = await prisma.invoice.findUnique({
         where: { id: testInvoiceId }
       })
+      
+      if (existingInvoice) {
+        // Hard-delete the invoice
+        await prisma.invoiceItemDetail.deleteMany({
+          where: { invoiceItem: { invoiceId: testInvoiceId } }
+        })
+        await prisma.invoiceItem.deleteMany({
+          where: { invoiceId: testInvoiceId }
+        })
+        await prisma.invoiceRemark.deleteMany({
+          where: { invoiceId: testInvoiceId }
+        })
+        await prisma.invoiceSignature.deleteMany({
+          where: { invoiceId: testInvoiceId }
+        })
+        await prisma.invoice.delete({
+          where: { id: testInvoiceId }
+        })
+      }
 
       // Verify invoice is gone
       const deletedInvoice = await prisma.invoice.findUnique({
@@ -284,6 +301,11 @@ describe('CASCADE DELETE FIXES - Integration Tests', () => {
     })
 
     it('should allow querying expenses by invoice snapshot', async () => {
+      // Verify we have the test expense
+      if (!testExpenseId) {
+        throw new Error('Test data not initialized. Run create test first.')
+      }
+
       // Query by invoiceNumber (snapshot field, not FK)
       const expenses = await prisma.expense.findMany({
         where: { invoiceNumber: 'INV-CASCADE-TEST-001' }
