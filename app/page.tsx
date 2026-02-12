@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { Card } from "@/components/ui/card"
@@ -11,6 +11,7 @@ import { Search } from "lucide-react"
 
 // Dashboard components
 import { QuickActionSection, CardsSection } from "@/components/dashboard/cards-section"
+import { YearlyProfitSection } from "@/components/dashboard/yearly-profit-section"
 
 // Types
 import type { DashboardCard } from "@/types"
@@ -41,8 +42,57 @@ const ALL_CARDS: DashboardCard[] = [
 export default function Home() {
   const router = useRouter()
   
-  // State management - minimal for menu navigation only
+  // State management
   const [searchQuery, setSearchQuery] = useState("")
+  const [currentYear, setCurrentYear] = useState<string>("")
+  const [availableYears, setAvailableYears] = useState<number[]>([])
+  const [loading, setLoading] = useState(true)
+  const [isClient, setIsClient] = useState(false)
+  
+  // Profit data
+  const [grossProfit, setGrossProfit] = useState(0)
+  const [netProfit, setNetProfit] = useState(0)
+
+  // Initialize client-side state
+  useEffect(() => {
+    setIsClient(true)
+    const year = new Date().getFullYear().toString()
+    setCurrentYear(year)
+  }, [])
+
+  // Fetch profit data when year changes
+  useEffect(() => {
+    if (!isClient || !currentYear) return
+    
+    const fetchProfitData = async () => {
+      setLoading(true)
+      try {
+        const response = await fetch(`/api/yearly-profit?year=${currentYear}`, { cache: "no-store" })
+        const data = await response.json()
+        
+        setGrossProfit(data.grossProfit)
+        setNetProfit(data.netProfit)
+        setAvailableYears(data.availableYears)
+      } catch (error) {
+        console.error("Error fetching profit data:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProfitData()
+  }, [isClient, currentYear])
+
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    if (!isClient) return "Rp 0"
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount)
+  }
 
   // Navigation handler
   const handleNavigate = (path: string) => {
@@ -123,6 +173,19 @@ export default function Home() {
             <QuickActionSection
               cards={cardsBySection["Quick Action"]}
               onNavigate={handleNavigate}
+            />
+          )}
+
+          {/* Yearly Profit Section */}
+          {!searchQuery && isClient && (
+            <YearlyProfitSection
+              grossProfit={grossProfit}
+              netProfit={netProfit}
+              selectedYear={currentYear}
+              availableYears={availableYears}
+              onYearChange={setCurrentYear}
+              loading={loading}
+              formatCurrency={formatCurrency}
             />
           )}
 
