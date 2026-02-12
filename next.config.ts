@@ -53,7 +53,13 @@ const nextConfig: NextConfig = {
     } : false,
   },
   
-  // Webpack optimizations
+  // Turbopack configuration (Next.js 16+ uses Turbopack by default)
+  turbopack: {
+    // Turbopack handles code splitting and optimizations automatically
+    // No need for manual chunk splitting like in webpack
+  },
+  
+  // Webpack optimizations (fallback for when using --webpack flag)
   webpack: (config, { isServer, dev }) => {
     // Production optimizations
     if (!dev && !isServer) {
