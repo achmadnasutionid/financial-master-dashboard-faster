@@ -9,6 +9,7 @@ import {
   FileSignature,
   Package,
   PackageOpen,
+  Table,
 } from "lucide-react"
 import type { DashboardCard } from "@/types"
 
@@ -40,6 +41,8 @@ export function QuickActionSection({ cards, onNavigate }: QuickActionSectionProp
         return <Package className="h-6 w-6 text-primary" />
       case "package-open":
         return <PackageOpen className="h-6 w-6 text-primary" />
+      case "table":
+        return <Table className="h-6 w-6 text-primary" />
       default:
         return <Package className="h-6 w-6 text-primary" />
     }
@@ -98,6 +101,8 @@ export function CardsSection({ cards, sectionTitle, onNavigate }: CardsSectionPr
         return <Package className="h-6 w-6 text-primary" />
       case "package-open":
         return <PackageOpen className="h-6 w-6 text-primary" />
+      case "table":
+        return <Table className="h-6 w-6 text-primary" />
       default:
         return <Package className="h-6 w-6 text-primary" />
     }

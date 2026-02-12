@@ -1,71 +1,19 @@
 "use client"
 
-/**
- * PERFORMANCE OPTIMIZATION:
- * This dashboard has been optimized to minimize data loading:
- * 
- * 1. Data is fetched FOR THE SELECTED YEAR ONLY (not all years)
- * 2. API refetches when user changes year (fast because only 1 year of data)
- * 3. All calculations use useMemo to only recalculate when specific dependencies change
- * 4. Each year filter has its own isolated memoized calculation
- * 5. State updates only trigger when memoized values actually change
- * 
- * Previous: Load ALL years → slow initial load, fast year filters
- * Current: Load CURRENT year → fast initial load, fast API refetch on year change
- */
-
 import { useRouter } from "next/navigation"
-import { useEffect, useState, useMemo } from "react"
+import { useState, useMemo } from "react"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 
 // Dashboard components
 import { QuickActionSection, CardsSection } from "@/components/dashboard/cards-section"
-import { ActionItemsSection } from "@/components/dashboard/action-items-section"
-import { ThisMonthSummarySection } from "@/components/dashboard/this-month-summary-section"
-import { RecentActivitySection } from "@/components/dashboard/recent-activity-section"
-import { QuotationsInvoicesSection } from "@/components/dashboard/quotations-invoices-section"
-import { FinancialHealthSection } from "@/components/dashboard/financial-health-section"
-import { FinancialTrendsSection } from "@/components/dashboard/financial-trends-section"
-import { ProductsOverviewSection } from "@/components/dashboard/products-overview-section"
 
-// Types and utilities
-import type {
-  DashboardStatsResponse,
-  InvoiceStats,
-  QuotationStats,
-  ExpenseStats,
-  ExtraExpenses,
-  MonthlyTrend,
-  ProductExpense,
-  ActionItems,
-  RecentActivity,
-  ThisMonthSummary,
-  DashboardCard,
-  Invoice,
-  Quotation,
-  Expense,
-  Product,
-  GearExpense,
-  BigExpense,
-  Planning,
-} from "@/types"
-import {
-  calculateStats,
-  calculateExpenseStats,
-  calculateExtraExpenses,
-  calculateMonthlyTrends,
-  calculateProductExpenses,
-  calculateActionItems,
-  calculateRecentActivities,
-  calculateThisMonthSummary,
-  extractAvailableYears,
-  getRelativeTime,
-} from "@/lib/dashboard-utils"
+// Types
+import type { DashboardCard } from "@/types"
 
 // Dashboard cards configuration
 const ALL_CARDS: DashboardCard[] = [
@@ -93,183 +41,8 @@ const ALL_CARDS: DashboardCard[] = [
 export default function Home() {
   const router = useRouter()
   
-  // State management
-  const [invoiceStats, setInvoiceStats] = useState<InvoiceStats>({ total: 0, draft: 0, pending: 0, paid: 0 })
-  const [quotationStats, setQuotationStats] = useState<QuotationStats>({ total: 0, draft: 0, pending: 0, accepted: 0 })
-  const [expenseStats, setExpenseStats] = useState<ExpenseStats>({
-    totalUnderBudget: 0,
-    totalOverBudget: 0,
-    averageEfficiency: 0,
-    grossProfit: 0,
-    netProfit: 0,
-    marginPercentage: 0,
-  })
-  const [extraExpenses, setExtraExpenses] = useState<ExtraExpenses>({ gearTotal: 0, bigTotal: 0 })
-  const [monthlyTrends, setMonthlyTrends] = useState<MonthlyTrend[]>([])
-  const [productExpenses, setProductExpenses] = useState<ProductExpense[]>([])
-  const [etcExpenses, setEtcExpenses] = useState<ProductExpense[]>([])
-  const [showAllProducts, setShowAllProducts] = useState(false)
-  
-  // Year filter - ONE filter for all sections
-  const [currentYear, setCurrentYear] = useState<string>("")
-  const [availableYears, setAvailableYears] = useState<number[]>([])
-  
-  const [loading, setLoading] = useState(true)
+  // State management - minimal for menu navigation only
   const [searchQuery, setSearchQuery] = useState("")
-  const [isClient, setIsClient] = useState(false)
-  
-  // Store all fetched data
-  const [allInvoices, setAllInvoices] = useState<Invoice[]>([])
-  const [allQuotations, setAllQuotations] = useState<Quotation[]>([])
-  const [allExpenses, setAllExpenses] = useState<Expense[]>([])
-  const [allProducts, setAllProducts] = useState<Product[]>([])
-  const [allGearExpenses, setAllGearExpenses] = useState<GearExpense[]>([])
-  const [allBigExpenses, setAllBigExpenses] = useState<BigExpense[]>([])
-  const [allPlanning, setAllPlanning] = useState<Planning[]>([])
-  
-  // Action Items & Activities
-  const [actionItems, setActionItems] = useState<ActionItems>({
-    pendingInvoices: { count: 0, totalAmount: 0, items: [] },
-    pendingQuotations: { count: 0, items: [] },
-    draftExpenses: { count: 0 },
-  })
-  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([])
-  const [thisMonthSummary, setThisMonthSummary] = useState<ThisMonthSummary>({
-    revenue: 0,
-    netProfit: 0,
-    revenueChange: 0,
-    profitChange: 0,
-  })
-
-  // Initialize client-side state
-  useEffect(() => {
-    setIsClient(true)
-    const year = new Date().getFullYear().toString()
-    setCurrentYear(year)
-  }, [])
-
-  // Fetch all dashboard data (refetches when currentYear changes)
-  useEffect(() => {
-    if (!isClient || !currentYear) return
-    
-    const fetchStats = async () => {
-      setLoading(true)
-      try {
-        // Fetch data for the current year from API
-        const response = await fetch(`/api/dashboard-stats?year=${currentYear}`, { cache: "no-store" })
-        const data: DashboardStatsResponse = await response.json()
-        
-        const { invoices, quotations, expenses, products, gearExpenses, bigExpenses, planning } = data
-
-        // Store all data
-        setAllInvoices(invoices)
-        setAllQuotations(quotations)
-        setAllExpenses(expenses)
-        setAllProducts(products)
-        setAllGearExpenses(gearExpenses)
-        setAllBigExpenses(bigExpenses)
-        setAllPlanning(planning)
-
-        // Extract years from the data (for year selector dropdowns)
-        const years = extractAvailableYears(invoices, quotations, expenses)
-        setAvailableYears(years)
-
-        // Calculate one-time stats (not dependent on year filters)
-        setActionItems(calculateActionItems(invoices, quotations, expenses))
-        setRecentActivities(calculateRecentActivities(invoices, quotations, expenses, planning))
-        setThisMonthSummary(calculateThisMonthSummary(invoices, expenses))
-      } catch (error) {
-        console.error("Error fetching stats:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchStats()
-  }, [isClient, currentYear]) // Refetch when currentYear changes!
-
-  // ========================================
-  // OPTIMIZED: All calculations using useMemo
-  // Data is already filtered by year from API, so calculations are simpler
-  // All sections use the same year (currentYear)
-  // ========================================
-
-  // Invoice & Quotation Stats
-  const memoizedInvoiceQuotationStats = useMemo(() => {
-    if (allInvoices.length === 0 && allQuotations.length === 0) {
-      return {
-        invoiceStats: { total: 0, draft: 0, pending: 0, paid: 0 },
-        quotationStats: { total: 0, draft: 0, pending: 0, accepted: 0 }
-      }
-    }
-    return calculateStats(allInvoices, allQuotations, currentYear)
-  }, [allInvoices, allQuotations, currentYear])
-
-  // Financial Health Stats
-  const memoizedFinancialStats = useMemo(() => {
-    if (allExpenses.length === 0 && allGearExpenses.length === 0 && allBigExpenses.length === 0) {
-      return {
-        expenseStats: {
-          totalUnderBudget: 0,
-          totalOverBudget: 0,
-          averageEfficiency: 0,
-          grossProfit: 0,
-          netProfit: 0,
-          marginPercentage: 0,
-        },
-        extraExpenses: { gearTotal: 0, bigTotal: 0 }
-      }
-    }
-    return {
-      expenseStats: calculateExpenseStats(allExpenses, currentYear),
-      extraExpenses: calculateExtraExpenses(allGearExpenses, allBigExpenses, currentYear)
-    }
-  }, [allExpenses, allGearExpenses, allBigExpenses, currentYear])
-
-  // Monthly Trends
-  const memoizedMonthlyTrends = useMemo(() => {
-    if (allExpenses.length === 0) return []
-    return calculateMonthlyTrends(allExpenses, currentYear)
-  }, [allExpenses, currentYear])
-
-  // Product Expenses
-  const memoizedProductExpenses = useMemo(() => {
-    if (allExpenses.length === 0 || allProducts.length === 0) {
-      return { productExpenses: [], etcExpenses: [] }
-    }
-    return calculateProductExpenses(allExpenses, allProducts, currentYear)
-  }, [allExpenses, allProducts, currentYear])
-
-  // Update state from memoized values (only when memo values actually change)
-  useEffect(() => {
-    setInvoiceStats(memoizedInvoiceQuotationStats.invoiceStats)
-    setQuotationStats(memoizedInvoiceQuotationStats.quotationStats)
-  }, [memoizedInvoiceQuotationStats])
-
-  useEffect(() => {
-    setExpenseStats(memoizedFinancialStats.expenseStats)
-    setExtraExpenses(memoizedFinancialStats.extraExpenses)
-  }, [memoizedFinancialStats])
-
-  useEffect(() => {
-    setMonthlyTrends(memoizedMonthlyTrends)
-  }, [memoizedMonthlyTrends])
-
-  useEffect(() => {
-    setProductExpenses(memoizedProductExpenses.productExpenses)
-    setEtcExpenses(memoizedProductExpenses.etcExpenses)
-  }, [memoizedProductExpenses])
-
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    if (!isClient) return "Rp 0"
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount)
-  }
 
   // Navigation handler
   const handleNavigate = (path: string) => {
@@ -329,152 +102,46 @@ export default function Home() {
             )}
           </div>
 
-          {/* Client-side only content */}
-          {!isClient ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Loading dashboard...</p>
-            </div>
-          ) : (
-            <>
-              {/* No results message */}
-              {searchQuery && filteredCards.length === 0 && (
-                <Card className="p-8 text-center">
-                  <p className="text-muted-foreground">
-                    No pages found matching &quot;{searchQuery}&quot;
-                  </p>
-                  <Button
-                    variant="link"
-                    onClick={() => setSearchQuery("")}
-                    className="mt-2"
-                  >
-                    Clear search
-                  </Button>
-                </Card>
-              )}
+          {/* No results message */}
+          {searchQuery && filteredCards.length === 0 && (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">
+                No pages found matching &quot;{searchQuery}&quot;
+              </p>
+              <Button
+                variant="link"
+                onClick={() => setSearchQuery("")}
+                className="mt-2"
+              >
+                Clear search
+              </Button>
+            </Card>
+          )}
 
-              {/* Quick Action Section */}
-              {cardsBySection["Quick Action"].length > 0 && (
-                <QuickActionSection
-                  cards={cardsBySection["Quick Action"]}
-                  onNavigate={handleNavigate}
-                />
-              )}
+          {/* Quick Action Section */}
+          {cardsBySection["Quick Action"].length > 0 && (
+            <QuickActionSection
+              cards={cardsBySection["Quick Action"]}
+              onNavigate={handleNavigate}
+            />
+          )}
 
-              {/* Action Items Section */}
-              {!searchQuery && (
-                <ActionItemsSection
-                  actionItems={actionItems}
-                  loading={loading}
-                  formatCurrency={formatCurrency}
-                  onNavigate={handleNavigate}
-                />
-              )}
+          {/* Special Case Section */}
+          {cardsBySection["Special Case"].length > 0 && (
+            <CardsSection
+              cards={cardsBySection["Special Case"]}
+              sectionTitle="Special Case"
+              onNavigate={handleNavigate}
+            />
+          )}
 
-              {/* This Month Summary Section */}
-              {!searchQuery && (
-                <ThisMonthSummarySection
-                  summary={thisMonthSummary}
-                  loading={loading}
-                  formatCurrency={formatCurrency}
-                />
-              )}
-
-              {/* Recent Activity Section */}
-              {!searchQuery && (
-                <RecentActivitySection
-                  activities={recentActivities}
-                  loading={loading}
-                  onNavigate={handleNavigate}
-                  getRelativeTime={getRelativeTime}
-                />
-              )}
-
-              {/* Quotations & Invoices Section */}
-              {!searchQuery && (
-                <div className="space-y-8 border border-border rounded-lg p-6 bg-card">
-                  {/* Global Year Filter */}
-                  <div className="flex items-center justify-between pb-4 border-b">
-                    <h2 className="text-2xl font-bold">Annual Statistics</h2>
-                    <div className="flex items-center gap-2">
-                      <label className="text-sm text-muted-foreground">Year:</label>
-                      <select
-                        value={currentYear}
-                        onChange={(e) => setCurrentYear(e.target.value)}
-                        className="px-3 py-1.5 rounded-md border border-input bg-background text-sm"
-                      >
-                        {availableYears.map((year) => (
-                          <option key={year} value={year.toString()}>
-                            {year}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <QuotationsInvoicesSection
-                    invoiceStats={invoiceStats}
-                    quotationStats={quotationStats}
-                    selectedYear={currentYear}
-                    availableYears={availableYears}
-                    onYearChange={setCurrentYear}
-                    loading={loading}
-                    formatCurrency={formatCurrency}
-                    onNavigate={handleNavigate}
-                    hideYearFilter={true}
-                  />
-
-                  <FinancialHealthSection
-                    expenseStats={expenseStats}
-                    extraExpenses={extraExpenses}
-                    selectedYear={currentYear}
-                    availableYears={availableYears}
-                    onYearChange={setCurrentYear}
-                    loading={loading}
-                    formatCurrency={formatCurrency}
-                    hideYearFilter={true}
-                  />
-
-                  <FinancialTrendsSection
-                    trends={monthlyTrends}
-                    selectedYear={currentYear}
-                    availableYears={availableYears}
-                    onYearChange={setCurrentYear}
-                    loading={loading}
-                    hideYearFilter={true}
-                  />
-
-                  <ProductsOverviewSection
-                    products={productExpenses}
-                    showAllProducts={showAllProducts}
-                    onToggleShowAll={() => setShowAllProducts(!showAllProducts)}
-                    selectedYear={currentYear}
-                    availableYears={availableYears}
-                    onYearChange={setCurrentYear}
-                    loading={loading}
-                    onNavigate={handleNavigate}
-                    hideYearFilter={true}
-                  />
-                </div>
-              )}
-
-              {/* Special Case Section */}
-              {cardsBySection["Special Case"].length > 0 && (
-                <CardsSection
-                  cards={cardsBySection["Special Case"]}
-                  sectionTitle="Special Case"
-                  onNavigate={handleNavigate}
-                />
-              )}
-
-              {/* Management Section */}
-              {cardsBySection["Management"].length > 0 && (
-                <CardsSection
-                  cards={cardsBySection["Management"]}
-                  sectionTitle="Management"
-                  onNavigate={handleNavigate}
-                />
-              )}
-            </>
+          {/* Management Section */}
+          {cardsBySection["Management"].length > 0 && (
+            <CardsSection
+              cards={cardsBySection["Management"]}
+              sectionTitle="Management"
+              onNavigate={handleNavigate}
+            />
           )}
         </div>
       </main>
