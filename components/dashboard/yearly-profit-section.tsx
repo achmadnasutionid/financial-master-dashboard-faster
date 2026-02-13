@@ -2,6 +2,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface YearlyProfitSectionProps {
   grossProfit: number
@@ -31,18 +38,18 @@ export function YearlyProfitSection({
         <h2 className="text-xl font-bold">Yearly Profit</h2>
         <div className="flex items-center gap-2">
           <label className="text-sm text-muted-foreground">Year:</label>
-          <select
-            value={selectedYear}
-            onChange={(e) => onYearChange(e.target.value)}
-            className="px-3 py-1.5 rounded-md border border-input bg-background text-sm"
-            disabled={loading}
-          >
-            {availableYears.map((year) => (
-              <option key={year} value={year.toString()}>
-                {year}
-              </option>
-            ))}
-          </select>
+          <Select value={selectedYear} onValueChange={onYearChange} disabled={loading}>
+            <SelectTrigger className="w-[120px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {availableYears.map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
