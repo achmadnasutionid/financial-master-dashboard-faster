@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { generateId } from "@/lib/id-generator"
 import { invalidateQuotationCaches } from "@/lib/cache-invalidation"
 import { cache, cacheKeys } from "@/lib/redis"
+import { generateUniqueName } from "@/lib/name-validator"
 
 // GET all quotations (optimized with pagination + Redis caching)
 export async function GET(request: Request) {
@@ -121,6 +122,10 @@ export async function POST(request: Request) {
     // For drafts, provide defaults for required fields if not provided
     const isDraft = body.status === "draft"
     
+    // Generate unique billTo name if there's a conflict
+    const billToValue = body.billTo || (isDraft ? "" : body.billTo)
+    const uniqueBillTo = billToValue ? await generateUniqueName(billToValue, 'quotation') : billToValue
+    
     // Create quotation with items and details
     const quotation = await prisma.quotation.create({
       data: {
@@ -132,7 +137,7 @@ export async function POST(request: Request) {
         companyTelp: body.companyTelp || null,
         companyEmail: body.companyEmail || null,
         productionDate: body.productionDate ? new Date(body.productionDate) : new Date(),
-        billTo: body.billTo || (isDraft ? "" : body.billTo),
+        billTo: uniqueBillTo,
         notes: body.notes || null,
         billingName: body.billingName || (isDraft ? "" : body.billingName),
         billingBankName: body.billingBankName || (isDraft ? "" : body.billingBankName),

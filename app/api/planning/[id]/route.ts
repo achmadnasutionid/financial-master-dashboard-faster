@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { invalidatePlanningCaches } from "@/lib/cache-invalidation"
+import { generateUniqueName } from "@/lib/name-validator"
 
 // GET single planning by ID
 export async function GET(
@@ -53,13 +54,16 @@ export async function PUT(
       )
     }
 
+    // Generate unique project name if there's a conflict
+    const uniqueProjectName = await generateUniqueName(projectName.trim(), 'planning', id)
+
     // Use transaction for atomic updates with UPSERT pattern
     const planning = await prisma.$transaction(async (tx) => {
       // Update main planning data
       const updated = await tx.planning.update({
         where: { id },
         data: {
-          projectName: projectName.trim(),
+          projectName: uniqueProjectName,
           clientName: clientName.trim(),
           clientBudget: parseFloat(clientBudget),
           notes: notes?.trim() || null,

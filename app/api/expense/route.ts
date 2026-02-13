@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { generateId } from "@/lib/id-generator"
 import { invalidateExpenseCaches } from "@/lib/cache-invalidation"
 import { cache, cacheKeys } from "@/lib/redis"
+import { generateUniqueName } from "@/lib/name-validator"
 
 // GET all expenses (optimized with pagination + Redis caching)
 export async function GET(request: Request) {
@@ -136,13 +137,16 @@ export async function POST(request: Request) {
     // Generate unique expense ID (optimized with cache)
     const expenseId = await generateId('EXP', 'expense')
 
+    // Generate unique project name if there's a conflict
+    const uniqueProjectName = await generateUniqueName(body.projectName, 'expense')
+
     // Create expense with items
     const expense = await prisma.expense.create({
       data: {
         expenseId,
         invoiceId: body.invoiceId || null,
         planningId: body.planningId || null,
-        projectName: body.projectName,
+        projectName: uniqueProjectName,
         productionDate: new Date(body.productionDate),
         clientBudget: parseFloat(body.clientBudget) || 0,
         paidAmount: parseFloat(body.paidAmount) || 0,

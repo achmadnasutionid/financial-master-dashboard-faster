@@ -1,57 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { cache, cacheKeys } from "@/lib/redis"
-
-// Helper function to generate unique project name with incremental suffix
-async function generateUniqueProjectName(baseProjectName: string, excludeId?: string): Promise<string> {
-  if (!baseProjectName.trim()) {
-    return baseProjectName
-  }
-
-  // Check if project name already exists (excluding the current tracker if updating)
-  const where: any = {
-    projectName: baseProjectName,
-    deletedAt: null
-  }
-  if (excludeId) {
-    where.id = { not: excludeId }
-  }
-
-  const existingTracker = await prisma.productionTracker.findFirst({
-    where
-  })
-
-  // If no conflict, return original name
-  if (!existingTracker) {
-    return baseProjectName
-  }
-
-  // If conflict exists, find the next available number
-  let suffix = 2
-  let newProjectName = `${baseProjectName} 0${suffix}`
-  
-  while (true) {
-    const conflictWhere: any = {
-      projectName: newProjectName,
-      deletedAt: null
-    }
-    if (excludeId) {
-      conflictWhere.id = { not: excludeId }
-    }
-
-    const conflict = await prisma.productionTracker.findFirst({
-      where: conflictWhere
-    })
-
-    if (!conflict) {
-      return newProjectName
-    }
-
-    suffix++
-    // Format: " 02", " 03", ..., " 09", " 10", " 11", etc.
-    newProjectName = `${baseProjectName} ${suffix < 10 ? '0' : ''}${suffix}`
-  }
-}
+import { generateUniqueName } from "@/lib/name-validator"
 
 // GET single production tracker
 export async function GET(
@@ -93,7 +43,7 @@ export async function PUT(
     // If projectName is being updated, check for conflicts and generate unique name
     let finalProjectName = body.projectName
     if (body.projectName !== undefined) {
-      finalProjectName = await generateUniqueProjectName(body.projectName, id)
+      finalProjectName = await generateUniqueName(body.projectName, 'productionTracker', id)
     }
 
     const tracker = await prisma.productionTracker.update({

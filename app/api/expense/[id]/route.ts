@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { invalidateExpenseCaches } from "@/lib/cache-invalidation"
+import { generateUniqueName } from "@/lib/name-validator"
 
 // GET single expense
 export async function GET(
@@ -68,11 +69,14 @@ export async function PUT(
         throw new Error('Production date is required')
       }
 
+      // Generate unique project name if there's a conflict
+      const uniqueProjectName = body.projectName ? await generateUniqueName(body.projectName, 'expense', id) : body.projectName
+
       // Update main expense data
       const updated = await tx.expense.update({
         where: { id },
         data: {
-          projectName: body.projectName,
+          projectName: uniqueProjectName,
           productionDate: new Date(body.productionDate),
           clientBudget: parseFloat(body.clientBudget),
           paidAmount: parseFloat(body.paidAmount) || 0,

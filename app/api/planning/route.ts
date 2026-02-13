@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { generateId } from "@/lib/id-generator"
 import { invalidatePlanningCaches } from "@/lib/cache-invalidation"
+import { generateUniqueName } from "@/lib/name-validator"
 
 // GET all plannings with optional filters (optimized with pagination)
 export async function GET(request: Request) {
@@ -96,11 +97,14 @@ export async function POST(request: Request) {
     // Generate unique planning ID (optimized with cache)
     const planningId = await generateId('PLN', 'planning')
 
+    // Generate unique project name if there's a conflict
+    const uniqueProjectName = await generateUniqueName(projectName.trim(), 'planning')
+
     // Create planning with items
     const planning = await prisma.planning.create({
       data: {
         planningId,
-        projectName: projectName.trim(),
+        projectName: uniqueProjectName,
         clientName: clientName.trim(),
         clientBudget: parseFloat(clientBudget),
         notes: notes?.trim() || null,

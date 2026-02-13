@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { verifyRecordVersion, OptimisticLockError } from "@/lib/optimistic-locking"
 import { invalidateInvoiceCaches } from "@/lib/cache-invalidation"
+import { generateUniqueName } from "@/lib/name-validator"
 
 // GET single invoice
 export async function GET(
@@ -102,6 +103,9 @@ export async function PUT(
       // Calculate paidDate if needed
       let paidDate = body.paidDate ? new Date(body.paidDate) : null
       
+      // Generate unique billTo name if there's a conflict
+      const uniqueBillTo = body.billTo ? await generateUniqueName(body.billTo, 'invoice', id) : body.billTo
+      
       // Update main invoice data
       const updated = await tx.invoice.update({
         where: { id },
@@ -115,7 +119,7 @@ export async function PUT(
           companyEmail: body.companyEmail || null,
           productionDate: new Date(body.productionDate),
           paidDate: paidDate,
-          billTo: body.billTo,
+          billTo: uniqueBillTo,
           notes: body.notes || null,
           billingName: body.billingName,
           billingBankName: body.billingBankName,

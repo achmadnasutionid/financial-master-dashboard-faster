@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { invalidateErhaCaches } from "@/lib/cache-invalidation"
+import { generateUniqueName } from "@/lib/name-validator"
 
 // GET all erha tickets (optimized with pagination)
 export async function GET(request: Request) {
@@ -164,6 +165,10 @@ export async function POST(request: Request) {
       // For drafts, provide defaults for required fields if not provided
       const isDraft = body.status === "draft"
 
+      // Generate unique billTo name if there's a conflict
+      const billToValue = body.billTo || (isDraft ? "" : body.billTo)
+      const uniqueBillTo = billToValue ? await generateUniqueName(billToValue, 'erha') : billToValue
+
       // Create ticket atomically
       return tx.erhaTicket.create({
         data: {
@@ -180,7 +185,7 @@ export async function POST(request: Request) {
           productionDate: body.productionDate ? new Date(body.productionDate) : new Date(),
           quotationDate: body.quotationDate ? new Date(body.quotationDate) : new Date(),
           invoiceBastDate: body.invoiceBastDate ? new Date(body.invoiceBastDate) : new Date(),
-          billTo: body.billTo || (isDraft ? "" : body.billTo),
+          billTo: uniqueBillTo,
           billToAddress: body.billToAddress || "",
           contactPerson: body.contactPerson || (isDraft ? "" : body.contactPerson),
           contactPosition: body.contactPosition || (isDraft ? "" : body.contactPosition),

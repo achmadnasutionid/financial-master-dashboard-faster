@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { invalidateParagonCaches } from "@/lib/cache-invalidation"
+import { generateUniqueName } from "@/lib/name-validator"
 
 // GET single paragon ticket
 export async function GET(
@@ -96,6 +97,9 @@ export async function PUT(
 
     // Use transaction for atomic updates with UPSERT pattern
     const ticket = await prisma.$transaction(async (tx) => {
+      // Generate unique billTo name if there's a conflict
+      const uniqueBillTo = body.billTo ? await generateUniqueName(body.billTo, 'paragon', id) : body.billTo
+      
       // Update main ticket data
       const updated = await tx.paragonTicket.update({
         where: { id },
@@ -110,7 +114,7 @@ export async function PUT(
           productionDate: new Date(body.productionDate),
           quotationDate: new Date(body.quotationDate),
           invoiceBastDate: new Date(body.invoiceBastDate),
-          billTo: body.billTo,
+          billTo: uniqueBillTo,
           contactPerson: body.contactPerson,
           contactPosition: body.contactPosition,
           signatureName: body.signatureName,

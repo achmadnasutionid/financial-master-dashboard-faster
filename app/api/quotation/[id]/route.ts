@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { verifyRecordVersion, OptimisticLockError } from "@/lib/optimistic-locking"
 import { invalidateQuotationCaches } from "@/lib/cache-invalidation"
+import { generateUniqueName } from "@/lib/name-validator"
 
 // GET single quotation
 export async function GET(
@@ -101,6 +102,9 @@ export async function PUT(
 
     // Use transaction for atomic updates with UPSERT pattern
     const quotation = await prisma.$transaction(async (tx) => {
+      // Generate unique billTo name if there's a conflict
+      const uniqueBillTo = body.billTo ? await generateUniqueName(body.billTo, 'quotation', id) : body.billTo
+      
       // Update main quotation data
       const updated = await tx.quotation.update({
         where: { id },
@@ -112,7 +116,7 @@ export async function PUT(
           companyTelp: body.companyTelp || null,
           companyEmail: body.companyEmail || null,
           productionDate: new Date(body.productionDate),
-          billTo: body.billTo,
+          billTo: uniqueBillTo,
           notes: body.notes || null,
           billingName: body.billingName,
           billingBankName: body.billingBankName,

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { generateId } from "@/lib/id-generator"
 import { invalidateInvoiceCaches } from "@/lib/cache-invalidation"
 import { cache, cacheKeys } from "@/lib/redis"
+import { generateUniqueName } from "@/lib/name-validator"
 
 // GET all invoices (optimized with pagination + Redis caching)
 export async function GET(request: Request) {
@@ -121,6 +122,10 @@ export async function POST(request: Request) {
     // For drafts, provide defaults for required fields if not provided
     const isDraft = body.status === "draft"
 
+    // Generate unique billTo name if there's a conflict
+    const billToValue = body.billTo || (isDraft ? "" : body.billTo)
+    const uniqueBillTo = billToValue ? await generateUniqueName(billToValue, 'invoice') : billToValue
+
     // Calculate paidDate: productionDate + 7 days (if productionDate is provided)
     let paidDate = null
     if (body.productionDate) {
@@ -145,7 +150,7 @@ export async function POST(request: Request) {
         companyEmail: body.companyEmail || null,
         productionDate: body.productionDate ? new Date(body.productionDate) : new Date(),
         paidDate: paidDate,
-        billTo: body.billTo || (isDraft ? "" : body.billTo),
+        billTo: uniqueBillTo,
         notes: body.notes || null,
         billingName: body.billingName || (isDraft ? "" : body.billingName),
         billingBankName: body.billingBankName || (isDraft ? "" : body.billingBankName),
