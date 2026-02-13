@@ -44,6 +44,57 @@ export async function GET(request: Request) {
   }
 }
 
+// Helper function to generate unique project name with incremental suffix
+async function generateUniqueProjectName(baseProjectName: string, excludeId?: string): Promise<string> {
+  if (!baseProjectName.trim()) {
+    return baseProjectName
+  }
+
+  // Check if project name already exists (excluding the current tracker if updating)
+  const where: any = {
+    projectName: baseProjectName,
+    deletedAt: null
+  }
+  if (excludeId) {
+    where.id = { not: excludeId }
+  }
+
+  const existingTracker = await prisma.productionTracker.findFirst({
+    where
+  })
+
+  // If no conflict, return original name
+  if (!existingTracker) {
+    return baseProjectName
+  }
+
+  // If conflict exists, find the next available number
+  let suffix = 2
+  let newProjectName = `${baseProjectName} 0${suffix}`
+  
+  while (true) {
+    const conflictWhere: any = {
+      projectName: newProjectName,
+      deletedAt: null
+    }
+    if (excludeId) {
+      conflictWhere.id = { not: excludeId }
+    }
+
+    const conflict = await prisma.productionTracker.findFirst({
+      where: conflictWhere
+    })
+
+    if (!conflict) {
+      return newProjectName
+    }
+
+    suffix++
+    // Format: " 02", " 03", ..., " 09", " 10", " 11", etc.
+    newProjectName = `${baseProjectName} ${suffix < 10 ? '0' : ''}${suffix}`
+  }
+}
+
 // POST create new production tracker
 export async function POST(request: Request) {
   try {
@@ -52,13 +103,16 @@ export async function POST(request: Request) {
     // Generate unique tracker ID
     const trackerId = await generateId('PT', 'productionTracker')
 
+    // Generate unique project name if there's a conflict
+    const uniqueProjectName = await generateUniqueProjectName(body.projectName || "")
+
     // Create production tracker
     const tracker = await prisma.productionTracker.create({
       data: {
         trackerId,
         expenseId: body.expenseId || "",
         invoiceId: body.invoiceId || null,
-        projectName: body.projectName || "",
+        projectName: uniqueProjectName,
         date: body.date ? new Date(body.date) : new Date(),
         subtotal: parseFloat(body.subtotal) || 0,
         totalAmount: parseFloat(body.totalAmount) || 0,
