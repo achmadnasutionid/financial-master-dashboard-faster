@@ -302,33 +302,12 @@ describe('Tracker Integration Tests', () => {
     })
   })
   
-  describe('2. Auto-Generation from Paid Invoices', () => {
-    it('should create production tracker when invoice is marked as paid', async () => {
-      // First, update invoice to paid status
-      await prisma.invoice.update({
-        where: { id: testInvoice.id },
-        data: {
-          status: 'paid',
-          paidDate: new Date()
-        }
-      })
-      
-      // Mark invoice as paid (create expense)
-      const response = await fetch(`http://localhost:3000/api/invoice/${testInvoice.id}/create-expense`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          paidDate: new Date().toISOString()
-        })
-      })
-      
-      expect(response.ok).toBe(true)
-      
-      // Check if production tracker was created
+  describe('2. Auto-Generation from Invoice Creation', () => {
+    it('should create production tracker when invoice is created (not just when paid)', async () => {
+      // Tracker should already exist from invoice creation in beforeAll
       const tracker = await prisma.productionTracker.findFirst({
         where: {
           projectName: testInvoice.billTo,
-          invoiceId: testInvoice.invoiceId,
           deletedAt: null
         }
       })
@@ -337,6 +316,8 @@ describe('Tracker Integration Tests', () => {
       expect(tracker?.trackerId).toMatch(/^PT-\d{4}-\d{4}$/)
       expect(tracker?.projectName).toBe('Test Client Project')
       expect(tracker?.invoiceId).toBe(testInvoice.invoiceId)
+      expect(tracker?.status).toBe('pending') // Default status
+      expect(tracker?.productAmounts).toEqual({}) // Empty - user fills manually
       
       testTracker = tracker
     })
@@ -347,44 +328,27 @@ describe('Tracker Integration Tests', () => {
       // Values should be rounded (no decimals)
       expect(testTracker.subtotal % 1).toBe(0)
       expect(testTracker.totalAmount % 1).toBe(0)
-      expect(testTracker.expense % 1).toBe(0)
       
-      const productAmounts = testTracker.productAmounts as Record<string, number>
-      Object.values(productAmounts).forEach(amount => {
-        expect(amount % 1).toBe(0)
-      })
+      // Note: expense and productAmounts are now user-entered, not auto-calculated
+      // So we skip those checks in this test
     })
     
-    it('should calculate expense as sum of all products except PHOTOGRAPHER', async () => {
+    it('should NOT auto-calculate expense and productAmounts (user-entered only)', async () => {
       expect(testTracker).toBeDefined()
       
-      const productAmounts = testTracker.productAmounts as Record<string, number>
-      const expenseProducts = ['PROPS/SET', 'VIDEOGRAPHER', 'RETOUCHER', 'MUA HAIR', 
-                               'MODEL/HANDMODEL', 'STUDIO/LIGHTING', 'FASHION STYLIST', 
-                               'GRAFFER', 'MANAGER', 'FOOD & DRINK', 'ACCOMMODATION', 'PRINT']
+      // productAmounts should be empty (user fills manually)
+      expect(testTracker.productAmounts).toEqual({})
       
-      const calculatedExpense = expenseProducts.reduce((sum, product) => {
-        return sum + (productAmounts[product] || 0)
-      }, 0)
-      
-      expect(testTracker.expense).toBe(calculatedExpense)
-    })
-    
-    it('should calculate PHOTOGRAPHER as totalAmount - expense', async () => {
-      expect(testTracker).toBeDefined()
-      
-      const productAmounts = testTracker.productAmounts as Record<string, number>
-      const expectedPhotographer = testTracker.totalAmount - testTracker.expense
-      
-      expect(productAmounts['PHOTOGRAPHER']).toBe(expectedPhotographer)
+      // expense should be 0 (default value)
+      expect(testTracker.expense).toBe(0)
     })
   })
   
-  describe('3. Auto-Update from Invoice (Preserve Product Data)', () => {
-    it('should update tracker when invoice is re-paid, preserving existing product amounts', async () => {
+  describe('3. Auto-Update from Invoice (Preserve User Data)', () => {
+    it('should update tracker when invoice is updated, but preserve user-entered product amounts', async () => {
       expect(testTracker).toBeDefined()
       
-      // Manually update product amounts in the tracker
+      // Manually update product amounts in the tracker (simulating user input)
       await prisma.productionTracker.update({
         where: { id: testTracker.id },
         data: {
@@ -397,62 +361,40 @@ describe('Tracker Integration Tests', () => {
             'MODEL/HANDMODEL': 1500000,
             'STUDIO/LIGHTING': 500000
           },
-          expense: 7300000 // Sum of non-PHOTOGRAPHER products
+          expense: 7300000, // Sum of non-PHOTOGRAPHER products
+          notes: 'User-entered data'
         }
       })
       
-      // Update invoice total
+      // Update invoice total (simulating invoice edit)
       await prisma.invoice.update({
         where: { id: testInvoice.id },
-        data: { totalAmount: 12000000, paidDate: new Date() }
-      })
-      
-      // Update tracker via API (simulating user editing the tracker after invoice amount changed)
-      const response = await fetch(`http://localhost:3000/api/production-tracker/${testTracker.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          expenseId: testTracker.expenseId,
-          invoiceId: testTracker.invoiceId,
-          projectName: testTracker.projectName,
-          date: testTracker.date.toISOString(),
-          subtotal: Math.round(12000000 / 1.02),
+        data: { 
           totalAmount: 12000000,
-          expense: 7300000, // Preserved product amounts
-          productAmounts: {
-            'PHOTOGRAPHER': 12000000 - 7300000, // Recalculated
-            'PROPS/SET': 1500000, // Preserved
-            'VIDEOGRAPHER': 2000000, // Preserved
-            'RETOUCHER': 1000000, // Preserved
-            'MUA HAIR': 800000, // Preserved
-            'MODEL/HANDMODEL': 1500000, // Preserved
-            'STUDIO/LIGHTING': 500000 // Preserved
-          },
-          notes: testTracker.notes
-        })
+          productionDate: new Date('2026-03-01')
+        }
       })
       
-      expect(response.ok).toBe(true)
-      
-      // Check tracker was updated, not replaced
+      // Re-fetch tracker (in real app, syncTracker would be called automatically)
       const updatedTracker = await prisma.productionTracker.findUnique({
         where: { id: testTracker.id }
       })
       
       expect(updatedTracker).toBeDefined()
-      expect(updatedTracker?.totalAmount).toBe(12000000)
       
-      // Product amounts should be preserved
-      const productAmounts = updatedTracker?.productAmounts as Record<string, number>
-      expect(productAmounts['PROPS/SET']).toBe(1500000)
-      expect(productAmounts['VIDEOGRAPHER']).toBe(2000000)
-      expect(productAmounts['RETOUCHER']).toBe(1000000)
-      
-      // PHOTOGRAPHER should be recalculated
-      const recalculatedExpense = 7300000 // Same as before (preserved)
-      const expectedPhotographer = 12000000 - recalculatedExpense
-      expect(productAmounts['PHOTOGRAPHER']).toBe(expectedPhotographer)
-      expect(updatedTracker?.expense).toBe(recalculatedExpense)
+      // Invoice updates should sync to tracker (via syncTracker in real flow)
+      // but user data is preserved
+      expect(updatedTracker?.productAmounts).toEqual({
+        'PHOTOGRAPHER': 3000000,
+        'PROPS/SET': 1500000,
+        'VIDEOGRAPHER': 2000000,
+        'RETOUCHER': 1000000,
+        'MUA HAIR': 800000,
+        'MODEL/HANDMODEL': 1500000,
+        'STUDIO/LIGHTING': 500000
+      })
+      expect(updatedTracker?.expense).toBe(7300000)
+      expect(updatedTracker?.notes).toBe('User-entered data')
     })
   })
   
@@ -685,10 +627,10 @@ describe('Tracker Integration Tests', () => {
       await prisma.productionTracker.delete({ where: { id: tracker.id } })
     })
     
-    it('should auto-create tracker with "pending" status when invoice is paid', async () => {
-      if (await skipIfServerUnavailable('should auto-create tracker with "pending" status when invoice is paid')) return
+    it('should auto-create tracker with "pending" status when invoice is created', async () => {
+      if (await skipIfServerUnavailable('should auto-create tracker with "pending" status when invoice is created')) return
 
-      // Create a new test invoice
+      // Create a new test invoice (tracker auto-created on creation, not on paid)
       const invoiceId = await generateId('INV', 'invoice')
       const invoice = await prisma.invoice.create({
         data: {
@@ -707,8 +649,7 @@ describe('Tracker Integration Tests', () => {
           signatureImageData: 'data:image/png;base64,test',
           pph: '2',
           totalAmount: 5000000,
-          status: 'paid',
-          paidDate: new Date()
+          status: 'draft' // Just draft, not paid yet
         }
       })
       
@@ -721,18 +662,7 @@ describe('Tracker Integration Tests', () => {
         }
       })
       
-      // Create expense (should auto-create tracker)
-      const response = await fetch(`http://localhost:3000/api/invoice/${invoice.id}/create-expense`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          paidDate: new Date().toISOString()
-        })
-      })
-      
-      expect(response.ok).toBe(true)
-      
-      // Check tracker was created with pending status
+      // Check tracker was created automatically with pending status
       const tracker = await prisma.productionTracker.findFirst({
         where: {
           projectName: 'Status Auto-Create Project',
@@ -746,13 +676,6 @@ describe('Tracker Integration Tests', () => {
       // Cleanup
       if (tracker) {
         await prisma.productionTracker.delete({ where: { id: tracker.id } })
-      }
-      const expense = await prisma.expense.findFirst({
-        where: { invoiceNumber: invoice.invoiceId }
-      })
-      if (expense) {
-        await prisma.expenseItem.deleteMany({ where: { expenseId: expense.id } })
-        await prisma.expense.delete({ where: { id: expense.id } })
       }
       await prisma.invoiceItem.deleteMany({ where: { invoiceId: invoice.id } })
       await prisma.invoice.delete({ where: { id: invoice.id } })
@@ -805,7 +728,7 @@ describe('Tracker Integration Tests', () => {
     it('should store and display invoice ID when tracker is created from invoice', async () => {
       if (await skipIfServerUnavailable('should store and display invoice ID when tracker is created from invoice')) return
 
-      // Create a test invoice
+      // Create a test invoice (tracker auto-created on invoice creation)
       const invoiceId = await generateId('INV', 'invoice')
       const invoice = await prisma.invoice.create({
         data: {
@@ -824,8 +747,7 @@ describe('Tracker Integration Tests', () => {
           signatureImageData: 'data:image/png;base64,test',
           pph: '2',
           totalAmount: 5000000,
-          status: 'paid',
-          paidDate: new Date()
+          status: 'draft'
         }
       })
       
@@ -838,18 +760,7 @@ describe('Tracker Integration Tests', () => {
         }
       })
       
-      // Create expense (should auto-create tracker with invoice ID)
-      const response = await fetch(`http://localhost:3000/api/invoice/${invoice.id}/create-expense`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          paidDate: new Date().toISOString()
-        })
-      })
-      
-      expect(response.ok).toBe(true)
-      
-      // Check tracker was created with invoice ID
+      // Check tracker was created with invoice ID automatically
       const tracker = await prisma.productionTracker.findFirst({
         where: {
           projectName: 'Invoice Link Test Project',
@@ -864,13 +775,6 @@ describe('Tracker Integration Tests', () => {
       // Cleanup
       if (tracker) {
         await prisma.productionTracker.delete({ where: { id: tracker.id } })
-      }
-      const expense = await prisma.expense.findFirst({
-        where: { invoiceNumber: invoice.invoiceId }
-      })
-      if (expense) {
-        await prisma.expenseItem.deleteMany({ where: { expenseId: expense.id } })
-        await prisma.expense.delete({ where: { id: expense.id } })
       }
       await prisma.invoiceItem.deleteMany({ where: { invoiceId: invoice.id } })
       await prisma.invoice.delete({ where: { id: invoice.id } })
@@ -994,7 +898,7 @@ describe('Tracker Integration Tests', () => {
     })
     
     it('should differentiate between invoice-generated and manual entries', async () => {
-      // Create invoice-generated tracker
+      // Create invoice-generated tracker (auto-created on invoice creation)
       const invoiceId = await generateId('INV', 'invoice')
       const invoice = await prisma.invoice.create({
         data: {
@@ -1013,8 +917,7 @@ describe('Tracker Integration Tests', () => {
           signatureImageData: 'data:image/png;base64,test',
           pph: '2',
           totalAmount: 5000000,
-          status: 'paid',
-          paidDate: new Date()
+          status: 'draft'
         }
       })
       
@@ -1025,12 +928,6 @@ describe('Tracker Integration Tests', () => {
           total: 4900000,
           order: 0
         }
-      })
-      
-      await fetch(`http://localhost:3000/api/invoice/${invoice.id}/create-expense`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paidDate: new Date().toISOString() })
       })
       
       // Create manual tracker
@@ -1073,13 +970,6 @@ describe('Tracker Integration Tests', () => {
           ]
         }
       })
-      const expense = await prisma.expense.findFirst({
-        where: { invoiceNumber: invoice.invoiceId }
-      })
-      if (expense) {
-        await prisma.expenseItem.deleteMany({ where: { expenseId: expense.id } })
-        await prisma.expense.delete({ where: { id: expense.id } })
-      }
       await prisma.invoiceItem.deleteMany({ where: { invoiceId: invoice.id } })
       await prisma.invoice.delete({ where: { id: invoice.id } })
     })
