@@ -240,6 +240,10 @@ describe('Tracker Synchronization Tests', () => {
           billToAddress: 'Test Address',
           contactPerson: 'Test Person',
           contactPosition: 'Manager',
+          billingName: 'Test Billing',
+          billingBankName: 'Test Bank',
+          billingBankAccount: '1234567890',
+          billingBankAccountName: 'Test Account',
           signatureName: 'Test Signature',
           signatureImageData: 'data:image/png;base64,test',
           pph: '2',
@@ -515,10 +519,8 @@ describe('Tracker Synchronization Tests', () => {
         data: {
           planningId,
           projectName: 'Tracker Sync Test - Planning Should Not Create',
-          planningDate: new Date(),
-          productionDate: new Date(),
-          client: 'Test Client',
-          projectType: 'Photography',
+          clientName: 'Test Client',
+          clientBudget: 5000000,
           status: 'pending'
         }
       })
@@ -542,7 +544,6 @@ describe('Tracker Synchronization Tests', () => {
         data: {
           expenseId,
           projectName: 'Tracker Sync Test - Expense Should Not Create',
-          date: new Date(),
           productionDate: new Date(),
           invoiceNumber: 'INV-TEST-0001',
           expenseItems: {
@@ -744,7 +745,6 @@ describe('Tracker Synchronization Tests', () => {
         data: {
           expenseId,
           projectName,
-          date: new Date(),
           productionDate: new Date(),
           invoiceNumber: invoiceId,
           expenseItems: {
