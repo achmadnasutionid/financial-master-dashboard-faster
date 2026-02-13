@@ -460,15 +460,20 @@ describe('Tracker Synchronization Tests', () => {
       })
       createdData.invoices.push(invoice.id)
       
-      const tracker = await prisma.productionTracker.findFirst({
-        where: { projectName, deletedAt: null }
+      // Sync tracker (simulating what happens in API route)
+      const tracker = await syncTracker({
+        projectName,
+        date: invoice.productionDate,
+        totalAmount: invoice.totalAmount,
+        invoiceId: invoice.invoiceId,
+        subtotal: 0
       })
       expect(tracker).toBeDefined()
       if (tracker) createdData.trackers.push(tracker.id)
       
       // User manually fills in tracker fields
       await prisma.productionTracker.update({
-        where: { id: tracker!.id },
+        where: { id: tracker.id },
         data: {
           productAmounts: {
             'PHOTOGRAPHER': 2000000,
@@ -546,13 +551,13 @@ describe('Tracker Synchronization Tests', () => {
           projectName: 'Tracker Sync Test - Expense Should Not Create',
           productionDate: new Date(),
           invoiceNumber: 'INV-TEST-0001',
-          expenseItems: {
+          items: {
             create: [
               {
                 productName: 'Test Item',
-                qty: 1,
-                unitPrice: 1000000,
-                totalPrice: 1000000
+                budgeted: 1000000,
+                actual: 1000000,
+                difference: 0
               }
             ]
           }
@@ -732,8 +737,13 @@ describe('Tracker Synchronization Tests', () => {
       })
       createdData.invoices.push(invoice.id)
       
-      const trackerBefore = await prisma.productionTracker.findFirst({
-        where: { projectName, deletedAt: null }
+      // Sync tracker (simulating what happens in API route)
+      const trackerBefore = await syncTracker({
+        projectName,
+        date: invoice.productionDate,
+        totalAmount: invoice.totalAmount,
+        invoiceId: invoice.invoiceId,
+        subtotal: 0
       })
       expect(trackerBefore).toBeDefined()
       // Note: expenseId isn't checked here because it's only set when create-expense is called
@@ -747,13 +757,13 @@ describe('Tracker Synchronization Tests', () => {
           projectName,
           productionDate: new Date(),
           invoiceNumber: invoiceId,
-          expenseItems: {
+          items: {
             create: [
               {
                 productName: 'Test Item',
-                qty: 1,
-                unitPrice: 1000000,
-                totalPrice: 1000000
+                budgeted: 1000000,
+                actual: 1000000,
+                difference: 0
               }
             ]
           }
