@@ -562,15 +562,15 @@ export default function ProductionTrackerPage() {
                   </th>
                   
                   {/* Calculated Columns - Right Sticky - Yellow/Orange */}
-                  <th className="sticky right-[170px] z-40 border-r border-b border-border p-2 text-left font-semibold w-[110px] min-w-[110px] bg-amber-50">
+                  <th className="sticky right-[170px] z-40 border-b border-border p-2 text-left font-semibold w-[110px] min-w-[110px] max-w-[110px] bg-amber-50">
                     Expense
                   </th>
-                  <th className="sticky right-[60px] z-40 border-r border-b border-border p-2 text-left font-semibold w-[110px] min-w-[110px] bg-amber-50 whitespace-nowrap">
+                  <th className="sticky right-[60px] z-40 border-l border-r border-b border-border p-2 text-left font-semibold w-[110px] min-w-[110px] max-w-[110px] bg-amber-50 whitespace-nowrap">
                     PHOTOGRAPHER
                   </th>
                   
                   {/* Action Column - Right Sticky - Red */}
-                  <th className="sticky right-0 z-40 border-b border-border p-2 text-center font-semibold min-w-[60px] bg-red-50">
+                  <th className="sticky right-0 z-40 border-b border-border p-2 text-center font-semibold w-[60px] min-w-[60px] bg-red-50">
                     Action
                   </th>
                 </tr>
@@ -614,15 +614,15 @@ export default function ProductionTrackerPage() {
                         <Skeleton className="h-5 w-full" />
                       </td>
                       {/* Expense - Right Sticky - Amber */}
-                      <td className="sticky right-[170px] z-20 border-r border-b border-border p-2 bg-amber-50 w-[110px] min-w-[110px]">
+                      <td className="sticky right-[170px] z-20 border-b border-border p-2 bg-amber-50 w-[110px] min-w-[110px] max-w-[110px]">
                         <Skeleton className="h-5 w-full" />
                       </td>
                       {/* PHOTOGRAPHER - Right Sticky - Amber */}
-                      <td className="sticky right-[60px] z-20 border-r border-b border-border p-2 bg-amber-50 w-[110px] min-w-[110px]">
+                      <td className="sticky right-[60px] z-20 border-l border-r border-b border-border p-2 bg-amber-50 w-[110px] min-w-[110px] max-w-[110px]">
                         <Skeleton className="h-5 w-full" />
                       </td>
                       {/* Action Column - Right Sticky - Red */}
-                      <td className="sticky right-0 z-20 border-b border-border p-2 bg-red-50">
+                      <td className="sticky right-0 z-20 border-b border-border p-2 bg-red-50 w-[60px] min-w-[60px]">
                         <Skeleton className="h-5 w-5 mx-auto" />
                       </td>
                     </tr>
@@ -836,7 +836,7 @@ export default function ProductionTrackerPage() {
                         
                         {/* Expense - Right Sticky - Amber */}
                         <td 
-                          className="sticky right-[170px] z-20 border-r border-b border-border p-2 text-right bg-amber-50 w-[110px] min-w-[110px]"
+                          className="sticky right-[170px] z-20 border-b border-border p-2 text-right bg-amber-50 w-[110px] min-w-[110px] max-w-[110px]"
                         >
                           <span className="text-xs font-medium text-amber-700">
                             {formatCurrency(calculateExpense(tracker.productAmounts || {}))}
@@ -845,7 +845,7 @@ export default function ProductionTrackerPage() {
                         
                         {/* PHOTOGRAPHER - Right Sticky - Amber */}
                         <td 
-                          className="sticky right-[60px] z-20 border-r border-b border-border p-2 text-right bg-amber-50 w-[110px] min-w-[110px]"
+                          className="sticky right-[60px] z-20 border-l border-r border-b border-border p-2 text-right bg-amber-50 w-[110px] min-w-[110px] max-w-[110px]"
                         >
                           <span className="text-xs font-medium text-amber-700">
                             {formatCurrency(calculatePhotographer(tracker.totalAmount, tracker.productAmounts || {}))}
@@ -853,7 +853,7 @@ export default function ProductionTrackerPage() {
                         </td>
                         
                         {/* Action Column - Right Sticky - Red */}
-                        <td className="sticky right-0 z-20 border-b border-border p-2 text-center bg-red-50">
+                        <td className="sticky right-0 z-20 border-b border-border p-2 text-center bg-red-50 w-[60px] min-w-[60px]">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -870,63 +870,63 @@ export default function ProductionTrackerPage() {
               </tbody>
               
               {/* Totals Footer - Sticky Bottom */}
-              <tfoot className="sticky bottom-0 z-30 bg-muted border-t-2 border-primary">
-                <tr className="font-bold">
+              <tfoot className="sticky bottom-0 z-30 bg-slate-100 border-t-2 border-slate-300">
+                <tr className="font-semibold">
                   {/* Invoice ID Column - Gray */}
-                  <td className="sticky left-0 z-40 border-r border-border p-2 bg-gray-100 shadow-[2px_0_4px_rgba(0,0,0,0.1)]">
-                    <span className="text-xs">TOTAL</span>
+                  <td className="sticky left-0 z-40 border-r border-slate-300 p-2.5 bg-slate-100 shadow-[2px_0_4px_rgba(0,0,0,0.1)]">
+                    <span className="text-sm text-slate-700 uppercase tracking-wide">TOTAL</span>
                   </td>
                   
                   {/* Link Column - Gray */}
-                  <td className="sticky left-[110px] z-40 border-r border-border p-2 text-center bg-gray-100">
-                    <span className="text-xs">-</span>
+                  <td className="sticky left-[110px] z-40 border-r border-slate-300 p-2.5 text-center bg-slate-100">
+                    <span className="text-sm text-slate-600">-</span>
                   </td>
                   
-                  {/* Project Name - Blue */}
-                  <td className="sticky left-[160px] z-40 border-r border-border p-2 bg-blue-50 min-w-[300px]">
-                    <span className="text-xs">{filteredTrackers.length} row(s)</span>
+                  {/* Project Name - Gray */}
+                  <td className="sticky left-[160px] z-40 border-r border-slate-300 p-2.5 bg-slate-100 min-w-[300px]">
+                    <span className="text-sm text-slate-600">{filteredTrackers.length} row(s)</span>
                   </td>
                   
-                  {/* Date - Blue */}
-                  <td className="sticky left-[460px] z-40 border-r border-border p-2 bg-blue-50 w-[110px] min-w-[110px]">
-                    <span className="text-xs">-</span>
+                  {/* Date - Gray */}
+                  <td className="sticky left-[460px] z-40 border-r border-slate-300 p-2.5 bg-slate-100 w-[110px] min-w-[110px]">
+                    <span className="text-sm text-slate-600">-</span>
                   </td>
                   
-                  {/* Status Column - Red */}
-                  <td className="sticky left-[570px] z-40 border-r border-border p-2 text-center bg-red-50 shadow-[2px_0_4px_rgba(0,0,0,0.1)]">
-                    <span className="text-xs">-</span>
+                  {/* Status Column - Gray */}
+                  <td className="sticky left-[570px] z-40 border-r border-slate-300 p-2.5 text-center bg-slate-100 shadow-[2px_0_4px_rgba(0,0,0,0.1)]">
+                    <span className="text-sm text-slate-600">-</span>
                   </td>
                   
-                  {/* Product Columns - Purple */}
+                  {/* Product Columns - Gray */}
                   {PRODUCT_COLUMNS.slice(1).map((product, index) => (
                     <td key={product} className={cn(
-                      "border-r border-border p-2 text-right bg-purple-50 w-[110px] min-w-[110px]",
+                      "border-r border-slate-300 p-2.5 text-right bg-slate-100 w-[110px] min-w-[110px]",
                       index === PRODUCT_COLUMNS.slice(1).length - 1 && "border-r-2"
                     )}>
-                      <span className="text-xs">
+                      <span className="text-sm text-slate-700 font-semibold">
                         {totals[product] > 0 ? formatCurrency(totals[product]) : "-"}
                       </span>
                     </td>
                   ))}
                   
-                  {/* Total Amount - Right Sticky - Green */}
-                  <td className="sticky right-[280px] z-40 border-r border-border p-2 text-right bg-green-50 w-[110px] min-w-[110px] shadow-[-2px_0_4px_rgba(0,0,0,0.1)]">
-                    <span className="text-xs">{formatCurrency(totals.totalAmount)}</span>
+                  {/* Total Amount - Right Sticky - Gray with Green Accent */}
+                  <td className="sticky right-[280px] z-40 border-r border-slate-300 p-2.5 text-right bg-slate-100 w-[110px] min-w-[110px] shadow-[-2px_0_4px_rgba(0,0,0,0.1)]">
+                    <span className="text-sm text-green-700 font-bold">{formatCurrency(totals.totalAmount)}</span>
                   </td>
                   
-                  {/* Expense - Right Sticky - Amber */}
-                  <td className="sticky right-[170px] z-40 border-r border-border p-2 text-right bg-amber-50 w-[110px] min-w-[110px]">
-                    <span className="text-xs">{formatCurrency(totals.expense)}</span>
+                  {/* Expense - Right Sticky - Gray with Orange Accent */}
+                  <td className="sticky right-[170px] z-40 border-slate-300 p-2.5 text-right bg-slate-100 w-[110px] min-w-[110px] max-w-[110px]">
+                    <span className="text-sm text-orange-700 font-semibold">{formatCurrency(totals.expense)}</span>
                   </td>
                   
-                  {/* PHOTOGRAPHER - Right Sticky - Amber */}
-                  <td className="sticky right-[60px] z-40 border-r border-border p-2 text-right bg-amber-50 w-[110px] min-w-[110px]">
-                    <span className="text-xs">{formatCurrency(totals.photographer)}</span>
+                  {/* PHOTOGRAPHER - Right Sticky - Gray with Orange Accent */}
+                  <td className="sticky right-[60px] z-40 border-l border-r border-slate-300 p-2.5 text-right bg-slate-100 w-[110px] min-w-[110px] max-w-[110px]">
+                    <span className="text-sm text-orange-700 font-semibold">{formatCurrency(totals.photographer)}</span>
                   </td>
                   
-                  {/* Action Column - Right Sticky - Red */}
-                  <td className="sticky right-0 z-40 border-border p-2 text-center bg-red-50">
-                    <span className="text-xs">-</span>
+                  {/* Action Column - Right Sticky - Gray */}
+                  <td className="sticky right-0 z-40 border-slate-300 p-2.5 text-center bg-slate-100 w-[60px] min-w-[60px]">
+                    <span className="text-sm text-slate-600">-</span>
                   </td>
                 </tr>
               </tfoot>
