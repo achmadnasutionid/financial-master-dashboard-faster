@@ -47,7 +47,7 @@ export function DatePicker({ date, onDateChange, placeholder = "Pick a date", di
       <PopoverContent className="w-auto p-0" align="start">
         <ReactDatePicker
           selected={isValidDate ? date : undefined}
-          onChange={(date) => {
+          onChange={(date: Date | null) => {
             onDateChange?.(date || undefined)
             setIsOpen(false)
           }}
