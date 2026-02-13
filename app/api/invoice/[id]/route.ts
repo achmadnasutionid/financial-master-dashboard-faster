@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { verifyRecordVersion, OptimisticLockError } from "@/lib/optimistic-locking"
 import { invalidateInvoiceCaches } from "@/lib/cache-invalidation"
 import { generateUniqueName } from "@/lib/name-validator"
+import { syncTracker, updateTrackerName } from "@/lib/tracker-sync"
 
 // GET single invoice
 export async function GET(
@@ -399,6 +400,40 @@ export async function PUT(
         }
       })
     })
+
+    // Sync tracker if billTo changed or totalAmount changed
+    if (invoice && invoice.billTo && invoice.billTo.trim()) {
+      try {
+        // Get original invoice to check if billTo changed
+        const originalInvoice = await prisma.invoice.findUnique({
+          where: { id },
+          select: { billTo: true }
+        })
+
+        if (originalInvoice && originalInvoice.billTo !== invoice.billTo) {
+          // billTo changed - update tracker name
+          await updateTrackerName(
+            originalInvoice.billTo,
+            invoice.billTo,
+            invoice.productionDate,
+            invoice.totalAmount,
+            invoice.invoiceId
+          )
+        } else {
+          // billTo same - just sync data (invoice data takes priority)
+          await syncTracker({
+            projectName: invoice.billTo,
+            date: invoice.productionDate,
+            totalAmount: invoice.totalAmount,
+            invoiceId: invoice.invoiceId,
+            subtotal: invoice.items?.reduce((sum, item) => sum + item.total, 0) || 0
+          })
+        }
+      } catch (trackerError) {
+        console.error("Error syncing tracker:", trackerError)
+        // Don't fail invoice update if tracker sync fails
+      }
+    }
 
     // Invalidate caches after updating invoice
     await invalidateInvoiceCaches(id)

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { invalidateParagonCaches } from "@/lib/cache-invalidation"
 import { generateUniqueName } from "@/lib/name-validator"
+import { syncTracker, updateTrackerName } from "@/lib/tracker-sync"
 
 // GET single paragon ticket
 export async function GET(
@@ -313,6 +314,38 @@ export async function PUT(
         }
       })
     })
+
+    // Sync tracker if billTo changed or totalAmount changed
+    if (ticket && ticket.billTo && ticket.billTo.trim()) {
+      try {
+        // Get original ticket to check if billTo changed
+        const originalTicket = await prisma.paragonTicket.findUnique({
+          where: { id },
+          select: { billTo: true }
+        })
+
+        if (originalTicket && originalTicket.billTo !== ticket.billTo) {
+          // billTo changed - update tracker name
+          await updateTrackerName(
+            originalTicket.billTo,
+            ticket.billTo,
+            ticket.productionDate,
+            ticket.totalAmount
+          )
+        } else {
+          // billTo same - just sync data
+          await syncTracker({
+            projectName: ticket.billTo,
+            date: ticket.productionDate,
+            totalAmount: ticket.totalAmount,
+            subtotal: ticket.items?.reduce((sum, item) => sum + item.total, 0) || 0
+          })
+        }
+      } catch (trackerError) {
+        console.error("Error syncing tracker:", trackerError)
+        // Don't fail paragon update if tracker sync fails
+      }
+    }
 
     // Invalidate caches after updating paragon ticket
     await invalidateParagonCaches(id)

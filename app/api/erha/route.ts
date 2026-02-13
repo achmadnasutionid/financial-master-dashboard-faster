@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { invalidateErhaCaches } from "@/lib/cache-invalidation"
 import { generateUniqueName } from "@/lib/name-validator"
+import { syncTracker } from "@/lib/tracker-sync"
 
 // GET all erha tickets (optimized with pagination)
 export async function GET(request: Request) {
@@ -96,6 +97,11 @@ export async function POST(request: Request) {
     const body = await request.json()
     const year = new Date().getFullYear()
 
+    // Generate unique billTo name before transaction
+    const isDraft = body.status === "draft"
+    const billToValue = body.billTo || (isDraft ? "" : body.billTo)
+    const uniqueBillTo = billToValue ? await generateUniqueName(billToValue, 'erha') : billToValue
+
     // Use transaction for atomic ID generation and creation
     const ticket = await prisma.$transaction(async (tx) => {
       // Fetch all latest IDs in parallel for better performance
@@ -162,13 +168,6 @@ export async function POST(request: Request) {
       const quotationId = `QTN-${year}-${nextQuotationNum.toString().padStart(4, "0")}`
       const invoiceId = `INV-${year}-${nextInvoiceNum.toString().padStart(4, "0")}`
 
-      // For drafts, provide defaults for required fields if not provided
-      const isDraft = body.status === "draft"
-
-      // Generate unique billTo name if there's a conflict
-      const billToValue = body.billTo || (isDraft ? "" : body.billTo)
-      const uniqueBillTo = billToValue ? await generateUniqueName(billToValue, 'erha') : billToValue
-
       // Create ticket atomically
       return tx.erhaTicket.create({
         data: {
@@ -233,6 +232,26 @@ export async function POST(request: Request) {
         }
       })
     })
+
+    // Sync tracker if billTo is not empty
+    if (uniqueBillTo && uniqueBillTo.trim()) {
+      try {
+        // Calculate subtotal (sum of items)
+        const subtotal = body.items?.reduce((sum: number, item: any) => {
+          return sum + (item.total ? parseFloat(item.total) : 0)
+        }, 0) || 0
+
+        await syncTracker({
+          projectName: uniqueBillTo,
+          date: body.productionDate ? new Date(body.productionDate) : new Date(),
+          totalAmount: body.totalAmount ? parseFloat(body.totalAmount) : 0,
+          subtotal: subtotal
+        })
+      } catch (trackerError) {
+        console.error("Error syncing tracker:", trackerError)
+        // Don't fail erha creation if tracker sync fails
+      }
+    }
 
     return NextResponse.json(ticket, { status: 201 })
   } catch (error) {

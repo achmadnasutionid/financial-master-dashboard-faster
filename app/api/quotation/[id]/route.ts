@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { verifyRecordVersion, OptimisticLockError } from "@/lib/optimistic-locking"
 import { invalidateQuotationCaches } from "@/lib/cache-invalidation"
 import { generateUniqueName } from "@/lib/name-validator"
+import { syncTracker, updateTrackerName } from "@/lib/tracker-sync"
 
 // GET single quotation
 export async function GET(
@@ -401,6 +402,38 @@ export async function PUT(
       
       return result
     })
+
+    // Sync tracker if billTo changed or totalAmount changed
+    if (quotation && quotation.billTo && quotation.billTo.trim()) {
+      try {
+        // Get original quotation to check if billTo changed
+        const originalQuotation = await prisma.quotation.findUnique({
+          where: { id },
+          select: { billTo: true }
+        })
+
+        if (originalQuotation && originalQuotation.billTo !== quotation.billTo) {
+          // billTo changed - update tracker name
+          await updateTrackerName(
+            originalQuotation.billTo,
+            quotation.billTo,
+            quotation.productionDate,
+            quotation.totalAmount
+          )
+        } else {
+          // billTo same - just sync data
+          await syncTracker({
+            projectName: quotation.billTo,
+            date: quotation.productionDate,
+            totalAmount: quotation.totalAmount,
+            subtotal: quotation.items?.reduce((sum, item) => sum + item.total, 0) || 0
+          })
+        }
+      } catch (trackerError) {
+        console.error("Error syncing tracker:", trackerError)
+        // Don't fail quotation update if tracker sync fails
+      }
+    }
 
     // Invalidate caches after updating quotation
     await invalidateQuotationCaches(id)

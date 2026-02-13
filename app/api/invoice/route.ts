@@ -4,6 +4,7 @@ import { generateId } from "@/lib/id-generator"
 import { invalidateInvoiceCaches } from "@/lib/cache-invalidation"
 import { cache, cacheKeys } from "@/lib/redis"
 import { generateUniqueName } from "@/lib/name-validator"
+import { syncTracker } from "@/lib/tracker-sync"
 
 // GET all invoices (optimized with pagination + Redis caching)
 export async function GET(request: Request) {
@@ -205,6 +206,27 @@ export async function POST(request: Request) {
         signatures: true
       }
     })
+
+    // Sync tracker if billTo is not empty
+    if (uniqueBillTo && uniqueBillTo.trim()) {
+      try {
+        // Calculate subtotal (sum of items before PPH)
+        const subtotal = body.items?.reduce((sum: number, item: any) => {
+          return sum + (item.total ? parseFloat(item.total) : 0)
+        }, 0) || 0
+
+        await syncTracker({
+          projectName: uniqueBillTo,
+          date: body.productionDate ? new Date(body.productionDate) : new Date(),
+          totalAmount: body.totalAmount ? parseFloat(body.totalAmount) : 0,
+          invoiceId: invoiceId, // Include invoice ID for invoices
+          subtotal: subtotal
+        })
+      } catch (trackerError) {
+        console.error("Error syncing tracker:", trackerError)
+        // Don't fail invoice creation if tracker sync fails
+      }
+    }
 
     // Invalidate caches after creating invoice
     await invalidateInvoiceCaches()
