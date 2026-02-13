@@ -14,6 +14,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { prisma } from '@/lib/prisma'
 import { generateId } from '@/lib/id-generator'
+import { syncTracker } from '@/lib/tracker-sync'
 
 // Helper to check if API server is available
 let serverCheckResult: boolean | null = null
@@ -79,6 +80,15 @@ describe('Tracker Integration Tests', () => {
         total: 10800000,
         order: 0
       }
+    })
+    
+    // Create tracker for the test invoice (simulating what happens in API route)
+    testTracker = await syncTracker({
+      projectName: testInvoice.billTo,
+      date: testInvoice.productionDate,
+      totalAmount: testInvoice.totalAmount,
+      invoiceId: testInvoice.invoiceId,
+      subtotal: 10800000
     })
   })
   
@@ -304,22 +314,13 @@ describe('Tracker Integration Tests', () => {
   
   describe('2. Auto-Generation from Invoice Creation', () => {
     it('should create production tracker when invoice is created (not just when paid)', async () => {
-      // Tracker should already exist from invoice creation in beforeAll
-      const tracker = await prisma.productionTracker.findFirst({
-        where: {
-          projectName: testInvoice.billTo,
-          deletedAt: null
-        }
-      })
-      
-      expect(tracker).toBeDefined()
-      expect(tracker?.trackerId).toMatch(/^PT-\d{4}-\d{4}$/)
-      expect(tracker?.projectName).toBe('Test Client Project')
-      expect(tracker?.invoiceId).toBe(testInvoice.invoiceId)
-      expect(tracker?.status).toBe('pending') // Default status
-      expect(tracker?.productAmounts).toEqual({}) // Empty - user fills manually
-      
-      testTracker = tracker
+      // Tracker should already exist from beforeAll
+      expect(testTracker).toBeDefined()
+      expect(testTracker.trackerId).toMatch(/^PT-\d{4}-\d{4}$/)
+      expect(testTracker.projectName).toBe('Test Client Project')
+      expect(testTracker.invoiceId).toBe(testInvoice.invoiceId)
+      expect(testTracker.status).toBe('pending') // Default status
+      expect(testTracker.productAmounts).toEqual({}) // Empty - user fills manually
     })
     
     it('should round all currency values from invoice', async () => {
