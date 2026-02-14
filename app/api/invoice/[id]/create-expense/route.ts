@@ -37,16 +37,19 @@ export async function POST(
       )
     }
 
-    // Check if expense already exists for this invoice (using snapshot field)
-    const existingExpense = await prisma.expense.findFirst({
-      where: { invoiceNumber: invoice.invoiceId }
-    })
-
-    if (existingExpense) {
-      return NextResponse.json(
-        { expense: existingExpense },
-        { status: 200 }
-      )
+    // Check if expense already exists for this invoice (using generatedExpenseId field)
+    if (invoice.generatedExpenseId) {
+      const existingExpense = await prisma.expense.findUnique({
+        where: { id: invoice.generatedExpenseId },
+        include: { items: true }
+      })
+      
+      if (existingExpense) {
+        return NextResponse.json(
+          { expense: existingExpense },
+          { status: 200 }
+        )
+      }
     }
 
     // Generate Expense ID using centralized generator (prevents race conditions)
@@ -84,44 +87,67 @@ export async function POST(
       }
     })
 
-    // Create expense with SNAPSHOT data (no FK relationships)
-    const expense = await prisma.expense.create({
-      data: {
-        expenseId,
-        // Keep old IDs for backward compatibility / queries
-        invoiceId,
-        planningId: invoice.planningId,
-        // NEW: Snapshot fields for invoice
-        invoiceNumber: invoice.invoiceId,
-        invoiceProductionDate: invoice.productionDate,
-        invoiceTotalAmount: invoice.totalAmount,
-        invoicePaidDate: invoice.paidDate,
-        // NEW: Snapshot fields for planning
-        planningNumber: planningData?.planningId || null,
-        planningClientName: planningData?.clientName || null,
-        // Expense data
-        projectName: invoice.billTo,
-        productionDate: invoice.productionDate,
-        clientBudget: planningData?.clientBudget || 0,
-        paidAmount: invoice.totalAmount,
-        notes: invoice.notes,
-        status: "draft",
-        items: {
-          create: expenseItems
-        }
-      },
-      include: {
-        items: true
-      }
-    })
+    // Use transaction to prevent race conditions
+    const expense = await prisma.$transaction(async (tx) => {
+      // Double-check inside transaction that expense wasn't created by another request
+      const recheck = await tx.invoice.findUnique({
+        where: { id: invoiceId },
+        select: { generatedExpenseId: true }
+      })
 
-    // Update invoice with generated expense ID
-    await prisma.invoice.update({
-      where: { id: invoiceId },
-      data: { generatedExpenseId: expense.id }
+      if (recheck?.generatedExpenseId) {
+        // Another request already created it, fetch and return
+        const existing = await tx.expense.findUnique({
+          where: { id: recheck.generatedExpenseId },
+          include: { items: true }
+        })
+        if (existing) {
+          throw { isExisting: true, expense: existing }
+        }
+      }
+
+      // Create expense with SNAPSHOT data (no FK relationships)
+      const newExpense = await tx.expense.create({
+        data: {
+          expenseId,
+          // Keep old IDs for backward compatibility / queries
+          invoiceId,
+          planningId: invoice.planningId,
+          // NEW: Snapshot fields for invoice
+          invoiceNumber: invoice.invoiceId,
+          invoiceProductionDate: invoice.productionDate,
+          invoiceTotalAmount: invoice.totalAmount,
+          invoicePaidDate: invoice.paidDate,
+          // NEW: Snapshot fields for planning
+          planningNumber: planningData?.planningId || null,
+          planningClientName: planningData?.clientName || null,
+          // Expense data
+          projectName: invoice.billTo,
+          productionDate: invoice.productionDate,
+          clientBudget: planningData?.clientBudget || 0,
+          paidAmount: invoice.totalAmount,
+          notes: invoice.notes,
+          status: "draft",
+          items: {
+            create: expenseItems
+          }
+        },
+        include: {
+          items: true
+        }
+      })
+
+      // Update invoice with generated expense ID (in same transaction)
+      await tx.invoice.update({
+        where: { id: invoiceId },
+        data: { generatedExpenseId: newExpense.id }
+      })
+
+      return newExpense
     })
 
     // Update tracker expenseId (tracker should already exist from invoice creation)
+    // This happens AFTER transaction to avoid blocking
     try {
       const existingTracker = await prisma.productionTracker.findFirst({
         where: {
@@ -145,7 +171,12 @@ export async function POST(
     }
 
     return NextResponse.json(expense, { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
+    // Handle case where expense was created by concurrent request
+    if (error?.isExisting && error?.expense) {
+      return NextResponse.json(error.expense, { status: 200 })
+    }
+    
     console.error("Error creating expense:", error)
     return NextResponse.json(
       { error: "Failed to create expense" },
