@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { invalidateExpenseCaches } from "@/lib/cache-invalidation"
 import { generateUniqueName } from "@/lib/name-validator"
+import { safeParseFloat } from "@/lib/number-validator"
 
 // GET single expense
 export async function GET(
@@ -78,12 +79,12 @@ export async function PUT(
         data: {
           projectName: uniqueProjectName,
           productionDate: new Date(body.productionDate),
-          clientBudget: parseFloat(body.clientBudget),
-          paidAmount: parseFloat(body.paidAmount) || 0,
+          clientBudget: safeParseFloat(body.clientBudget),
+          paidAmount: safeParseFloat(body.paidAmount),
           notes: body.notes || null,
           status: body.status || "draft",
-          totalItemBudgeted: parseFloat(body.totalItemBudgeted) || 0,
-          totalItemDifferences: parseFloat(body.totalItemDifferences) || 0,
+          totalItemBudgeted: safeParseFloat(body.totalItemBudgeted),
+          totalItemDifferences: safeParseFloat(body.totalItemDifferences),
         }
       })
 
@@ -115,9 +116,9 @@ export async function PUT(
           where: { id: item.id },
           data: {
             productName: item.productName,
-            budgeted: parseFloat(item.budgeted),
-            actual: parseFloat(item.actual),
-            difference: parseFloat(item.budgeted) - parseFloat(item.actual),
+            budgeted: safeParseFloat(item.budgeted),
+            actual: safeParseFloat(item.actual),
+            difference: safeParseFloat(item.budgeted) - safeParseFloat(item.actual),
             order: item.order
           }
         })
@@ -130,9 +131,9 @@ export async function PUT(
             data: {
               expenseId: id,
               productName: item.productName,
-              budgeted: parseFloat(item.budgeted),
-              actual: parseFloat(item.actual),
-              difference: parseFloat(item.budgeted) - parseFloat(item.actual),
+              budgeted: safeParseFloat(item.budgeted),
+              actual: safeParseFloat(item.actual),
+              difference: safeParseFloat(item.budgeted) - safeParseFloat(item.actual),
               order: item.order
             }
           })

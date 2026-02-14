@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { invalidateErhaCaches } from "@/lib/cache-invalidation"
 import { generateUniqueName } from "@/lib/name-validator"
 import { syncTracker, updateTrackerName } from "@/lib/tracker-sync"
+import { safeParseFloat } from "@/lib/number-validator"
 
 // GET single erha ticket
 export async function GET(
@@ -129,7 +130,7 @@ export async function PUT(
           signatureImageData: body.signatureImageData,
           finalWorkImageData: body.finalWorkImageData || null,
           pph: body.pph,
-          totalAmount: parseFloat(body.totalAmount),
+          totalAmount: safeParseFloat(body.totalAmount),
           termsAndConditions: body.termsAndConditions || null,
           status: body.status,
         }
@@ -166,7 +167,7 @@ export async function PUT(
           where: { id: item.id },
           data: {
             productName: item.productName,
-            total: parseFloat(item.total),
+            total: safeParseFloat(item.total),
             order: item.order
           }
         })
@@ -186,14 +187,14 @@ export async function PUT(
             data: {
               ticketId: id,
               productName: item.productName,
-              total: parseFloat(item.total),
+              total: safeParseFloat(item.total),
               order: item.order,
               details: {
                 create: item.details?.map((detail: any) => ({
                   detail: detail.detail,
-                  unitPrice: parseFloat(detail.unitPrice),
-                  qty: parseFloat(detail.qty),
-                  amount: parseFloat(detail.amount)
+                  unitPrice: safeParseFloat(detail.unitPrice),
+                  qty: safeParseFloat(detail.qty),
+                  amount: safeParseFloat(detail.amount)
                 })) || []
               }
             }
@@ -212,9 +213,9 @@ export async function PUT(
         (item.details || []).map((detail: any) => ({
           itemId: item.id,
           detail: detail.detail,
-          unitPrice: parseFloat(detail.unitPrice),
-          qty: parseFloat(detail.qty),
-          amount: parseFloat(detail.amount)
+          unitPrice: safeParseFloat(detail.unitPrice),
+          qty: safeParseFloat(detail.qty),
+          amount: safeParseFloat(detail.amount)
         }))
       )
       

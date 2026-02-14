@@ -4,6 +4,7 @@ import { verifyRecordVersion, OptimisticLockError } from "@/lib/optimistic-locki
 import { invalidateInvoiceCaches } from "@/lib/cache-invalidation"
 import { generateUniqueName } from "@/lib/name-validator"
 import { syncTracker, updateTrackerName } from "@/lib/tracker-sync"
+import { safeParseFloat } from "@/lib/number-validator"
 
 // GET single invoice
 export async function GET(
@@ -132,7 +133,7 @@ export async function PUT(
           signatureRole: body.signatureRole || null,
           signatureImageData: body.signatureImageData,
           pph: body.pph,
-          totalAmount: parseFloat(body.totalAmount),
+          totalAmount: safeParseFloat(body.totalAmount),
           summaryOrder: body.summaryOrder || "subtotal,pph,total",
           termsAndConditions: body.termsAndConditions || null,
           status: body.status || "draft",
@@ -174,7 +175,7 @@ export async function PUT(
           where: { id: item.id },
           data: {
             productName: item.productName,
-            total: parseFloat(item.total),
+            total: safeParseFloat(item.total),
             order: item.order
           }
         })
@@ -194,14 +195,14 @@ export async function PUT(
             data: {
               invoiceId: id,
               productName: item.productName,
-              total: parseFloat(item.total),
+              total: safeParseFloat(item.total),
               order: item.order,
               details: {
                 create: item.details?.map((detail: any) => ({
                   detail: detail.detail,
-                  unitPrice: parseFloat(detail.unitPrice),
-                  qty: parseFloat(detail.qty),
-                  amount: parseFloat(detail.amount)
+                  unitPrice: safeParseFloat(detail.unitPrice),
+                  qty: safeParseFloat(detail.qty),
+                  amount: safeParseFloat(detail.amount)
                 })) || []
               }
             }
@@ -220,9 +221,9 @@ export async function PUT(
         (item.details || []).map((detail: any) => ({
           invoiceItemId: item.id,
           detail: detail.detail,
-          unitPrice: parseFloat(detail.unitPrice),
-          qty: parseFloat(detail.qty),
-          amount: parseFloat(detail.amount)
+          unitPrice: safeParseFloat(detail.unitPrice),
+          qty: safeParseFloat(detail.qty),
+          amount: safeParseFloat(detail.amount)
         }))
       )
       
