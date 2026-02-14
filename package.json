@@ -15,6 +15,7 @@
     "test:critical": "vitest run tests/critical",
     "test:cleanup": "tsx scripts/cleanup-test-data.ts",
     "test:check": "tsx scripts/check-test-data.ts",
+    "test:cleanup-leaked": "node cleanup-test-data.mjs",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",

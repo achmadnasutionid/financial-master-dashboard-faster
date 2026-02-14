@@ -52,6 +52,10 @@ afterAll(async () => {
     })
     for (const invoice of testInvoices) {
       try {
+        // Check if invoice still exists before deleting
+        const exists = await prisma.invoice.findUnique({ where: { id: invoice.id } })
+        if (!exists) continue
+
         await prisma.invoiceItemDetail.deleteMany({
           where: { invoiceItem: { invoiceId: invoice.id } }
         })
@@ -62,7 +66,7 @@ afterAll(async () => {
       } catch (error: any) {
         // Ignore P2025 (record not found) errors - record was already deleted
         if (error.code !== 'P2025') {
-          throw error
+          console.error('Error cleaning up invoice:', error)
         }
       }
     }
@@ -83,6 +87,10 @@ afterAll(async () => {
     })
     for (const quotation of testQuotations) {
       try {
+        // Check if quotation still exists before deleting
+        const exists = await prisma.quotation.findUnique({ where: { id: quotation.id } })
+        if (!exists) continue
+
         await prisma.quotationItemDetail.deleteMany({
           where: { quotationItem: { quotationId: quotation.id } }
         })
@@ -93,7 +101,7 @@ afterAll(async () => {
       } catch (error: any) {
         // Ignore P2025 (record not found) errors - record was already deleted
         if (error.code !== 'P2025') {
-          throw error
+          console.error('Error cleaning up quotation:', error)
         }
       }
     }
@@ -115,12 +123,16 @@ afterAll(async () => {
     })
     for (const expense of testExpenses) {
       try {
+        // Check if expense still exists before deleting
+        const exists = await prisma.expense.findUnique({ where: { id: expense.id } })
+        if (!exists) continue
+
         await prisma.expenseItem.deleteMany({ where: { expenseId: expense.id } })
         await prisma.expense.delete({ where: { id: expense.id } })
       } catch (error: any) {
         // Ignore P2025 (record not found) errors - record was already deleted
         if (error.code !== 'P2025') {
-          throw error
+          console.error('Error cleaning up expense:', error)
         }
       }
     }
@@ -140,12 +152,16 @@ afterAll(async () => {
     })
     for (const planning of testPlannings) {
       try {
+        // Check if planning still exists before deleting
+        const exists = await prisma.planning.findUnique({ where: { id: planning.id } })
+        if (!exists) continue
+
         await prisma.planningItem.deleteMany({ where: { planningId: planning.id } })
         await prisma.planning.delete({ where: { id: planning.id } })
       } catch (error: any) {
         // Ignore P2025 (record not found) errors - record was already deleted
         if (error.code !== 'P2025') {
-          throw error
+          console.error('Error cleaning up planning:', error)
         }
       }
     }
@@ -171,11 +187,15 @@ afterAll(async () => {
     })
     for (const tracker of testTrackers) {
       try {
+        // Check if tracker still exists before deleting
+        const exists = await prisma.productionTracker.findUnique({ where: { id: tracker.id } })
+        if (!exists) continue
+
         await prisma.productionTracker.delete({ where: { id: tracker.id } })
       } catch (error: any) {
         // Ignore P2025 (record not found) errors - record was already deleted
         if (error.code !== 'P2025') {
-          throw error
+          console.error('Error cleaning up tracker:', error)
         }
       }
     }
@@ -190,12 +210,16 @@ afterAll(async () => {
     })
     for (const product of testProducts) {
       try {
+        // Check if product still exists before deleting
+        const exists = await prisma.product.findUnique({ where: { id: product.id } })
+        if (!exists) continue
+
         await prisma.productDetail.deleteMany({ where: { productId: product.id } })
         await prisma.product.delete({ where: { id: product.id } })
       } catch (error: any) {
         // Ignore P2025 (record not found) errors - record was already deleted
         if (error.code !== 'P2025') {
-          throw error
+          console.error('Error cleaning up product:', error)
         }
       }
     }

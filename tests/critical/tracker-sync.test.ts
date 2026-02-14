@@ -53,14 +53,20 @@ describe('Tracker Synchronization Tests', () => {
       }
       
       for (const id of createdData.paragonTickets) {
-        await prisma.paragonTicketItemDetail.deleteMany({ where: { paragonTicketItem: { ticketId: id } } })
+        const items = await prisma.paragonTicketItem.findMany({ where: { ticketId: id } })
+        for (const item of items) {
+          await prisma.paragonTicketItemDetail.deleteMany({ where: { itemId: item.id } })
+        }
         await prisma.paragonTicketItem.deleteMany({ where: { ticketId: id } })
         await prisma.paragonTicketRemark.deleteMany({ where: { ticketId: id } })
         await prisma.paragonTicket.delete({ where: { id } }).catch(() => {})
       }
       
       for (const id of createdData.erhaTickets) {
-        await prisma.erhaTicketItemDetail.deleteMany({ where: { erhaTicketItem: { ticketId: id } } })
+        const items = await prisma.erhaTicketItem.findMany({ where: { ticketId: id } })
+        for (const item of items) {
+          await prisma.erhaTicketItemDetail.deleteMany({ where: { itemId: item.id } })
+        }
         await prisma.erhaTicketItem.deleteMany({ where: { ticketId: id } })
         await prisma.erhaTicketRemark.deleteMany({ where: { ticketId: id } })
         await prisma.erhaTicket.delete({ where: { id } }).catch(() => {})

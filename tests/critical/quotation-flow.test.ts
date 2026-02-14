@@ -54,13 +54,19 @@ describe('🔴 CRITICAL: Quotation Complete Flow', () => {
   })
 
   afterAll(async () => {
-    // Cleanup
+    // Cleanup - with error handling in case records don't exist
     if (testQuotationId) {
-      await prisma.quotation.deleteMany({ where: { id: testQuotationId } })
+      await prisma.quotation.deleteMany({ where: { id: testQuotationId } }).catch(() => {})
     }
-    await prisma.company.delete({ where: { id: testCompanyId } })
-    await prisma.billing.delete({ where: { id: testBillingId } })
-    await prisma.signature.delete({ where: { id: testSignatureId } })
+    if (testCompanyId) {
+      await prisma.company.delete({ where: { id: testCompanyId } }).catch(() => {})
+    }
+    if (testBillingId) {
+      await prisma.billing.delete({ where: { id: testBillingId } }).catch(() => {})
+    }
+    if (testSignatureId) {
+      await prisma.signature.delete({ where: { id: testSignatureId } }).catch(() => {})
+    }
   })
 
   it('FEATURE 1: Should create quotation with all basic fields', async () => {

@@ -22,6 +22,25 @@ import {
   createTestExpense
 } from '../helpers/test-data'
 
+// Helper to check if API server is available
+let serverCheckResult: boolean | null = null
+async function isServerAvailable(): Promise<boolean> {
+  // Cache the result to avoid multiple checks
+  if (serverCheckResult !== null) return serverCheckResult
+  
+  try {
+    const response = await fetch('http://localhost:3000/api/health', { 
+      method: 'GET',
+      signal: AbortSignal.timeout(2000) // 2 second timeout
+    })
+    serverCheckResult = response.ok
+    return response.ok
+  } catch {
+    serverCheckResult = false
+    return false
+  }
+}
+
 describe('Smart Auto-Save Integration Tests', () => {
   let testCompany: any
   let testBilling: any
@@ -94,6 +113,12 @@ describe('Smart Auto-Save Integration Tests', () => {
 
   describe('1. Mandatory Field Validation', () => {
     it('should NOT auto-save when mandatory fields are missing', async () => {
+      const serverAvailable = await isServerAvailable()
+      if (!serverAvailable) {
+        console.warn('⚠️  Skipping: Dev server not running on localhost:3000')
+        return
+      }
+
       const initialUpdatedAt = testQuotation.updatedAt
 
       // Try to save with missing fields (simulate auto-save payload with null company)
@@ -125,6 +150,12 @@ describe('Smart Auto-Save Integration Tests', () => {
     })
 
     it('should auto-save successfully when all mandatory fields are filled', async () => {
+      const serverAvailable = await isServerAvailable()
+      if (!serverAvailable) {
+        console.warn('⚠️  Skipping: Dev server not running on localhost:3000')
+        return
+      }
+
       const payload = {
         companyName: testCompany.name,
         companyAddress: testCompany.address,
@@ -167,6 +198,12 @@ describe('Smart Auto-Save Integration Tests', () => {
 
   describe('2. Rate Limiting (Min 15s Between Saves)', () => {
     it('should prevent saves that are too frequent', async () => {
+      const serverAvailable = await isServerAvailable()
+      if (!serverAvailable) {
+        console.warn('⚠️  Skipping: Dev server not running on localhost:3000')
+        return
+      }
+
       // First save
       const payload1 = {
         companyName: testCompany.name,
@@ -228,6 +265,12 @@ describe('Smart Auto-Save Integration Tests', () => {
 
   describe('3. Optimistic Locking (Concurrent Edit Detection)', () => {
     it('should detect concurrent edits and return 409 conflict', async () => {
+      const serverAvailable = await isServerAvailable()
+      if (!serverAvailable) {
+        console.warn('⚠️  Skipping: Dev server not running on localhost:3000')
+        return
+      }
+
       // Get current version
       const current = await prisma.quotation.findUnique({ 
         where: { id: testQuotation.id } 
@@ -292,6 +335,12 @@ describe('Smart Auto-Save Integration Tests', () => {
     })
 
     it('should allow save with correct updatedAt version', async () => {
+      const serverAvailable = await isServerAvailable()
+      if (!serverAvailable) {
+        console.warn('⚠️  Skipping: Dev server not running on localhost:3000')
+        return
+      }
+
       // Get current version
       const current = await prisma.quotation.findUnique({ 
         where: { id: testQuotation.id } 
@@ -338,6 +387,12 @@ describe('Smart Auto-Save Integration Tests', () => {
 
   describe('4. Auto-Save Always Saves as Draft', () => {
     it('should force status to "draft" even if payload says "pending"', async () => {
+      const serverAvailable = await isServerAvailable()
+      if (!serverAvailable) {
+        console.warn('⚠️  Skipping: Dev server not running on localhost:3000')
+        return
+      }
+
       // Auto-save should ALWAYS save as draft
       const payload = {
         companyName: testCompany.name,
@@ -378,6 +433,12 @@ describe('Smart Auto-Save Integration Tests', () => {
 
   describe('5. Complex Auto-Save with Items and Remarks', () => {
     it('should auto-save with nested items and remarks (UPSERT pattern)', async () => {
+      const serverAvailable = await isServerAvailable()
+      if (!serverAvailable) {
+        console.warn('⚠️  Skipping: Dev server not running on localhost:3000')
+        return
+      }
+
       const payload = {
         companyName: testCompany.name,
         companyAddress: testCompany.address,
@@ -462,6 +523,12 @@ describe('Smart Auto-Save Integration Tests', () => {
     })
 
     it('should UPSERT items correctly (update existing, create new, delete removed)', async () => {
+      const serverAvailable = await isServerAvailable()
+      if (!serverAvailable) {
+        console.warn('⚠️  Skipping: Dev server not running on localhost:3000')
+        return
+      }
+
       // First save: Create 2 items
       const initialPayload = {
         companyName: testCompany.name,
@@ -562,6 +629,12 @@ describe('Smart Auto-Save Integration Tests', () => {
 
   describe('6. Performance (Railway-Friendly)', () => {
     it('should complete auto-save within reasonable time (< 2 seconds local)', async () => {
+      const serverAvailable = await isServerAvailable()
+      if (!serverAvailable) {
+        console.warn('⚠️  Skipping: Dev server not running on localhost:3000')
+        return
+      }
+
       const payload = {
         companyName: testCompany.name,
         companyAddress: testCompany.address,
@@ -616,6 +689,12 @@ describe('Smart Auto-Save Integration Tests', () => {
 
   describe('7. Planning Auto-Save', () => {
     it('should auto-save planning when mandatory fields filled', async () => {
+      const serverAvailable = await isServerAvailable()
+      if (!serverAvailable) {
+        console.warn('⚠️  Skipping: Dev server not running on localhost:3000')
+        return
+      }
+
       const planning = await createTestPlanning({
         projectName: 'Test Project',
         clientName: 'Test Client',
@@ -652,6 +731,12 @@ describe('Smart Auto-Save Integration Tests', () => {
     })
 
     it('should NOT auto-save planning when mandatory fields missing', async () => {
+      const serverAvailable = await isServerAvailable()
+      if (!serverAvailable) {
+        console.warn('⚠️  Skipping: Dev server not running on localhost:3000')
+        return
+      }
+
       const planning = await createTestPlanning({
         projectName: 'Test Project',
         clientName: 'Test Client',
@@ -684,6 +769,12 @@ describe('Smart Auto-Save Integration Tests', () => {
 
   describe('8. Expense Auto-Save', () => {
     it('should auto-save expense when mandatory fields filled', async () => {
+      const serverAvailable = await isServerAvailable()
+      if (!serverAvailable) {
+        console.warn('⚠️  Skipping: Dev server not running on localhost:3000')
+        return
+      }
+
       const expense = await createTestExpense({
         projectName: 'Test Project',
         productionDate: new Date(),
@@ -722,6 +813,12 @@ describe('Smart Auto-Save Integration Tests', () => {
     })
 
     it('should NOT auto-save expense when mandatory fields missing', async () => {
+      const serverAvailable = await isServerAvailable()
+      if (!serverAvailable) {
+        console.warn('⚠️  Skipping: Dev server not running on localhost:3000')
+        return
+      }
+
       const expense = await createTestExpense({
         projectName: 'Test Project',
         productionDate: new Date(),

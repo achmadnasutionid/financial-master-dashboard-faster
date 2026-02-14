@@ -9,24 +9,27 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { prisma } from '@/lib/prisma'
 
 describe('REFERENCE TRACKING FIXES - Integration Tests', () => {
+  // Use unique timestamp per test run to avoid collisions
+  const TEST_RUN_ID = `REF_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  
   let testPlanningId: string
   let testQuotationId: string
   let testInvoiceId: string
   let testExpenseId: string
 
   beforeAll(async () => {
-    // Clean up test data
+    // Clean up any existing test data with our unique ID
     await prisma.expense.deleteMany({
-      where: { projectName: { contains: 'REF_TRACK_TEST' } }
+      where: { projectName: { contains: TEST_RUN_ID } }
     })
     await prisma.invoice.deleteMany({
-      where: { billTo: { contains: 'REF_TRACK_TEST' } }
+      where: { billTo: { contains: TEST_RUN_ID } }
     })
     await prisma.quotation.deleteMany({
-      where: { billTo: { contains: 'REF_TRACK_TEST' } }
+      where: { billTo: { contains: TEST_RUN_ID } }
     })
     await prisma.planning.deleteMany({
-      where: { projectName: { contains: 'REF_TRACK_TEST' } }
+      where: { projectName: { contains: TEST_RUN_ID } }
     })
   })
 
@@ -136,9 +139,9 @@ describe('REFERENCE TRACKING FIXES - Integration Tests', () => {
       // Create planning
       const planning = await prisma.planning.create({
         data: {
-          planningId: 'PLN-REF-TEST-001',
-          projectName: 'REF_TRACK_TEST Project',
-          clientName: 'Test Client',
+          planningId: `PLN-${TEST_RUN_ID}-001`,
+          projectName: `${TEST_RUN_ID} Project`,
+          clientName: `${TEST_RUN_ID} Client`,
           clientBudget: 50000000,
           status: 'draft'
         }
@@ -148,13 +151,13 @@ describe('REFERENCE TRACKING FIXES - Integration Tests', () => {
       // Create quotation (simulating generation)
       const quotation = await prisma.quotation.create({
         data: {
-          quotationId: 'QTN-REF-TEST-001',
+          quotationId: `QTN-${TEST_RUN_ID}-001`,
           companyName: 'Test Company',
           companyAddress: 'Test',
           companyCity: 'Jakarta',
           companyProvince: 'DKI Jakarta',
           productionDate: new Date(),
-          billTo: 'REF_TRACK_TEST Client',
+          billTo: `${TEST_RUN_ID} Client`,
           billingName: 'Test Billing',
           billingBankName: 'BCA',
           billingBankAccount: '123456',
@@ -215,13 +218,13 @@ describe('REFERENCE TRACKING FIXES - Integration Tests', () => {
       // Create invoice (simulating generation)
       const invoice = await prisma.invoice.create({
         data: {
-          invoiceId: 'INV-REF-TEST-001',
+          invoiceId: `INV-${TEST_RUN_ID}-001`,
           companyName: 'Test Company',
           companyAddress: 'Test',
           companyCity: 'Jakarta',
           companyProvince: 'DKI Jakarta',
           productionDate: new Date(),
-          billTo: 'REF_TRACK_TEST Client',
+          billTo: `${TEST_RUN_ID} Client`,
           billingName: 'Test Billing',
           billingBankName: 'BCA',
           billingBankAccount: '123456',
@@ -304,13 +307,13 @@ describe('REFERENCE TRACKING FIXES - Integration Tests', () => {
       // Create expense (simulating generation)
       const expense = await prisma.expense.create({
         data: {
-          expenseId: 'EXP-REF-TEST-001',
-          projectName: 'REF_TRACK_TEST Project',
+          expenseId: `EXP-${TEST_RUN_ID}-001`,
+          projectName: `${TEST_RUN_ID} Project`,
           productionDate: new Date(),
           paidAmount: 50000000,
           status: 'draft',
           sourceInvoiceId: testInvoiceId, // FK link
-          invoiceNumber: 'INV-REF-TEST-001', // Snapshot
+          invoiceNumber: `INV-${TEST_RUN_ID}-001`, // Snapshot
           invoiceTotalAmount: 50000000, // Snapshot
           items: {
             create: [
@@ -366,18 +369,20 @@ describe('REFERENCE TRACKING FIXES - Integration Tests', () => {
 
       expect(expense).not.toBeNull()
       expect(expense?.sourceInvoice).toBeNull() // FK set to null
-      expect(expense?.invoiceNumber).toBe('INV-REF-TEST-001') // Snapshot preserved
+      expect(expense?.invoiceNumber).toBe(`INV-${TEST_RUN_ID}-001`) // Snapshot preserved
       expect(expense?.invoiceTotalAmount).toBe(50000000) // Snapshot preserved
     })
   })
 
   describe('Full Chain Navigation', () => {
     it('should navigate Planning → Quotation → Invoice → Expense', async () => {
-      // Create full chain
+      // Create full chain with unique ID
+      const chainId = `${TEST_RUN_ID}_CHAIN`
+      
       const planning = await prisma.planning.create({
         data: {
-          planningId: 'PLN-CHAIN-TEST',
-          projectName: 'REF_TRACK_TEST Chain',
+          planningId: `PLN-${chainId}`,
+          projectName: `${chainId} Chain`,
           clientName: 'Test',
           clientBudget: 100000000,
           status: 'draft'
@@ -386,13 +391,13 @@ describe('REFERENCE TRACKING FIXES - Integration Tests', () => {
 
       const quotation = await prisma.quotation.create({
         data: {
-          quotationId: 'QTN-CHAIN-TEST',
+          quotationId: `QTN-${chainId}`,
           companyName: 'Test',
           companyAddress: 'Test',
           companyCity: 'Jakarta',
           companyProvince: 'DKI',
           productionDate: new Date(),
-          billTo: 'REF_TRACK_TEST Chain',
+          billTo: `${chainId} Chain`,
           billingName: 'Test',
           billingBankName: 'BCA',
           billingBankAccount: '123',
@@ -412,13 +417,13 @@ describe('REFERENCE TRACKING FIXES - Integration Tests', () => {
 
       const invoice = await prisma.invoice.create({
         data: {
-          invoiceId: 'INV-CHAIN-TEST',
+          invoiceId: `INV-${chainId}`,
           companyName: 'Test',
           companyAddress: 'Test',
           companyCity: 'Jakarta',
           companyProvince: 'DKI',
           productionDate: new Date(),
-          billTo: 'REF_TRACK_TEST Chain',
+          billTo: `${chainId} Chain`,
           billingName: 'Test',
           billingBankName: 'BCA',
           billingBankAccount: '123',
@@ -438,8 +443,8 @@ describe('REFERENCE TRACKING FIXES - Integration Tests', () => {
 
       const expense = await prisma.expense.create({
         data: {
-          expenseId: 'EXP-CHAIN-TEST',
-          projectName: 'REF_TRACK_TEST Chain',
+          expenseId: `EXP-${chainId}`,
+          projectName: `${chainId} Chain`,
           productionDate: new Date(),
           paidAmount: 100000000,
           sourceInvoiceId: invoice.id,
