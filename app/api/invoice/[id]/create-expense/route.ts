@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { generateId } from "@/lib/id-generator"
+import { invalidateExpenseCaches, invalidateInvoiceCaches } from "@/lib/cache-invalidation"
 
 // POST - Create expense from invoice when marked as paid
 export async function POST(
@@ -169,6 +170,12 @@ export async function POST(
       console.error("Error updating tracker expenseId:", error)
       // Don't fail expense creation if tracker update fails
     }
+
+    // Invalidate caches for both expense and invoice
+    await Promise.all([
+      invalidateExpenseCaches(expense.id),
+      invalidateInvoiceCaches(invoiceId)
+    ])
 
     return NextResponse.json(expense, { status: 201 })
   } catch (error: any) {

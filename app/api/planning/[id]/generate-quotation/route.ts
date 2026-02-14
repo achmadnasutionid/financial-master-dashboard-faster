@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { generateId } from "@/lib/id-generator"
+import { invalidateQuotationCaches, invalidatePlanningCaches } from "@/lib/cache-invalidation"
 
 // POST - Generate quotation from planning
 export async function POST(
@@ -139,6 +140,12 @@ export async function POST(
       where: { id },
       data: { generatedQuotationId: quotation.id }
     })
+
+    // Invalidate caches for both planning and quotation
+    await Promise.all([
+      invalidatePlanningCaches(id),
+      invalidateQuotationCaches(quotation.id)
+    ])
 
     return NextResponse.json(quotation, { status: 201 })
   } catch (error) {

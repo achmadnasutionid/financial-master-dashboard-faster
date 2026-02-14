@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { generateId } from "@/lib/id-generator"
+import { invalidateInvoiceCaches, invalidateQuotationCaches } from "@/lib/cache-invalidation"
 
 // POST - Generate invoice from quotation
 export async function POST(
@@ -126,6 +127,12 @@ export async function POST(
       where: { id },
       data: { generatedInvoiceId: invoice.id }
     })
+
+    // Invalidate caches for both quotation and invoice
+    await Promise.all([
+      invalidateQuotationCaches(id),
+      invalidateInvoiceCaches(invoice.id)
+    ])
 
     return NextResponse.json(invoice, { status: 201 })
   } catch (error) {
