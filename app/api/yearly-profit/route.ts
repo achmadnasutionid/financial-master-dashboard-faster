@@ -23,17 +23,14 @@ export async function GET(request: Request) {
     const yearStart = new Date(selectedYear, 0, 1) // Jan 1
     const yearEnd = new Date(selectedYear + 1, 0, 1) // Jan 1 next year
 
-    // Fetch final expenses for the year
-    const expenses = await prisma.expense.findMany({
+    // Fetch ALL expenses once to get both profit data and available years
+    const allExpenses = await prisma.expense.findMany({
       where: { 
         deletedAt: null,
-        status: 'final',
-        productionDate: {
-          gte: yearStart,
-          lt: yearEnd,
-        }
       },
       select: {
+        productionDate: true,
+        status: true,
         paidAmount: true,
         items: {
           select: {
@@ -42,6 +39,23 @@ export async function GET(request: Request) {
         },
       },
     })
+
+    // Filter expenses for the selected year with status 'final'
+    const yearExpenses = allExpenses.filter(exp => {
+      const expDate = new Date(exp.productionDate)
+      return exp.status === 'final' && expDate >= yearStart && expDate < yearEnd
+    })
+
+    // Extract available years from all expenses
+    const yearsSet = new Set(
+      allExpenses.map(exp => new Date(exp.productionDate).getFullYear())
+    )
+    const availableYears = Array.from(yearsSet).sort((a, b) => b - a)
+
+    // If no years found, use current year
+    if (availableYears.length === 0) {
+      availableYears.push(currentYear)
+    }
 
     // Fetch gear expenses for the year
     const gearExpenses = await prisma.gearExpense.findMany({
@@ -66,10 +80,10 @@ export async function GET(request: Request) {
     })
 
     // Calculate gross profit (total paid amount)
-    const grossProfit = expenses.reduce((sum, exp) => sum + (exp.paidAmount || 0), 0)
+    const grossProfit = yearExpenses.reduce((sum, exp) => sum + (exp.paidAmount || 0), 0)
 
     // Calculate total actual expenses
-    const totalActualExpenses = expenses.reduce((sum, exp) => {
+    const totalActualExpenses = yearExpenses.reduce((sum, exp) => {
       const expenseTotal = exp.items.reduce((itemSum, item) => itemSum + item.actual, 0)
       return sum + expenseTotal
     }, 0)
@@ -82,22 +96,6 @@ export async function GET(request: Request) {
 
     // Calculate net profit (gross profit - actual expenses - gear expenses - big expenses)
     const netProfit = grossProfit - totalActualExpenses - totalGearExpenses - totalBigExpenses
-
-    // Get available years from expenses
-    const allExpenses = await prisma.expense.findMany({
-      where: { deletedAt: null },
-      select: { productionDate: true },
-    })
-
-    const yearsSet = new Set(
-      allExpenses.map(exp => new Date(exp.productionDate).getFullYear())
-    )
-    const availableYears = Array.from(yearsSet).sort((a, b) => b - a)
-
-    // If no years found, use current year
-    if (availableYears.length === 0) {
-      availableYears.push(currentYear)
-    }
 
     const duration = Date.now() - startTime
 
