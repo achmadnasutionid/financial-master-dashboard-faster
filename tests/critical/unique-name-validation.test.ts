@@ -693,7 +693,336 @@ describe('Unique Name Validation Integration Tests', () => {
     })
   })
 
-  describe('7. Error Handling and Edge Cases', () => {
+  describe('7. Paragon - billTo Validation', () => {
+    it('should create paragon ticket with unique billTo via API', async () => {
+      if (!(await isServerAvailable())) return
+
+      const response = await fetch('http://localhost:3000/api/paragon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: 'Test Company',
+          companyAddress: 'Test Address',
+          companyCity: 'Jakarta',
+          companyProvince: 'DKI Jakarta',
+          productionDate: new Date().toISOString(),
+          quotationDate: new Date().toISOString(),
+          invoiceBastDate: new Date().toISOString(),
+          billTo: 'UniqueTestParagon01',
+          contactPerson: 'Test Contact',
+          contactPosition: 'Manager',
+          signatureName: 'Test Signature',
+          signatureImageData: 'data:image/png;base64,test',
+          pph: '2',
+          totalAmount: 1000000,
+          status: 'draft',
+          items: []
+        })
+      })
+
+      expect(response.ok).toBe(true)
+      const paragon = await response.json()
+      testData.paragonIds.push(paragon.id)
+      expect(paragon.billTo).toBe('UniqueTestParagon01')
+    })
+
+    it('should auto-increment billTo when duplicate exists', async () => {
+      if (!(await isServerAvailable())) return
+
+      // Create first paragon ticket
+      const response1 = await fetch('http://localhost:3000/api/paragon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: 'Test Company',
+          companyAddress: 'Test Address',
+          companyCity: 'Jakarta',
+          companyProvince: 'DKI Jakarta',
+          productionDate: new Date().toISOString(),
+          quotationDate: new Date().toISOString(),
+          invoiceBastDate: new Date().toISOString(),
+          billTo: 'UniqueTestParagon02',
+          contactPerson: 'Test Contact',
+          contactPosition: 'Manager',
+          signatureName: 'Test Signature',
+          signatureImageData: 'data:image/png;base64,test',
+          pph: '2',
+          totalAmount: 1000000,
+          status: 'draft',
+          items: []
+        })
+      })
+
+      const paragon1 = await response1.json()
+      testData.paragonIds.push(paragon1.id)
+
+      // Create second with same billTo
+      const response2 = await fetch('http://localhost:3000/api/paragon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: 'Test Company',
+          companyAddress: 'Test Address',
+          companyCity: 'Jakarta',
+          companyProvince: 'DKI Jakarta',
+          productionDate: new Date().toISOString(),
+          quotationDate: new Date().toISOString(),
+          invoiceBastDate: new Date().toISOString(),
+          billTo: 'UniqueTestParagon02',
+          contactPerson: 'Test Contact',
+          contactPosition: 'Manager',
+          signatureName: 'Test Signature',
+          signatureImageData: 'data:image/png;base64,test',
+          pph: '2',
+          totalAmount: 1000000,
+          status: 'draft',
+          items: []
+        })
+      })
+
+      const paragon2 = await response2.json()
+      testData.paragonIds.push(paragon2.id)
+      expect(paragon2.billTo).toBe('UniqueTestParagon02 02')
+    })
+
+    it('should handle billTo updates without creating duplicates', async () => {
+      if (!(await isServerAvailable())) return
+
+      // Create paragon ticket
+      const createResponse = await fetch('http://localhost:3000/api/paragon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: 'Test Company',
+          companyAddress: 'Test Address',
+          companyCity: 'Jakarta',
+          companyProvince: 'DKI Jakarta',
+          productionDate: new Date().toISOString(),
+          quotationDate: new Date().toISOString(),
+          invoiceBastDate: new Date().toISOString(),
+          billTo: 'UniqueTestParagonUpdate',
+          contactPerson: 'Test Contact',
+          contactPosition: 'Manager',
+          signatureName: 'Test Signature',
+          signatureImageData: 'data:image/png;base64,test',
+          pph: '2',
+          totalAmount: 1000000,
+          status: 'draft',
+          items: []
+        })
+      })
+
+      const paragon = await createResponse.json()
+      testData.paragonIds.push(paragon.id)
+
+      // Update with same billTo (should be allowed)
+      const updateResponse = await fetch(`http://localhost:3000/api/paragon/${paragon.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: 'Test Company Updated',
+          companyAddress: 'Test Address',
+          companyCity: 'Jakarta',
+          companyProvince: 'DKI Jakarta',
+          productionDate: new Date().toISOString(),
+          quotationDate: new Date().toISOString(),
+          invoiceBastDate: new Date().toISOString(),
+          billTo: 'UniqueTestParagonUpdate',
+          contactPerson: 'Test Contact',
+          contactPosition: 'Manager',
+          signatureName: 'Test Signature',
+          signatureImageData: 'data:image/png;base64,test',
+          pph: '2',
+          totalAmount: 1500000,
+          status: 'draft',
+          items: []
+        })
+      })
+
+      expect(updateResponse.ok).toBe(true)
+      const updated = await updateResponse.json()
+      expect(updated.billTo).toBe('UniqueTestParagonUpdate')
+    })
+  })
+
+  describe('8. Erha - billTo Validation', () => {
+    it('should create erha ticket with unique billTo via API', async () => {
+      if (!(await isServerAvailable())) return
+
+      const response = await fetch('http://localhost:3000/api/erha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: 'Test Company',
+          companyAddress: 'Test Address',
+          companyCity: 'Jakarta',
+          companyProvince: 'DKI Jakarta',
+          productionDate: new Date().toISOString(),
+          quotationDate: new Date().toISOString(),
+          invoiceBastDate: new Date().toISOString(),
+          billTo: 'UniqueTestErha01',
+          billToAddress: 'Test BillTo Address',
+          contactPerson: 'Test Contact',
+          contactPosition: 'Manager',
+          billingName: 'Test Billing',
+          billingBankName: 'Test Bank',
+          billingBankAccount: '1234567890',
+          billingBankAccountName: 'Test Account',
+          signatureName: 'Test Signature',
+          signatureImageData: 'data:image/png;base64,test',
+          pph: '2',
+          totalAmount: 1000000,
+          status: 'draft',
+          items: []
+        })
+      })
+
+      expect(response.ok).toBe(true)
+      const erha = await response.json()
+      testData.erhaIds.push(erha.id)
+      expect(erha.billTo).toBe('UniqueTestErha01')
+    })
+
+    it('should auto-increment billTo when duplicate exists', async () => {
+      if (!(await isServerAvailable())) return
+
+      // Create first erha ticket
+      const response1 = await fetch('http://localhost:3000/api/erha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: 'Test Company',
+          companyAddress: 'Test Address',
+          companyCity: 'Jakarta',
+          companyProvince: 'DKI Jakarta',
+          productionDate: new Date().toISOString(),
+          quotationDate: new Date().toISOString(),
+          invoiceBastDate: new Date().toISOString(),
+          billTo: 'UniqueTestErha02',
+          billToAddress: 'Test BillTo Address',
+          contactPerson: 'Test Contact',
+          contactPosition: 'Manager',
+          billingName: 'Test Billing',
+          billingBankName: 'Test Bank',
+          billingBankAccount: '1234567890',
+          billingBankAccountName: 'Test Account',
+          signatureName: 'Test Signature',
+          signatureImageData: 'data:image/png;base64,test',
+          pph: '2',
+          totalAmount: 1000000,
+          status: 'draft',
+          items: []
+        })
+      })
+
+      const erha1 = await response1.json()
+      testData.erhaIds.push(erha1.id)
+
+      // Create second with same billTo
+      const response2 = await fetch('http://localhost:3000/api/erha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: 'Test Company',
+          companyAddress: 'Test Address',
+          companyCity: 'Jakarta',
+          companyProvince: 'DKI Jakarta',
+          productionDate: new Date().toISOString(),
+          quotationDate: new Date().toISOString(),
+          invoiceBastDate: new Date().toISOString(),
+          billTo: 'UniqueTestErha02',
+          billToAddress: 'Test BillTo Address',
+          contactPerson: 'Test Contact',
+          contactPosition: 'Manager',
+          billingName: 'Test Billing',
+          billingBankName: 'Test Bank',
+          billingBankAccount: '1234567890',
+          billingBankAccountName: 'Test Account',
+          signatureName: 'Test Signature',
+          signatureImageData: 'data:image/png;base64,test',
+          pph: '2',
+          totalAmount: 1000000,
+          status: 'draft',
+          items: []
+        })
+      })
+
+      const erha2 = await response2.json()
+      testData.erhaIds.push(erha2.id)
+      expect(erha2.billTo).toBe('UniqueTestErha02 02')
+    })
+
+    it('should handle billTo updates without creating duplicates', async () => {
+      if (!(await isServerAvailable())) return
+
+      // Create erha ticket
+      const createResponse = await fetch('http://localhost:3000/api/erha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: 'Test Company',
+          companyAddress: 'Test Address',
+          companyCity: 'Jakarta',
+          companyProvince: 'DKI Jakarta',
+          productionDate: new Date().toISOString(),
+          quotationDate: new Date().toISOString(),
+          invoiceBastDate: new Date().toISOString(),
+          billTo: 'UniqueTestErhaUpdate',
+          billToAddress: 'Test BillTo Address',
+          contactPerson: 'Test Contact',
+          contactPosition: 'Manager',
+          billingName: 'Test Billing',
+          billingBankName: 'Test Bank',
+          billingBankAccount: '1234567890',
+          billingBankAccountName: 'Test Account',
+          signatureName: 'Test Signature',
+          signatureImageData: 'data:image/png;base64,test',
+          pph: '2',
+          totalAmount: 1000000,
+          status: 'draft',
+          items: []
+        })
+      })
+
+      const erha = await createResponse.json()
+      testData.erhaIds.push(erha.id)
+
+      // Update with same billTo (should be allowed)
+      const updateResponse = await fetch(`http://localhost:3000/api/erha/${erha.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: 'Test Company Updated',
+          companyAddress: 'Test Address',
+          companyCity: 'Jakarta',
+          companyProvince: 'DKI Jakarta',
+          productionDate: new Date().toISOString(),
+          quotationDate: new Date().toISOString(),
+          invoiceBastDate: new Date().toISOString(),
+          billTo: 'UniqueTestErhaUpdate',
+          billToAddress: 'Test BillTo Address',
+          contactPerson: 'Test Contact',
+          contactPosition: 'Manager',
+          billingName: 'Test Billing',
+          billingBankName: 'Test Bank',
+          billingBankAccount: '1234567890',
+          billingBankAccountName: 'Test Account',
+          signatureName: 'Test Signature',
+          signatureImageData: 'data:image/png;base64,test',
+          pph: '2',
+          totalAmount: 1500000,
+          status: 'draft',
+          items: []
+        })
+      })
+
+      expect(updateResponse.ok).toBe(true)
+      const updated = await updateResponse.json()
+      expect(updated.billTo).toBe('UniqueTestErhaUpdate')
+    })
+  })
+
+  describe('9. Error Handling and Edge Cases', () => {
     it('should handle empty strings correctly', async () => {
       const uniqueName = await generateUniqueName('', 'planning')
       expect(uniqueName).toBe('')
@@ -750,7 +1079,7 @@ describe('Unique Name Validation Integration Tests', () => {
     })
   })
 
-  describe('8. Cross-Entity Independence', () => {
+  describe('10. Cross-Entity Independence', () => {
     it('should allow same name across different entity types', async () => {
       const sameName = 'UniqueTestCrossEntity'
 

@@ -51,6 +51,17 @@ export async function generateUniqueName(
     return baseName
   }
 
+  // Map entity types to Prisma model names
+  const modelNameMap: Record<EntityType, string> = {
+    planning: 'planning',
+    quotation: 'quotation',
+    invoice: 'invoice',
+    expense: 'expense',
+    paragon: 'paragonTicket',
+    erha: 'erhaTicket',
+    productionTracker: 'productionTracker'
+  }
+
   // Get the field name for this entity type
   const fieldNameMap: FieldNameMap = {
     planning: 'projectName',
@@ -62,6 +73,7 @@ export async function generateUniqueName(
     productionTracker: 'projectName'
   }
 
+  const modelName = modelNameMap[entityType]
   const fieldName = fieldNameMap[entityType]
 
   // Check if base name already exists
@@ -73,7 +85,7 @@ export async function generateUniqueName(
     where.id = { not: excludeId }
   }
 
-  const existingRecord = await (prisma as any)[entityType].findFirst({ where })
+  const existingRecord = await (prisma as any)[modelName].findFirst({ where })
 
   // If no conflict, return original name
   if (!existingRecord) {
@@ -93,7 +105,7 @@ export async function generateUniqueName(
       conflictWhere.id = { not: excludeId }
     }
 
-    const conflict = await (prisma as any)[entityType].findFirst({
+    const conflict = await (prisma as any)[modelName].findFirst({
       where: conflictWhere
     })
 
@@ -118,6 +130,17 @@ export async function checkNameConflicts(
   names: string[],
   entityType: EntityType
 ): Promise<Record<string, boolean>> {
+  // Map entity types to Prisma model names
+  const modelNameMap: Record<EntityType, string> = {
+    planning: 'planning',
+    quotation: 'quotation',
+    invoice: 'invoice',
+    expense: 'expense',
+    paragon: 'paragonTicket',
+    erha: 'erhaTicket',
+    productionTracker: 'productionTracker'
+  }
+
   const fieldNameMap: FieldNameMap = {
     planning: 'projectName',
     quotation: 'billTo',
@@ -128,6 +151,7 @@ export async function checkNameConflicts(
     productionTracker: 'projectName'
   }
 
+  const modelName = modelNameMap[entityType]
   const fieldName = fieldNameMap[entityType]
   
   const results: Record<string, boolean> = {}
@@ -140,7 +164,7 @@ export async function checkNameConflicts(
         return
       }
 
-      const exists = await (prisma as any)[entityType].findFirst({
+      const exists = await (prisma as any)[modelName].findFirst({
         where: {
           [fieldName]: name,
           deletedAt: null
