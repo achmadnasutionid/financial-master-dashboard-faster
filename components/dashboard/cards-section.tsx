@@ -13,6 +13,37 @@ import {
 } from "lucide-react"
 import type { DashboardCard } from "@/types"
 
+/**
+ * Get icon component by icon name
+ * Shared helper for all dashboard card sections
+ */
+function getIcon(iconName: string) {
+  switch (iconName) {
+    case "calendar":
+      return <Calendar className="h-6 w-6 text-primary" />
+    case "file-check":
+      return <FileCheck className="h-6 w-6 text-primary" />
+    case "receipt":
+      return <Receipt className="h-6 w-6 text-primary" />
+    case "wallet":
+      return <Wallet className="h-6 w-6 text-primary" />
+    case "building":
+      return <Building2 className="h-6 w-6 text-primary" />
+    case "file-text":
+      return <FileText className="h-6 w-6 text-primary" />
+    case "file-signature":
+      return <FileSignature className="h-6 w-6 text-primary" />
+    case "package":
+      return <Package className="h-6 w-6 text-primary" />
+    case "package-open":
+      return <PackageOpen className="h-6 w-6 text-primary" />
+    case "table":
+      return <Table className="h-6 w-6 text-primary" />
+    default:
+      return <Package className="h-6 w-6 text-primary" />
+  }
+}
+
 interface QuickActionSectionProps {
   cards: DashboardCard[]
   onNavigate: (path: string) => void
@@ -20,33 +51,6 @@ interface QuickActionSectionProps {
 
 export function QuickActionSection({ cards, onNavigate }: QuickActionSectionProps) {
   if (cards.length === 0) return null
-
-  const getIcon = (iconName: string) => {
-    switch (iconName) {
-      case "calendar":
-        return <Calendar className="h-6 w-6 text-primary" />
-      case "file-check":
-        return <FileCheck className="h-6 w-6 text-primary" />
-      case "receipt":
-        return <Receipt className="h-6 w-6 text-primary" />
-      case "wallet":
-        return <Wallet className="h-6 w-6 text-primary" />
-      case "building":
-        return <Building2 className="h-6 w-6 text-primary" />
-      case "file-text":
-        return <FileText className="h-6 w-6 text-primary" />
-      case "file-signature":
-        return <FileSignature className="h-6 w-6 text-primary" />
-      case "package":
-        return <Package className="h-6 w-6 text-primary" />
-      case "package-open":
-        return <PackageOpen className="h-6 w-6 text-primary" />
-      case "table":
-        return <Table className="h-6 w-6 text-primary" />
-      default:
-        return <Package className="h-6 w-6 text-primary" />
-    }
-  }
 
   return (
     <div className="space-y-6">
@@ -80,33 +84,6 @@ interface CardsSectionProps {
 
 export function CardsSection({ cards, sectionTitle, onNavigate }: CardsSectionProps) {
   if (cards.length === 0) return null
-
-  const getIcon = (iconName: string) => {
-    switch (iconName) {
-      case "calendar":
-        return <Calendar className="h-6 w-6 text-primary" />
-      case "file-check":
-        return <FileCheck className="h-6 w-6 text-primary" />
-      case "receipt":
-        return <Receipt className="h-6 w-6 text-primary" />
-      case "wallet":
-        return <Wallet className="h-6 w-6 text-primary" />
-      case "building":
-        return <Building2 className="h-6 w-6 text-primary" />
-      case "file-text":
-        return <FileText className="h-6 w-6 text-primary" />
-      case "file-signature":
-        return <FileSignature className="h-6 w-6 text-primary" />
-      case "package":
-        return <Package className="h-6 w-6 text-primary" />
-      case "package-open":
-        return <PackageOpen className="h-6 w-6 text-primary" />
-      case "table":
-        return <Table className="h-6 w-6 text-primary" />
-      default:
-        return <Package className="h-6 w-6 text-primary" />
-    }
-  }
 
   return (
     <div className="space-y-6">
