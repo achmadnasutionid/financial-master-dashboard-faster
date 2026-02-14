@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useState, useMemo, useEffect } from "react"
+import useSWR from "swr"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { Card } from "@/components/ui/card"
@@ -46,12 +47,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("")
   const [currentYear, setCurrentYear] = useState<string>("")
   const [availableYears, setAvailableYears] = useState<number[]>([])
-  const [loading, setLoading] = useState(true)
   const [isClient, setIsClient] = useState(false)
-  
-  // Profit data
-  const [grossProfit, setGrossProfit] = useState(0)
-  const [netProfit, setNetProfit] = useState(0)
 
   // Initialize client-side state
   useEffect(() => {
@@ -60,28 +56,26 @@ export default function Home() {
     setCurrentYear(year)
   }, [])
 
-  // Fetch profit data when year changes
-  useEffect(() => {
-    if (!isClient || !currentYear) return
-    
-    const fetchProfitData = async () => {
-      setLoading(true)
-      try {
-        const response = await fetch(`/api/yearly-profit?year=${currentYear}`, { cache: "no-store" })
-        const data = await response.json()
-        
-        setGrossProfit(data.grossProfit)
-        setNetProfit(data.netProfit)
-        setAvailableYears(data.availableYears)
-      } catch (error) {
-        console.error("Error fetching profit data:", error)
-      } finally {
-        setLoading(false)
-      }
+  // Fetch profit data with SWR for automatic caching and deduplication
+  const { data: profitData, isLoading } = useSWR(
+    isClient && currentYear ? `/api/yearly-profit?year=${currentYear}` : null,
+    (url: string) => fetch(url).then(res => res.json()),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 10000, // Dedupe requests within 10 seconds
     }
+  )
 
-    fetchProfitData()
-  }, [isClient, currentYear])
+  // Update available years when profit data changes
+  useEffect(() => {
+    if (profitData?.availableYears) {
+      setAvailableYears(profitData.availableYears)
+    }
+  }, [profitData])
+
+  const grossProfit = profitData?.grossProfit || 0
+  const netProfit = profitData?.netProfit || 0
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -184,7 +178,7 @@ export default function Home() {
               selectedYear={currentYear}
               availableYears={availableYears}
               onYearChange={setCurrentYear}
-              loading={loading}
+              loading={isLoading}
               formatCurrency={formatCurrency}
             />
           )}
