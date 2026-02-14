@@ -88,18 +88,20 @@ export async function POST(
       }
     })
 
-    // Use transaction to prevent race conditions
+    // Use transaction with row-level locking to prevent race conditions
     const expense = await prisma.$transaction(async (tx) => {
-      // Double-check inside transaction that expense wasn't created by another request
-      const recheck = await tx.invoice.findUnique({
-        where: { id: invoiceId },
-        select: { generatedExpenseId: true }
-      })
+      // Lock the invoice row for update to prevent concurrent modifications
+      // This uses SELECT...FOR UPDATE to ensure only one request proceeds
+      const lockedInvoice = await tx.$queryRaw<Array<{ generatedExpenseId: string | null }>>`
+        SELECT "generatedExpenseId" FROM "Invoice" 
+        WHERE "id" = ${invoiceId} 
+        FOR UPDATE
+      `
 
-      if (recheck?.generatedExpenseId) {
+      if (lockedInvoice[0]?.generatedExpenseId) {
         // Another request already created it, fetch and return
         const existing = await tx.expense.findUnique({
-          where: { id: recheck.generatedExpenseId },
+          where: { id: lockedInvoice[0].generatedExpenseId },
           include: { items: true }
         })
         if (existing) {
