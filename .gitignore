@@ -49,3 +49,7 @@ prisma/dev.db-journal
 
 # scripts folder
 /scripts
+
+# Temporary cleanup scripts
+check-test-data.js
+cleanup-test-data.js
