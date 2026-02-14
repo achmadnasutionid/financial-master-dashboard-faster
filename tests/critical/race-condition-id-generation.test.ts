@@ -334,4 +334,188 @@ describe('RACE CONDITION FIX - ID Generation', () => {
       expect(id).toMatch(/^PRG-\d{4}-\d{4}$/)
     }, 60000) // 60 second timeout
   })
+
+  describe('Create-Expense Race Condition Prevention', () => {
+    it('should prevent duplicate expenses when multiple users create expense simultaneously', async () => {
+      // Create a paid invoice
+      const invoiceId = await generateId('INV', 'invoice')
+      const invoice = await prisma.invoice.create({
+        data: {
+          invoiceId,
+          companyName: 'RACE_TEST Company',
+          companyAddress: 'Test Address',
+          companyCity: 'Jakarta',
+          companyProvince: 'DKI Jakarta',
+          productionDate: new Date(),
+          billTo: 'RACE_TEST_CREATE_EXPENSE',
+          billingName: 'Test Billing',
+          billingBankName: 'Test Bank',
+          billingBankAccount: '1234567890',
+          billingBankAccountName: 'Test Account',
+          signatureName: 'Test Signature',
+          signatureImageData: 'data:image/png;base64,test',
+          pph: '2',
+          totalAmount: 5000000,
+          status: 'paid',
+          paidDate: new Date(),
+          items: {
+            create: [
+              {
+                productName: 'Test Product',
+                total: 5000000,
+                details: {
+                  create: [
+                    {
+                      detail: 'Test Detail',
+                      unitPrice: 5000000,
+                      qty: 1,
+                      amount: 5000000
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      })
+      createdInvoiceIds.push(invoice.id)
+
+      // Simulate 5 concurrent users clicking "Create Expense" at the same time
+      const concurrentRequests = Array.from({ length: 5 }, () =>
+        fetch(`http://localhost:3000/api/invoice/${invoice.id}/create-expense`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        })
+      )
+
+      // Execute all requests in parallel
+      const responses = await Promise.all(concurrentRequests)
+      
+      // All requests should succeed (either 201 created or 200 existing)
+      responses.forEach(response => {
+        expect([200, 201]).toContain(response.status)
+      })
+
+      // Parse all responses
+      const expenseData = await Promise.all(
+        responses.map(r => r.json())
+      )
+
+      // Extract expense IDs (handle both direct expense and { expense: {...} } format)
+      const expenseIds = expenseData.map(data => 
+        data.expense?.id || data.id
+      ).filter(Boolean)
+
+      // CRITICAL: Should have created only ONE unique expense, not 5
+      const uniqueExpenseIds = new Set(expenseIds)
+      expect(uniqueExpenseIds.size).toBe(1)
+      
+      console.log(`✓ Prevented race condition: ${responses.length} concurrent requests created only 1 expense`)
+
+      // Verify the expense exists in database
+      const createdExpenseId = Array.from(uniqueExpenseIds)[0]
+      const expense = await prisma.expense.findUnique({
+        where: { id: createdExpenseId },
+        include: { items: true }
+      })
+
+      expect(expense).toBeDefined()
+      expect(expense?.projectName).toBe('RACE_TEST_CREATE_EXPENSE')
+      expect(expense?.items).toHaveLength(1)
+      createdExpenseIds.push(createdExpenseId)
+
+      // Verify invoice was updated with generatedExpenseId
+      const updatedInvoice = await prisma.invoice.findUnique({
+        where: { id: invoice.id },
+        select: { generatedExpenseId: true }
+      })
+      expect(updatedInvoice?.generatedExpenseId).toBe(createdExpenseId)
+
+      // Verify only ONE expense exists for this invoice
+      const allExpensesForInvoice = await prisma.expense.findMany({
+        where: { invoiceNumber: invoice.invoiceId }
+      })
+      expect(allExpensesForInvoice).toHaveLength(1)
+    }, 60000) // 60 second timeout
+
+    it('should handle 10 concurrent create-expense requests without duplicates', async () => {
+      // Create a paid invoice
+      const invoiceId = await generateId('INV', 'invoice')
+      const invoice = await prisma.invoice.create({
+        data: {
+          invoiceId,
+          companyName: 'RACE_TEST Company',
+          companyAddress: 'Test Address',
+          companyCity: 'Jakarta',
+          companyProvince: 'DKI Jakarta',
+          productionDate: new Date(),
+          billTo: 'RACE_TEST_CREATE_EXPENSE_10',
+          billingName: 'Test Billing',
+          billingBankName: 'Test Bank',
+          billingBankAccount: '1234567890',
+          billingBankAccountName: 'Test Account',
+          signatureName: 'Test Signature',
+          signatureImageData: 'data:image/png;base64,test',
+          pph: '2',
+          totalAmount: 10000000,
+          status: 'paid',
+          paidDate: new Date(),
+          items: {
+            create: [
+              {
+                productName: 'Test Product',
+                total: 10000000,
+                details: {
+                  create: [
+                    {
+                      detail: 'Test Detail',
+                      unitPrice: 10000000,
+                      qty: 1,
+                      amount: 10000000
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      })
+      createdInvoiceIds.push(invoice.id)
+
+      // Simulate 10 concurrent requests
+      const concurrentRequests = Array.from({ length: 10 }, () =>
+        fetch(`http://localhost:3000/api/invoice/${invoice.id}/create-expense`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        })
+      )
+
+      const responses = await Promise.all(concurrentRequests)
+      
+      // All should succeed
+      responses.forEach(response => {
+        expect([200, 201]).toContain(response.status)
+      })
+
+      const expenseData = await Promise.all(responses.map(r => r.json()))
+      const expenseIds = expenseData.map(data => 
+        data.expense?.id || data.id
+      ).filter(Boolean)
+
+      // Should have only ONE unique expense
+      const uniqueExpenseIds = new Set(expenseIds)
+      expect(uniqueExpenseIds.size).toBe(1)
+      
+      console.log(`✓ 10 concurrent requests: Only 1 expense created`)
+
+      const createdExpenseId = Array.from(uniqueExpenseIds)[0]
+      createdExpenseIds.push(createdExpenseId)
+
+      // Verify in database
+      const allExpenses = await prisma.expense.findMany({
+        where: { invoiceNumber: invoice.invoiceId }
+      })
+      expect(allExpenses).toHaveLength(1)
+    }, 60000)
+  })
 })
