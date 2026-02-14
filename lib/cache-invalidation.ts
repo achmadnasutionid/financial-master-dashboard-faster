@@ -24,6 +24,7 @@ export async function invalidateDashboardCache(): Promise<void> {
 export async function invalidateInvoiceCaches(invoiceId?: string): Promise<void> {
   const promises = [
     cache.delete(cacheKeys.dashboardStats()),
+    cache.delete('quick-stats:*'), // Quick stats cache (year-based)
     cache.delete('invoice:list:*'), // All invoice list caches (all statuses, all pages)
     cache.delete('calendar:*'), // Calendar events cache
   ]
@@ -42,6 +43,7 @@ export async function invalidateInvoiceCaches(invoiceId?: string): Promise<void>
 export async function invalidateQuotationCaches(quotationId?: string): Promise<void> {
   const promises = [
     cache.delete(cacheKeys.dashboardStats()),
+    cache.delete('quick-stats:*'), // Quick stats cache (year-based)
     cache.delete('quotation:list:*'), // All quotation list caches
     cache.delete('calendar:*'), // Calendar events cache
   ]
@@ -60,6 +62,7 @@ export async function invalidateQuotationCaches(quotationId?: string): Promise<v
 export async function invalidateExpenseCaches(expenseId?: string): Promise<void> {
   const promises = [
     cache.delete(cacheKeys.dashboardStats()),
+    cache.delete('quick-stats:*'), // Quick stats cache (year-based)
     cache.delete('expense:list:*'), // All expense list caches
   ]
   
@@ -94,6 +97,7 @@ export async function invalidatePlanningCaches(planningId?: string): Promise<voi
 export async function invalidateGearExpenseCaches(): Promise<void> {
   await Promise.all([
     cache.delete(cacheKeys.dashboardStats()),
+    cache.delete('quick-stats:*'), // Quick stats cache (year-based)
     cache.delete('gear-expense:*'), // All gear expense caches
   ])
 }
@@ -105,6 +109,7 @@ export async function invalidateGearExpenseCaches(): Promise<void> {
 export async function invalidateBigExpenseCaches(): Promise<void> {
   await Promise.all([
     cache.delete(cacheKeys.dashboardStats()),
+    cache.delete('quick-stats:*'), // Quick stats cache (year-based)
     cache.delete('big-expense:*'), // All big expense caches
   ])
 }
