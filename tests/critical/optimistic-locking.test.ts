@@ -35,6 +35,15 @@ describe('🔴 CRITICAL: Optimistic Locking & Concurrent Edits', () => {
   })
 
   afterAll(async () => {
+    // Cleanup trackers first (auto-created via syncTracker)
+    await prisma.productionTracker.deleteMany({
+      where: {
+        projectName: 'Test Client',
+        deletedAt: null
+      }
+    })
+    
+    // Then cleanup quotation
     await prisma.quotation.delete({ where: { id: testQuotationId } })
   })
 

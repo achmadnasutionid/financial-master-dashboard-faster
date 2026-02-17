@@ -13,6 +13,14 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     testTimeout: 30000,
     hookTimeout: 30000,
+    env: {
+      NODE_ENV: 'test',
+      // Will be overridden by .env.test when using dotenv-cli
+    },
+    // Run tests sequentially to avoid database conflicts
+    pool: 'forks',
+    maxConcurrency: 1,
+    fileParallelism: false
   },
   resolve: {
     alias: {

@@ -55,14 +55,16 @@ export const createTestQuotation = async (options: {
   signatureName: string
   signatureRole?: string
   signatureImageData?: string
+  billTo?: string // Allow custom billTo
   status?: string
   notes?: string | null
   totalAmount?: number
   pph?: string
 }) => {
   const quotationId = await generateId('QTN', 'quotation')
+  const testId = `TEST-${Date.now()}` // Unique per test run
   
-  return await prisma.quotation.create({
+  const quotation = await prisma.quotation.create({
     data: {
       quotationId,
       companyName: options.companyName,
@@ -73,7 +75,7 @@ export const createTestQuotation = async (options: {
       companyTelp: '021-12345678',
       companyEmail: 'test@company.com',
       productionDate: new Date(),
-      billTo: 'Test Client',
+      billTo: options.billTo || `Test Client ${testId}`, // Unique default
       billToEmail: 'client@test.com',
       notes: options.notes !== undefined ? options.notes : 'Test notes',
       billingName: options.billingName,
@@ -91,6 +93,10 @@ export const createTestQuotation = async (options: {
       status: options.status || 'draft'
     }
   })
+  
+  // Return tracker info for cleanup (created automatically via syncTracker in API)
+  // Note: Tracker is only created when using API routes, not direct Prisma calls
+  return quotation
 }
 
 export const createTestPlanning = async (options?: {
