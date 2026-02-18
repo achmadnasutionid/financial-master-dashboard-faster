@@ -134,6 +134,8 @@ export default function EditInvoicePage() {
   const [customSignatures, setCustomSignatures] = useState<CustomSignature[]>([])
   const [showSignatures, setShowSignatures] = useState(false)
   const [summaryOrder, setSummaryOrder] = useState<string[]>(["subtotal", "pph", "total"])
+  const [adjustmentPercentage, setAdjustmentPercentage] = useState<number | null>(null)
+  const [adjustmentNotes, setAdjustmentNotes] = useState<string>("")
   
   // Master data
   const [companies, setCompanies] = useState<Company[]>([])
@@ -205,6 +207,8 @@ export default function EditInvoicePage() {
         totalAmount: items.reduce((sum, item) => sum + item.total, 0) + 
                      (items.reduce((sum, item) => sum + item.total, 0) * (100 / (100 - parseFloat(pph))) - items.reduce((sum, item) => sum + item.total, 0)),
         summaryOrder: summaryOrder.join(","),
+        adjustmentPercentage: adjustmentPercentage ?? undefined,
+        adjustmentNotes: adjustmentNotes.trim() || undefined,
         termsAndConditions: showTerms ? termsAndConditions : null,
         status: 'draft', // Always save as draft for auto-save
         remarks: remarks.map(remark => ({
@@ -295,6 +299,8 @@ export default function EditInvoicePage() {
       
       setPph(InvoiceData.pph)
       setSummaryOrder(InvoiceData.summaryOrder ? InvoiceData.summaryOrder.split(',') : ["subtotal", "pph", "total"])
+      setAdjustmentPercentage(InvoiceData.adjustmentPercentage ?? null)
+      setAdjustmentNotes(InvoiceData.adjustmentNotes ?? "")
       
       // Store the updatedAt timestamp for stale data detection
       lastUpdatedAtRef.current = InvoiceData.updatedAt
@@ -644,6 +650,34 @@ export default function EditInvoicePage() {
     }))
   }, [])
 
+  const handleAdjustByPercentage = useCallback((percentage: number, notes?: string) => {
+    // One adjustment only: apply new % to logical base (undo previous % then apply new %). 0% = cancel adjustment.
+    const prevMultiplier = 1 + (adjustmentPercentage ?? 0) / 100
+    const newMultiplier = percentage === 0 ? 1 : 1 + percentage / 100
+    const multiplier = newMultiplier / prevMultiplier
+    setAdjustmentPercentage(percentage === 0 ? null : percentage)
+    setAdjustmentNotes(percentage === 0 ? "" : (notes ?? ""))
+    setItems(prevItems =>
+      prevItems.map(item => {
+        const updatedDetails = item.details.map(detail => {
+          const unitPrice = parseFloat(detail.unitPrice) || 0
+          const qty = parseFloat(detail.qty) || 0
+          const newUnitPrice = unitPrice * multiplier
+          const newAmount = Math.round(newUnitPrice * qty)
+          return {
+            ...detail,
+            unitPrice: String(Math.round(newUnitPrice)),
+            amount: newAmount,
+          }
+        })
+        const total = updatedDetails.reduce((sum, d) => sum + d.amount, 0)
+        return { ...item, details: updatedDetails, total }
+      })
+    )
+    setHasUnsavedChanges(true)
+    toast.success(`All amounts adjusted by ${percentage > 0 ? "+" : ""}${percentage}%`)
+  }, [adjustmentPercentage])
+
   // Memoized calculations - only recalculate when dependencies change
   const subtotal = useMemo(() => {
     return items.reduce((sum, item) => sum + item.total, 0)
@@ -812,6 +846,8 @@ export default function EditInvoicePage() {
         pph,
         totalAmount: totalAmount,
         summaryOrder: summaryOrder.join(","),
+        adjustmentPercentage: adjustmentPercentage ?? undefined,
+        adjustmentNotes: adjustmentNotes.trim() || undefined,
         termsAndConditions: showTerms ? termsAndConditions : null,
         status,
         remarks: remarks.map(remark => ({
@@ -1391,6 +1427,8 @@ export default function EditInvoicePage() {
                     setHasUnsavedChanges(true)
                     setSummaryOrder(newOrder)
                   }}
+                  onAdjustByPercentage={handleAdjustByPercentage}
+                  adjustment={adjustmentPercentage != null ? { percentage: adjustmentPercentage, notes: adjustmentNotes.trim() || undefined } : null}
                 />
               )}
 

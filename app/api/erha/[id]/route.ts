@@ -131,6 +131,8 @@ export async function PUT(
           finalWorkImageData: body.finalWorkImageData || null,
           pph: body.pph,
           totalAmount: safeParseFloat(body.totalAmount),
+          adjustmentPercentage: body.adjustmentPercentage != null ? parseFloat(body.adjustmentPercentage) : null,
+          adjustmentNotes: body.adjustmentNotes ?? null,
           termsAndConditions: body.termsAndConditions || null,
           status: body.status,
         }

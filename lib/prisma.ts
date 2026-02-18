@@ -5,11 +5,35 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
+// Never use production DB in local dev or tests. Fail fast if second DB is not configured.
+function getDatabaseUrl(): string {
+  if (process.env.NODE_ENV === 'production') {
+    const url = process.env.DATABASE_URL
+    if (!url) throw new Error('DATABASE_URL is required in production.')
+    return url
+  }
+  if (process.env.NODE_ENV === 'development') {
+    const url = process.env.DATABASE_URL_LOCAL
+    if (!url) {
+      throw new Error(
+        'DATABASE_URL_LOCAL is required in development. Set it in .env to your second/local DB URL so production is never used.'
+      )
+    }
+    return url
+  }
+  // test: DATABASE_URL comes from .env.test (second DB). Test setup already enforces allowed DB.
+  const url = process.env.DATABASE_URL
+  if (!url) throw new Error('DATABASE_URL is required for tests. Use .env.test with your second DB URL.')
+  return url
+}
+
+const databaseUrl = getDatabaseUrl()
+
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   datasources: {
     db: {
-      url: process.env.DATABASE_URL,
+      url: databaseUrl,
     },
   },
   // Optimized connection pooling for Railway Hobby plan

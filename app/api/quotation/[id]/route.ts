@@ -131,6 +131,8 @@ export async function PUT(
           pph: body.pph,
           totalAmount: parseFloat(body.totalAmount),
           summaryOrder: body.summaryOrder || "subtotal,pph,total",
+          adjustmentPercentage: body.adjustmentPercentage != null ? parseFloat(body.adjustmentPercentage) : null,
+          adjustmentNotes: body.adjustmentNotes ?? null,
           termsAndConditions: body.termsAndConditions || null,
           status: body.status || "draft",
         }

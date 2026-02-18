@@ -141,6 +141,8 @@ model Quotation {
   pph                    String
   totalAmount            Float
   summaryOrder           String?              @default("subtotal,pph,total")
+  adjustmentPercentage   Float?
+  adjustmentNotes        String?
   termsAndConditions     String?
   status                 String               @default("draft")
   generatedInvoiceId     String?              @unique
@@ -255,6 +257,8 @@ model Invoice {
   pph                    String
   totalAmount            Float
   summaryOrder           String?            @default("subtotal,pph,total")
+  adjustmentPercentage   Float?
+  adjustmentNotes        String?
   termsAndConditions     String?
   status                 String             @default("draft")
   generatedExpenseId     String?            @unique
@@ -433,6 +437,8 @@ model ParagonTicket {
   finalWorkImageData String?
   pph                String
   totalAmount        Float
+  adjustmentPercentage Float?
+  adjustmentNotes    String?
   termsAndConditions String?
   status             String                @default("draft")
   generatedInvoiceId String?
@@ -527,6 +533,8 @@ model ErhaTicket {
   finalWorkImageData     String?
   pph                    String
   totalAmount            Float
+  adjustmentPercentage   Float?
+  adjustmentNotes        String?
   termsAndConditions     String?
   status                 String             @default("draft")
   generatedInvoiceId     String?
@@ -684,4 +692,12 @@ model ProductionTracker {
   @@index([status, deletedAt])        // Status filtering
   @@index([deletedAt, date])          // Date range queries with soft delete
   @@index([expenseId, deletedAt])     // Expense lookup
+}
+
+model Backup {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  summary   Json     // { tableName: count, ... }
+  data      Json     // { tableName: [rows], ... } - full snapshot for restore
+  @@index([createdAt])
 }

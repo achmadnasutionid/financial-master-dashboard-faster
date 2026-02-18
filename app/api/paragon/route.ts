@@ -193,6 +193,8 @@ export async function POST(request: Request) {
           finalWorkImageData: body.finalWorkImageData || null,
           pph: body.pph || (isDraft ? "" : body.pph),
           totalAmount: body.totalAmount ? parseFloat(body.totalAmount) : 0,
+          adjustmentPercentage: body.adjustmentPercentage != null ? parseFloat(body.adjustmentPercentage) : null,
+          adjustmentNotes: body.adjustmentNotes ?? null,
           termsAndConditions: body.termsAndConditions || null,
           status: body.status || "draft",
           items: {

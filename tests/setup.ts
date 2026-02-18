@@ -11,18 +11,27 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-// Safety check: Ensure we're using test database
+// Safety check: NEVER run tests against production (setup truncates all tables in afterAll)
 const databaseUrl = process.env.DATABASE_URL || ''
-if (process.env.NODE_ENV !== 'test' && !databaseUrl.includes('test')) {
-  console.error('❌ ERROR: Test suite must use test database!')
-  console.error('Current DATABASE_URL:', databaseUrl)
-  console.error('Make sure you are running tests with: npm run test')
+const isTestDb =
+  databaseUrl.includes('/test') ||
+  databaseUrl.includes('_test') ||
+  databaseUrl.includes('test_') ||
+  databaseUrl.includes('testdb') ||
+  databaseUrl.includes('test-db') ||
+  process.env.USE_TEST_DATABASE === 'true'
+
+if (!isTestDb) {
+  console.error('❌ FATAL: Tests must NOT run against production database.')
+  console.error('   The test setup TRUNCATES all tables after the run.')
+  console.error('   DATABASE_URL must point to a dedicated test DB (e.g. URL contains "test" or use a separate test DB).')
+  console.error('   Current DATABASE_URL host:', databaseUrl.replace(/:[^:@]+@/, ':****@').split('?')[0])
   process.exit(1)
 }
 
 console.log('🧪 Test Environment Check:')
 console.log('  - NODE_ENV:', process.env.NODE_ENV)
-console.log('  - Database:', databaseUrl.includes('test') ? '✅ TEST DB' : '⚠️  WARNING: NOT TEST DB')
+console.log('  - Database: ✅ TEST DB (safe to run)')
 
 // Run ONCE before all tests
 beforeAll(async () => {
@@ -54,6 +63,7 @@ afterAll(async () => {
     // Truncate all tables (faster than deleting)
     await prisma.$executeRawUnsafe(`
       TRUNCATE TABLE 
+        "Backup",
         "ProductionTracker",
         "Invoice",
         "InvoiceItem",
@@ -65,6 +75,9 @@ afterAll(async () => {
         "QuotationItemDetail",
         "QuotationRemark",
         "QuotationSignature",
+        "QuotationTemplateItemDetail",
+        "QuotationTemplateItem",
+        "QuotationTemplate",
         "Expense",
         "ExpenseItem",
         "Planning",
@@ -77,6 +90,8 @@ afterAll(async () => {
         "ErhaTicketItem",
         "ErhaTicketItemDetail",
         "ErhaTicketRemark",
+        "GearExpense",
+        "BigExpense",
         "Company",
         "Billing",
         "Signature",

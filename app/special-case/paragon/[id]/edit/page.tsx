@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { DatePicker } from "@/components/ui/date-picker"
 import { CurrencyInput } from "@/components/ui/currency-input"
-import { Save, CheckCircle, Plus, Trash2, GripVertical } from "lucide-react"
+import { Save, CheckCircle, Plus, Trash2, GripVertical, Percent } from "lucide-react"
 import { SortableItems } from "@/components/ui/sortable-items"
 import { useRouter, useParams } from "next/navigation"
 import { toast } from "sonner"
@@ -44,6 +44,7 @@ import { PPH_OPTIONS } from "@/lib/constants"
 import { scrollToFirstError } from "@/lib/form-utils"
 import { compressFinalWorkScreenshot } from "@/lib/image-utils"
 import { formatProductName } from "@/lib/utils"
+import { AdjustByPercentageModal } from "@/components/ui/adjust-by-percentage-modal"
 
 interface Company {
   id: string
@@ -104,6 +105,8 @@ export default function EditParagonTicketPage() {
   const [pph, setPph] = useState("2") // Auto-select PPH 23 2%
   const [items, setItems] = useState<Item[]>([])
   const [finalWorkImage, setFinalWorkImage] = useState<string>("")
+  const [adjustmentPercentage, setAdjustmentPercentage] = useState<number | null>(null)
+  const [adjustmentNotes, setAdjustmentNotes] = useState<string>("")
   const [currentStatus, setCurrentStatus] = useState<string>("draft")
   
   // Master data
@@ -124,6 +127,7 @@ export default function EditParagonTicketPage() {
   const initialDataRef = useRef<string>("")
   const lastUpdatedAtRef = useRef<string>("")
   const [showStaleDataDialog, setShowStaleDataDialog] = useState(false)
+  const [showAdjustModal, setShowAdjustModal] = useState(false)
   
   // Refs for error scrolling
   const companyRef = useRef<HTMLDivElement>(null)
@@ -163,6 +167,8 @@ export default function EditParagonTicketPage() {
         finalWorkImageData: finalWorkImage || null,
         pph,
         totalAmount,
+        adjustmentPercentage: adjustmentPercentage ?? undefined,
+        adjustmentNotes: adjustmentNotes.trim() || undefined,
         termsAndConditions: showTerms ? termsAndConditions : null,
         status: 'draft',
         items: items.map(item => ({
@@ -223,6 +229,8 @@ export default function EditParagonTicketPage() {
       setContactPerson(ticketData.contactPerson)
       setContactPosition(ticketData.contactPosition)
       setPph(ticketData.pph)
+      setAdjustmentPercentage(ticketData.adjustmentPercentage ?? null)
+      setAdjustmentNotes(ticketData.adjustmentNotes ?? "")
       
       // Find matching company
       const matchingCompany = companiesData.find((c: Company) => c.name === ticketData.companyName)
@@ -553,6 +561,34 @@ export default function EditParagonTicketPage() {
     }))
   }, [])
 
+  const handleAdjustByPercentage = useCallback((percentage: number, notes?: string) => {
+    setAdjustmentPercentage(percentage === 0 ? null : percentage)
+    setAdjustmentNotes(percentage === 0 ? "" : (notes ?? ""))
+    // One adjustment only: apply new % to logical base (undo previous % then apply new %). 0% = cancel adjustment.
+    const prevMultiplier = 1 + (adjustmentPercentage ?? 0) / 100
+    const newMultiplier = percentage === 0 ? 1 : 1 + percentage / 100
+    const multiplier = newMultiplier / prevMultiplier
+    setItems(prevItems =>
+      prevItems.map(item => {
+        const updatedDetails = item.details.map(detail => {
+          const unitPrice = parseFloat(detail.unitPrice) || 0
+          const qty = parseFloat(detail.qty) || 0
+          const newUnitPrice = unitPrice * multiplier
+          const newAmount = Math.round(newUnitPrice * qty)
+          return {
+            ...detail,
+            unitPrice: String(Math.round(newUnitPrice)),
+            amount: newAmount,
+          }
+        })
+        const total = updatedDetails.reduce((sum, d) => sum + d.amount, 0)
+        return { ...item, details: updatedDetails, total }
+      })
+    )
+    setHasUnsavedChanges(true)
+    toast.success(`All amounts adjusted by ${percentage > 0 ? "+" : ""}${percentage}%`)
+  }, [adjustmentPercentage])
+
   // Memoized calculations
   const subtotal = useMemo(() => {
     return items.reduce((sum, item) => sum + item.total, 0)
@@ -738,6 +774,8 @@ export default function EditParagonTicketPage() {
         finalWorkImageData: finalWorkImage || null,
         pph,
         totalAmount: totalAmount,
+        adjustmentPercentage: adjustmentPercentage ?? undefined,
+        adjustmentNotes: adjustmentNotes.trim() || undefined,
         termsAndConditions: showTerms ? termsAndConditions : null,
         status,
         items: items.map(item => ({
@@ -1250,7 +1288,18 @@ export default function EditParagonTicketPage() {
               {/* Summary */}
               {items.length > 0 && (
                 <div className="space-y-3 rounded-lg border bg-card p-4">
-                  <h3 className="text-lg font-semibold">Summary</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Summary</h3>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowAdjustModal(true)}
+                      title="Adjust all amounts by percentage"
+                    >
+                      <Percent className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Subtotal:</span>
@@ -1262,11 +1311,25 @@ export default function EditParagonTicketPage() {
                         + {formatCurrency(pphAmount)}
                       </span>
                     </div>
+                    {adjustmentPercentage != null && (
+                      <div className="text-xs text-muted-foreground">
+                        {adjustmentNotes.trim()
+                          ? `Price adjusted by ${adjustmentPercentage > 0 ? "+" : ""}${adjustmentPercentage}% because ${adjustmentNotes.trim()}.`
+                          : `Price adjusted by ${adjustmentPercentage > 0 ? "+" : ""}${adjustmentPercentage}%.`}
+                      </div>
+                    )}
                     <div className="flex justify-between border-t pt-2 text-base font-bold">
                       <span>Total Amount:</span>
                       <span className="text-primary">{formatCurrency(totalAmount)}</span>
                     </div>
                   </div>
+                  <AdjustByPercentageModal
+                    open={showAdjustModal}
+                    onOpenChange={setShowAdjustModal}
+                    onConfirm={handleAdjustByPercentage}
+                    initialPercentage={adjustmentPercentage}
+                    initialNotes={adjustmentNotes}
+                  />
                 </div>
               )}
 

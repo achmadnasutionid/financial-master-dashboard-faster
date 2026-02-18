@@ -1,0 +1,48 @@
+# Daily production DB backup (JSON export). Runs in GitHub, stores backup as artifact.
+# No Railway Pro needed; backups live in GitHub Actions artifacts (90-day retention).
+#
+# Required repo secret:
+#   DATABASE_URL  - production PostgreSQL connection string (Railway, etc.)
+#
+# Optional: DIRECT_URL if your Prisma schema uses it for migrations
+
+name: Backup production DB
+
+on:
+  schedule:
+    # 2:00 UTC daily
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # Allow "Run workflow" from Actions tab
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run backup
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          BACKUP_PRODUCTION: '1'
+        run: node backup-production-db.mjs --json-only
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_number }}-${{ github.run_id }}
+          path: backups/
+          retention-days: 90
