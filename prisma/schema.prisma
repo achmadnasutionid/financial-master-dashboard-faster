@@ -694,10 +694,3 @@ model ProductionTracker {
   @@index([expenseId, deletedAt])     // Expense lookup
 }
 
-model Backup {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  summary   Json     // { tableName: count, ... }
-  data      Json     // { tableName: [rows], ... } - full snapshot for restore
-  @@index([createdAt])
-}

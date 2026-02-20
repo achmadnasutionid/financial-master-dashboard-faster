@@ -36,18 +36,18 @@ console.log('  - Database: ✅ TEST DB (safe to run)')
 // Run ONCE before all tests
 beforeAll(async () => {
   console.log('\n🗄️  Setting up test database...')
-  
+  const env = { ...process.env, DATABASE_URL: process.env.DATABASE_URL }
+  const backupUrl = process.env.BACKUP_DATABASE_URL || process.env.DATABASE_URL
   try {
-    // Apply migrations to test database
-    console.log('  - Applying migrations...')
-    execSync('npx prisma migrate deploy', {
-      env: { 
-        ...process.env, 
-        DATABASE_URL: process.env.DATABASE_URL 
-      },
-      stdio: 'inherit'
-    })
-    
+    console.log('  - Applying main migrations...')
+    execSync('npx prisma migrate deploy', { env, stdio: 'inherit' })
+    if (backupUrl) {
+      console.log('  - Applying backup DB migrations...')
+      execSync('npx prisma migrate deploy --schema=prisma-backup/schema.prisma', {
+        env: { ...env, BACKUP_DATABASE_URL: backupUrl },
+        stdio: 'inherit'
+      })
+    }
     console.log('✅ Test database ready\n')
   } catch (error) {
     console.error('❌ Failed to setup test database:', error)
@@ -63,7 +63,6 @@ afterAll(async () => {
     // Truncate all tables (faster than deleting)
     await prisma.$executeRawUnsafe(`
       TRUNCATE TABLE 
-        "Backup",
         "ProductionTracker",
         "Invoice",
         "InvoiceItem",

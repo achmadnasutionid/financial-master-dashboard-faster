@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+test-results.txt
+*.lcov
 
 # next.js
 /.next/
@@ -22,16 +24,19 @@
 
 # misc
 .DS_Store
+Thumbs.db
 *.pem
 
-# debug
+# debug & logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
 
-# env files (can opt-in for committing if needed)
+# env files (sensitive – do not commit). Use .env.example as a template if needed.
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -40,16 +45,33 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# database backups
-/backups
+# caches
+.turbo
+.cache
+.swc
 
-# SQLite database (using PostgreSQL)
+# database
+/backups
 prisma/dev.db
 prisma/dev.db-journal
 
-# scripts folder
+# generated Prisma backup client (from prisma-backup/schema.prisma)
+/lib/generated
+
+# scripts folder (local/one-off; remove this block to track scripts/ in git)
 /scripts
 
-# Temporary cleanup scripts
+# temporary / one-off root scripts
 check-test-data.js
 cleanup-test-data.js
+cleanup-production-test-data.mjs
+cleanup-test-data.mjs
+cleanup-all-test-data.js
+cleanup-tracker-leaks.mjs
+comprehensive-cleanup.mjs
+check-tracker-leaks.mjs
+create-test-db.mjs
+fix-test-db.mjs
+rebuild-production-trackers.mjs
+show-all-data.js
+verify-db-separation.mjs

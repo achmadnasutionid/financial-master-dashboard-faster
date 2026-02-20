@@ -6,9 +6,8 @@ import { cache, cacheKeys } from "@/lib/redis"
  * Quick Stats API - Lightweight endpoint for dashboard cards
  * 
  * Returns only essential counts/sums without fetching full records
- * Much faster than dashboard-stats for simple count displays
- * 
- * Performance: ~50-100ms (vs 300-500ms for full dashboard-stats)
+ * Lightweight counts for dashboard (planning, quotation, invoice, expense).
+ * Performance: ~50-100ms.
  */
 
 export async function GET(request: Request) {
@@ -152,7 +151,7 @@ export async function GET(request: Request) {
       fromCache: false
     }
     
-    // Cache for 3 minutes (shorter than full dashboard-stats)
+    // Cache for 3 minutes
     await cache.set(cacheKey, response, 180)
     
     return NextResponse.json(response)

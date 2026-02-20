@@ -1,0 +1,18 @@
+// Backup-only database. No other operations. Set BACKUP_DATABASE_URL (e.g. separate Railway Postgres).
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/backup-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("BACKUP_DATABASE_URL")
+}
+
+model Backup {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  summary   Json     // { tableName: count, ... }
+  data      Json     // { tableName: [rows], ... }
+  @@index([createdAt])
+}

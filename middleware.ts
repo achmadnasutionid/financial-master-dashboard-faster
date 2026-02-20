@@ -83,7 +83,6 @@ export function middleware(request: NextRequest) {
       || request.nextUrl.pathname.startsWith("/quotation")) {
     response.headers.set("Link", [
       "</fonts/inter.woff2>; rel=preload; as=font; crossorigin",
-      "</api/dashboard-stats>; rel=preconnect",
     ].join(", "))
   }
 
