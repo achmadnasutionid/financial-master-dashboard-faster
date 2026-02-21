@@ -170,17 +170,54 @@ export default function ViewQuotationPage() {
   const handleViewInvoice = async () => {
     if (!quotation) return
 
-    // If invoice already generated, navigate to it
+    // If invoice already generated, try to navigate to it
     if (quotation.generatedInvoiceId) {
       try {
         const res = await fetch(`/api/invoice/${quotation.generatedInvoiceId}`)
-        const invoiceData = await res.json()
-        
-        if (invoiceData.status === "paid") {
-          router.push(`/invoice/${quotation.generatedInvoiceId}/view`)
-        } else {
-          router.push(`/invoice/${quotation.generatedInvoiceId}/edit`)
+        if (res.ok) {
+          const invoiceData = await res.json()
+          if (invoiceData.status === "paid") {
+            router.push(`/invoice/${quotation.generatedInvoiceId}/view`)
+          } else {
+            router.push(`/invoice/${quotation.generatedInvoiceId}/edit`)
+          }
+          return
         }
+        // Linked invoice not found (e.g. deleted) – offer to regenerate
+        if (res.status === 404) {
+          toast.error("Linked invoice not found", {
+            description: "The invoice may have been deleted. Generate a new one from this quotation?",
+            action: {
+              label: "Regenerate",
+              onClick: async () => {
+                setGeneratingInvoice(true)
+                try {
+                  const genRes = await fetch(`/api/quotation/${quotationId}/generate-invoice`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ quotationId })
+                  })
+                  if (genRes.ok) {
+                    const newInvoice = await genRes.json()
+                    mutate()
+                    toast.success("Invoice generated")
+                    router.push(`/invoice/${newInvoice.id}/edit`)
+                  } else {
+                    const data = await genRes.json()
+                    toast.error(data.error || "Failed to generate invoice")
+                  }
+                } catch (e) {
+                  console.error(e)
+                  toast.error("Failed to generate invoice")
+                } finally {
+                  setGeneratingInvoice(false)
+                }
+              }
+            }
+          })
+          return
+        }
+        toast.error("Failed to load invoice")
       } catch (error) {
         console.error("Error fetching invoice:", error)
         toast.error("Failed to load invoice")

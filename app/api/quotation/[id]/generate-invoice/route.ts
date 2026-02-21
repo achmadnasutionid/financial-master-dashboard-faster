@@ -39,12 +39,15 @@ export async function POST(
       )
     }
 
-    // Check if invoice already exists
+    // If we have a linked invoice, verify it still exists (e.g. not deleted)
     if (quotation.generatedInvoiceId) {
-      return NextResponse.json(
-        { invoiceId: quotation.generatedInvoiceId },
-        { status: 200 }
-      )
+      const existingInvoice = await prisma.invoice.findUnique({
+        where: { id: quotation.generatedInvoiceId }
+      })
+      if (existingInvoice) {
+        return NextResponse.json(existingInvoice, { status: 200 })
+      }
+      // Invoice was deleted: fall through to create a new one and update the link
     }
 
     // Generate Invoice ID using centralized generator (prevents race conditions)

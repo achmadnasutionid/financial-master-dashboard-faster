@@ -251,16 +251,48 @@ function QuotationPageContent() {
     }
   }
 
-  const handleViewInvoice = async (invoiceId: string) => {
+  const handleViewInvoice = async (quotationId: string, invoiceId: string) => {
     try {
       const res = await fetch(`/api/invoice/${invoiceId}`)
-      const invoiceData = await res.json()
-      
-      if (invoiceData.status === "paid") {
-        router.push(`/invoice/${invoiceId}/view`)
-      } else {
-        router.push(`/invoice/${invoiceId}/edit`)
+      if (res.ok) {
+        const invoiceData = await res.json()
+        if (invoiceData.status === "paid") {
+          router.push(`/invoice/${invoiceId}/view`)
+        } else {
+          router.push(`/invoice/${invoiceId}/edit`)
+        }
+        return
       }
+      if (res.status === 404) {
+        toast.error("Linked invoice not found", {
+          description: "The invoice may have been deleted. Generate a new one?",
+          action: {
+            label: "Regenerate",
+            onClick: async () => {
+              try {
+                const genRes = await fetch(`/api/quotation/${quotationId}/generate-invoice`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ quotationId })
+                })
+                if (genRes.ok) {
+                  const newInvoice = await genRes.json()
+                  toast.success("Invoice generated")
+                  router.push(`/invoice/${newInvoice.id}/edit`)
+                } else {
+                  const data = await genRes.json()
+                  toast.error(data.error || "Failed to generate invoice")
+                }
+              } catch (e) {
+                console.error(e)
+                toast.error("Failed to generate invoice")
+              }
+            }
+          }
+        })
+        return
+      }
+      toast.error("Failed to load invoice")
     } catch (error) {
       console.error("Error fetching invoice:", error)
       toast.error("Failed to load invoice")
@@ -454,7 +486,7 @@ function QuotationPageContent() {
                               className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                               onClick={() => {
                                 if (quotation.generatedInvoiceId) {
-                                  handleViewInvoice(quotation.generatedInvoiceId)
+                                  handleViewInvoice(quotation.id, quotation.generatedInvoiceId)
                                 } else {
                                   setGenerateInvoiceDialogId(quotation.id)
                                 }

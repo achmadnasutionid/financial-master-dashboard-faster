@@ -199,16 +199,32 @@ function PlanningPageContent() {
     }
   }
 
-  const handleViewQuotation = async (quotationId: string) => {
+  const handleViewQuotation = async (planningId: string, quotationId: string) => {
     try {
       const res = await fetch(`/api/quotation/${quotationId}`)
-      const quotationData = await res.json()
-      
-      if (quotationData.status === "accepted") {
-        router.push(`/quotation/${quotationId}/view`)
-      } else {
-        router.push(`/quotation/${quotationId}/edit`)
+      if (res.ok) {
+        const quotationData = await res.json()
+        if (quotationData.status === "accepted") {
+          router.push(`/quotation/${quotationId}/view`)
+        } else {
+          router.push(`/quotation/${quotationId}/edit`)
+        }
+        return
       }
+      if (res.status === 404) {
+        toast.error("Linked quotation not found", {
+          description: "The quotation may have been deleted. Generate a new one?",
+          action: {
+            label: "Regenerate",
+            onClick: () => {
+              setSelectedPlanningId(planningId)
+              setShowQuotationDialog(true)
+            }
+          }
+        })
+        return
+      }
+      toast.error("Failed to load quotation")
     } catch (error) {
       console.error("Error fetching quotation:", error)
       toast.error("Failed to load quotation")
@@ -451,7 +467,7 @@ function PlanningPageContent() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                              onClick={() => handleViewQuotation(planning.generatedQuotationId!)}
+                              onClick={() => handleViewQuotation(planning.id, planning.generatedQuotationId!)}
                             >
                               <FileText className="h-4 w-4" />
                             </Button>

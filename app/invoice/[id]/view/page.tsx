@@ -212,22 +212,57 @@ export default function ViewInvoicePage() {
     }
   }
 
+  const [regeneratingExpense, setRegeneratingExpense] = useState(false)
+
   const handleViewExpense = async () => {
     if (!Invoice?.generatedExpenseId) return
-    
+
     try {
       const response = await fetch(`/api/expense/${Invoice.generatedExpenseId}`)
       if (response.ok) {
         const expense = await response.json()
-        // Navigate to edit if draft, view if final
         if (expense.status === "final") {
           router.push(`/expense/${Invoice.generatedExpenseId}/view`)
         } else {
           router.push(`/expense/${Invoice.generatedExpenseId}/edit`)
         }
-      } else {
-        toast.error("Failed to load expense")
+        return
       }
+      // Linked expense not found (e.g. deleted) – offer to regenerate
+      if (response.status === 404) {
+        toast.error("Linked expense not found", {
+          description: "The expense may have been deleted. Create a new one from this invoice?",
+          action: {
+            label: "Regenerate",
+            onClick: async () => {
+              setRegeneratingExpense(true)
+              try {
+                const res = await fetch(`/api/invoice/${InvoiceId}/create-expense`, { method: "POST" })
+                if (res.ok) {
+                  const newExpense = await res.json()
+                  mutate()
+                  toast.success("Expense created")
+                  if (newExpense.status === "final") {
+                    router.push(`/expense/${newExpense.id}/view`)
+                  } else {
+                    router.push(`/expense/${newExpense.id}/edit`)
+                  }
+                } else {
+                  const data = await res.json()
+                  toast.error(data.error || "Failed to create expense")
+                }
+              } catch (e) {
+                console.error(e)
+                toast.error("Failed to create expense")
+              } finally {
+                setRegeneratingExpense(false)
+              }
+            }
+          }
+        })
+        return
+      }
+      toast.error("Failed to load expense")
     } catch (error) {
       console.error("Error fetching expense:", error)
       toast.error("Failed to load expense")
@@ -324,8 +359,9 @@ export default function ViewInvoicePage() {
                 <Button
                   variant="outline"
                   onClick={handleViewExpense}
+                  disabled={regeneratingExpense}
                   size="icon"
-                  title="View Expense"
+                  title={regeneratingExpense ? "Creating…" : "View Expense"}
                 >
                   <FileText className="h-4 w-4" />
                 </Button>

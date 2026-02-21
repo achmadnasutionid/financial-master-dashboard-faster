@@ -241,20 +241,48 @@ function InvoicePageContent() {
     }
   }
 
-  const handleViewExpense = async (expenseId: string) => {
+  const handleViewExpense = async (invoiceId: string, expenseId: string) => {
     try {
       const response = await fetch(`/api/expense/${expenseId}`)
       if (response.ok) {
         const expense = await response.json()
-        // Navigate to edit if draft, view if final
         if (expense.status === "final") {
           router.push(`/expense/${expenseId}/view`)
         } else {
           router.push(`/expense/${expenseId}/edit`)
         }
-      } else {
-        toast.error("Failed to load expense")
+        return
       }
+      if (response.status === 404) {
+        toast.error("Linked expense not found", {
+          description: "The expense may have been deleted. Create a new one from this invoice?",
+          action: {
+            label: "Regenerate",
+            onClick: async () => {
+              try {
+                const res = await fetch(`/api/invoice/${invoiceId}/create-expense`, { method: "POST" })
+                if (res.ok) {
+                  const newExpense = await res.json()
+                  toast.success("Expense created")
+                  if (newExpense.status === "final") {
+                    router.push(`/expense/${newExpense.id}/view`)
+                  } else {
+                    router.push(`/expense/${newExpense.id}/edit`)
+                  }
+                } else {
+                  const data = await res.json()
+                  toast.error(data.error || "Failed to create expense")
+                }
+              } catch (e) {
+                console.error(e)
+                toast.error("Failed to create expense")
+              }
+            }
+          }
+        })
+        return
+      }
+      toast.error("Failed to load expense")
     } catch (error) {
       console.error("Error fetching expense:", error)
       toast.error("Failed to load expense")
@@ -446,7 +474,7 @@ function InvoicePageContent() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                              onClick={() => handleViewExpense(Invoice.generatedExpenseId!)}
+                              onClick={() => handleViewExpense(Invoice.id, Invoice.generatedExpenseId!)}
                             >
                               <FileText className="h-4 w-4" />
                             </Button>

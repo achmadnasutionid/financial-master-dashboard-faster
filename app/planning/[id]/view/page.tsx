@@ -83,26 +83,33 @@ export default function ViewPlanningPage() {
   // Handle generate or navigate to quotation
   const handleViewQuotation = async () => {
     if (planning?.generatedQuotationId) {
-      // Fetch quotation to check status
       try {
         const response = await fetch(`/api/quotation/${planning.generatedQuotationId}`)
         if (response.ok) {
           const quotation = await response.json()
-          // Navigate to view if accepted, edit otherwise
           if (quotation.status === "accepted") {
             router.push(`/quotation/${planning.generatedQuotationId}/view`)
           } else {
             router.push(`/quotation/${planning.generatedQuotationId}/edit`)
           }
-        } else {
-          toast.error("Failed to load quotation")
+          return
         }
+        if (response.status === 404) {
+          toast.error("Linked quotation not found", {
+            description: "The quotation may have been deleted. Generate a new one?",
+            action: {
+              label: "Regenerate",
+              onClick: () => setShowQuotationDialog(true)
+            }
+          })
+          return
+        }
+        toast.error("Failed to load quotation")
       } catch (error) {
         console.error("Error fetching quotation:", error)
         toast.error("Failed to load quotation")
       }
     } else {
-      // Open dialog to generate new quotation
       setShowQuotationDialog(true)
     }
   }
