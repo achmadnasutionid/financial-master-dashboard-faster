@@ -44,7 +44,13 @@ const nextConfig: NextConfig = {
   
   // Output standalone for better Railway deployment
   output: 'standalone',
-  
+
+  // Skip TypeScript check during build to avoid OOM in constrained environments (e.g. Docker/Railway).
+  // Run `npm run typecheck` locally or in CI to enforce types.
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+
   // Compiler optimizations
   compiler: {
     // Remove console logs in production (except error/warn)
