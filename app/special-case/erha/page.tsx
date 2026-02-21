@@ -388,13 +388,11 @@ function ErhaTicketPageContent() {
                             <Eye className="h-4 w-4" />
                           </Button>
                         </Link>
-                        {ticket.status !== "final" && (
-                          <Link href={`/special-case/erha/${ticket.id}/edit`}>
-                            <Button variant="outline" size="sm">
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                        )}
+                        <Link href={`/special-case/erha/${ticket.id}/edit`}>
+                          <Button variant="outline" size="sm">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </Link>
                         {/* Separator */}
                         <div className="h-8 w-px bg-border mx-1" />
                         <Button
@@ -517,7 +515,7 @@ function ErhaTicketPageContent() {
           <AlertDialogHeader>
             <AlertDialogTitle>Finalize Ticket?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will finalize the ticket and lock all changes. You can then generate quotation, invoice, and BAST documents. This action cannot be undone.
+              This will finalize the ticket. You can then generate quotation, invoice, and BAST documents. You can still edit the ticket later if needed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

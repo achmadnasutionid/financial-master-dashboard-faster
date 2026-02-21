@@ -361,17 +361,15 @@ export default function ViewParagonTicketPage() {
                 </>
               )}
               
-              {/* Edit Button - Only show for draft status */}
-              {ticket.status === 'draft' && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => router.push(`/special-case/paragon/${params.id}/edit`)}
-                  title="Edit"
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-              )}
+              {/* Edit Button - show for all statuses */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => router.push(`/special-case/paragon/${params.id}/edit`)}
+                title="Edit"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
               
               {/* Action Buttons */}
               <Button
@@ -500,7 +498,7 @@ export default function ViewParagonTicketPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Finalize Ticket?</AlertDialogTitle>
             <AlertDialogDescription>
-              Once finalized, this ticket <strong>cannot be edited anymore</strong>. 
+              Once finalized, you can still edit this ticket if needed. 
               A draft expense will be created automatically. Are you sure you want to continue?
             </AlertDialogDescription>
           </AlertDialogHeader>
