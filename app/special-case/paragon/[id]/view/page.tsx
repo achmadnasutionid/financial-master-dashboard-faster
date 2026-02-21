@@ -112,7 +112,8 @@ export default function ViewParagonTicketPage() {
       const url = URL.createObjectURL(blob)
       const link = document.createElement("a")
       link.href = url
-      link.download = `${ticket.ticketId}_${viewType}_${ticket.billTo.replace(/\s+/g, "_")}.pdf`
+      const docId = viewType === "quotation" ? ticket.quotationId : viewType === "invoice" ? ticket.invoiceId : ticket.ticketId
+      link.download = `${docId}_${ticket.billTo.replace(/\s+/g, "_")}.pdf`
       link.click()
       URL.revokeObjectURL(url)
 
@@ -394,7 +395,7 @@ export default function ViewParagonTicketPage() {
               {viewType === 'quotation' && (
                 <PDFDownloadLink
                   document={<ParagonQuotationPDF data={ticket} />}
-                  fileName={`${ticket.ticketId}_quotation_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
+                  fileName={`${ticket.quotationId}_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
                 >
                   {({ loading: pdfLoading }) => (
                     <Button 
@@ -411,7 +412,7 @@ export default function ViewParagonTicketPage() {
               {viewType === 'invoice' && (
                 <PDFDownloadLink
                   document={<ParagonInvoicePDF data={ticket} />}
-                  fileName={`${ticket.ticketId}_invoice_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
+                  fileName={`${ticket.invoiceId}_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
                 >
                   {({ loading: pdfLoading }) => (
                     <Button 
@@ -428,7 +429,7 @@ export default function ViewParagonTicketPage() {
               {viewType === 'bast' && (
                 <PDFDownloadLink
                   document={<ParagonBASTPDF data={ticket} />}
-                  fileName={`${ticket.ticketId}_bast_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
+                  fileName={`${ticket.ticketId}_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
                 >
                   {({ loading: pdfLoading }) => (
                     <Button 

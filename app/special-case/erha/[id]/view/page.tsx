@@ -349,7 +349,7 @@ export default function ViewErhaTicketPage() {
               {viewType === 'quotation' && (
                 <PDFDownloadLink
                   document={<ErhaQuotationPDF data={ticket} />}
-                  fileName={`${ticket.quotationId}_quotation_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
+                  fileName={`${ticket.quotationId}_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
                 >
                   {({ loading: pdfLoading }) => (
                     <Button 
@@ -367,7 +367,7 @@ export default function ViewErhaTicketPage() {
               {viewType === 'invoice' && (
                 <PDFDownloadLink
                   document={<ErhaInvoicePDF data={ticket} />}
-                  fileName={`${ticket.invoiceId}_invoice_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
+                  fileName={`${ticket.invoiceId}_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
                 >
                   {({ loading: pdfLoading }) => (
                     <Button 
@@ -385,7 +385,7 @@ export default function ViewErhaTicketPage() {
               {viewType === 'bast' && (
                 <PDFDownloadLink
                   document={<ErhaBASTPDF data={ticket} />}
-                  fileName={`${ticket.ticketId}_bast_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
+                  fileName={`${ticket.ticketId}_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
                 >
                   {({ loading: pdfLoading }) => (
                     <Button 
