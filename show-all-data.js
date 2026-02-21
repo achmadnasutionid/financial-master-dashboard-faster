@@ -78,24 +78,6 @@ async function showAllRecentData() {
     console.log(`${idx+1}. ${q.quotationId}: "${q.billTo}" (${q.createdAt.toISOString().split('T')[0]})`)
   })
 
-  // Show recent plannings
-  const plannings = await prisma.planning.findMany({
-    where: { deletedAt: null },
-    select: {
-      id: true,
-      planningId: true,
-      projectName: true,
-      createdAt: true
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 20
-  })
-
-  console.log(`\n📅 Recent Plannings (${plannings.length} showing):`)
-  plannings.forEach((p, idx) => {
-    console.log(`${idx+1}. ${p.planningId}: "${p.projectName}" (${p.createdAt.toISOString().split('T')[0]})`)
-  })
-
   console.log('\n' + '='.repeat(80))
   console.log('💡 Please review the list above and let me know which records are test data.')
   console.log('='.repeat(80))

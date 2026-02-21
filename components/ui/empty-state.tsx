@@ -10,7 +10,6 @@ import {
   FileSignature,
   FileText,
   Receipt,
-  ClipboardList,
   Calculator,
   Ticket,
   Search,
@@ -25,7 +24,6 @@ export type EmptyStateType =
   | "signatures" 
   | "quotations" 
   | "invoices" 
-  | "plannings" 
   | "expenses" 
   | "paragon-tickets"
   | "erha-tickets"
@@ -107,15 +105,6 @@ const emptyStateConfig: Record<EmptyStateType, {
     searchDescription: "Try adjusting your search or filter criteria.",
     gradient: "from-rose-500/10 to-pink-500/10",
     iconColor: "text-rose-500"
-  },
-  plannings: {
-    icon: ClipboardList,
-    defaultTitle: "No plannings yet",
-    defaultDescription: "Create your first planning to organize your projects.",
-    searchTitle: "No plannings found",
-    searchDescription: "Try adjusting your search or filter criteria.",
-    gradient: "from-indigo-500/10 to-violet-500/10",
-    iconColor: "text-indigo-500"
   },
   expenses: {
     icon: Calculator,

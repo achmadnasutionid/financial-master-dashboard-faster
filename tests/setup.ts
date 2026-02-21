@@ -79,8 +79,6 @@ afterAll(async () => {
         "QuotationTemplate",
         "Expense",
         "ExpenseItem",
-        "Planning",
-        "PlanningItem",
         "ParagonTicket",
         "ParagonTicketItem",
         "ParagonTicketItemDetail",

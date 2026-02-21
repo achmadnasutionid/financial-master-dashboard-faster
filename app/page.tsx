@@ -21,7 +21,6 @@ import { saveBackupToCache } from "@/lib/backup-cache"
 // Dashboard cards configuration
 const ALL_CARDS: DashboardCard[] = [
   // Quick Action
-  { id: "planning", section: "Quick Action", title: "Planning", keywords: "planning project plan", route: "/planning", icon: "calendar" },
   { id: "quotation", section: "Quick Action", title: "Quotation", keywords: "quotation quote qtn", route: "/quotation", icon: "file-check" },
   { id: "invoice", section: "Quick Action", title: "Invoice", keywords: "invoice inv payment bill", route: "/invoice", icon: "receipt" },
   { id: "expenses", section: "Quick Action", title: "Expenses", keywords: "expenses expense exp cost", route: "/expense", icon: "wallet" },
@@ -152,7 +151,7 @@ export default function Home() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search pages... (e.g., invoice, planning, products)"
+              placeholder="Search pages... (e.g., invoice, quotation, products)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"

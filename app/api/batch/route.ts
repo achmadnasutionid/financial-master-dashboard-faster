@@ -21,14 +21,12 @@ export async function GET(request: Request) {
     const invoiceIds = searchParams.get("invoices")?.split(",").filter(Boolean) || []
     const quotationIds = searchParams.get("quotations")?.split(",").filter(Boolean) || []
     const expenseIds = searchParams.get("expenses")?.split(",").filter(Boolean) || []
-    const planningIds = searchParams.get("planning")?.split(",").filter(Boolean) || []
     const trackerIds = searchParams.get("trackers")?.split(",").filter(Boolean) || []
     
     // Limit batch size to prevent abuse (max 20 items per resource type)
     const MAX_BATCH_SIZE = 20
     if (invoiceIds.length > MAX_BATCH_SIZE || quotationIds.length > MAX_BATCH_SIZE || 
-        expenseIds.length > MAX_BATCH_SIZE || planningIds.length > MAX_BATCH_SIZE ||
-        trackerIds.length > MAX_BATCH_SIZE) {
+        expenseIds.length > MAX_BATCH_SIZE || trackerIds.length > MAX_BATCH_SIZE) {
       return NextResponse.json(
         { error: `Batch size exceeded. Maximum ${MAX_BATCH_SIZE} items per resource type.` },
         { status: 400 }
@@ -36,7 +34,7 @@ export async function GET(request: Request) {
     }
     
     // Fetch all resources in parallel
-    const [invoices, quotations, expenses, planning, trackers] = await Promise.all([
+    const [invoices, quotations, expenses, trackers] = await Promise.all([
       // Invoices
       invoiceIds.length > 0 ? prisma.invoice.findMany({
         where: { 
@@ -91,23 +89,6 @@ export async function GET(request: Request) {
         }
       }) : [],
       
-      // Planning
-      planningIds.length > 0 ? prisma.planning.findMany({
-        where: { 
-          id: { in: planningIds },
-          deletedAt: null 
-        },
-        select: {
-          id: true,
-          planningId: true,
-          projectName: true,
-          clientName: true,
-          clientBudget: true,
-          status: true,
-          updatedAt: true,
-        }
-      }) : [],
-      
       // Production Trackers
       trackerIds.length > 0 ? prisma.productionTracker.findMany({
         where: { 
@@ -131,21 +112,18 @@ export async function GET(request: Request) {
       invoices,
       quotations,
       expenses,
-      planning,
       trackers,
       _meta: {
         requestedCounts: {
           invoices: invoiceIds.length,
           quotations: quotationIds.length,
           expenses: expenseIds.length,
-          planning: planningIds.length,
           trackers: trackerIds.length,
         },
         returnedCounts: {
           invoices: invoices.length,
           quotations: quotations.length,
           expenses: expenses.length,
-          planning: planning.length,
           trackers: trackers.length,
         }
       }

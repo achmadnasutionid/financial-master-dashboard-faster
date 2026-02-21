@@ -160,32 +160,7 @@ async function cleanupAllTestData() {
       }
     }
 
-    // Find and delete Plannings
-    const testPlannings = await prisma.planning.findMany({
-      where: {
-        OR: buildTestConditions('projectName'),
-        deletedAt: null
-      },
-      select: {
-        id: true,
-        planningId: true,
-        projectName: true
-      }
-    })
-
-    console.log(`\n📅 Found ${testPlannings.length} test plannings`)
-    
-    if (testPlannings.length > 0) {
-      for (const planning of testPlannings) {
-        await prisma.planning.update({
-          where: { id: planning.id },
-          data: { deletedAt: new Date() }
-        })
-        console.log(`   ✓ Deleted: ${planning.planningId} - "${planning.projectName}"`)
-      }
-    }
-
-    const totalDeleted = testTrackers.length + testInvoices.length + testExpenses.length + testQuotations.length + testPlannings.length
+    const totalDeleted = testTrackers.length + testInvoices.length + testExpenses.length + testQuotations.length
 
     console.log('\n' + '='.repeat(80))
     console.log(`✅ Cleanup complete! Soft-deleted ${totalDeleted} test records.`)

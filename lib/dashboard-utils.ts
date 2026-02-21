@@ -5,7 +5,6 @@ import type {
   Product,
   GearExpense,
   BigExpense,
-  Planning,
   InvoiceStats,
   QuotationStats,
   ExpenseStats,
@@ -363,8 +362,7 @@ export function calculateActionItems(
 export function calculateRecentActivities(
   invoices: Invoice[],
   quotations: Quotation[],
-  expenses: Expense[],
-  planning: Planning[]
+  expenses: Expense[]
 ): RecentActivity[] {
   const activities: RecentActivity[] = []
 
@@ -427,20 +425,6 @@ export function calculateRecentActivities(
       date: updatedAt.toISOString(),
       icon: "wallet",
       color: exp.status === "final" ? "green" : "orange",
-    })
-  })
-
-  planning.forEach((plan) => {
-    const updatedAt = new Date(plan.updatedAt)
-    activities.push({
-      type: "planning",
-      id: plan.id,
-      displayId: plan.planningId,
-      action: plan.status === "final" ? "finalized" : "created",
-      timestamp: updatedAt.getTime(),
-      date: updatedAt.toISOString(),
-      icon: "calendar",
-      color: plan.status === "final" ? "green" : "gray",
     })
   })
 

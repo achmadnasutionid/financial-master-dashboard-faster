@@ -23,7 +23,6 @@ const AUTO_SAVE_RULES = {
   requiredFields: {
     quotation: ['selectedCompanyId', 'productionDate', 'billTo', 'selectedBillingId', 'selectedSignatureId'],
     invoice: ['selectedCompanyId', 'productionDate', 'billTo', 'selectedBillingId', 'selectedSignatureId'],
-    planning: ['projectName', 'clientName', 'clientBudget'],
     expense: ['projectName', 'productionDate'],
     erha: ['selectedCompanyId', 'productionDate', 'quotationDate', 'invoiceBastDate', 'billTo', 'billToAddress', 'contactPerson', 'contactPosition', 'selectedBillingId', 'selectedSignatureId'],
     paragon: ['selectedCompanyId', 'productionDate', 'quotationDate', 'invoiceBastDate', 'billTo', 'contactPerson', 'contactPosition', 'selectedSignatureId']
@@ -46,7 +45,7 @@ const AUTO_SAVE_RULES = {
 /**
  * VALIDATION: Check if data is "good enough" to auto-save
  */
-function canAutoSave(data: any, type: 'quotation' | 'invoice' | 'planning' | 'expense' | 'erha' | 'paragon'): { canSave: boolean; reason?: string } {
+function canAutoSave(data: any, type: 'quotation' | 'invoice' | 'expense' | 'erha' | 'paragon'): { canSave: boolean; reason?: string } {
   const required = AUTO_SAVE_RULES.requiredFields[type]
   
   // Check mandatory fields
@@ -87,7 +86,7 @@ export function useSmartAutoSave({
 }: {
   recordId: string
   getData: () => any
-  type: 'quotation' | 'invoice' | 'planning' | 'expense' | 'erha' | 'paragon'
+  type: 'quotation' | 'invoice' | 'expense' | 'erha' | 'paragon'
   onSuccess?: () => void
   onError?: (error: any) => void
 }) {

@@ -27,8 +27,6 @@ export function RecentActivitySection({
         return activity.action === "finalized"
           ? `/expense/${activity.id}/view`
           : `/expense/${activity.id}/edit`
-      case "planning":
-        return `/planning/${activity.id}/view`
       default:
         return "#"
     }

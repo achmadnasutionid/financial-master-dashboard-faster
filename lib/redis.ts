@@ -137,14 +137,12 @@ export const cacheKeys = {
     `quotation:list:${status || 'all'}:${page || 1}`,
   expenseList: (page?: number) => `expense:list:${page || 1}`,
   productList: () => 'product:list',
-  planningList: (page?: number) => `planning:list:${page || 1}`,
   trackerList: (page?: number) => `tracker:list:${page || 1}`,
   
   // Detail caches
   invoice: (id: string) => `invoice:${id}`,
   quotation: (id: string) => `quotation:${id}`,
   expense: (id: string) => `expense:${id}`,
-  planning: (id: string) => `planning:${id}`,
   tracker: (id: string) => `tracker:${id}`,
 }
 

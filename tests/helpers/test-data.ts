@@ -99,27 +99,6 @@ export const createTestQuotation = async (options: {
   return quotation
 }
 
-export const createTestPlanning = async (options?: {
-  projectName?: string
-  clientName?: string
-  clientBudget?: number
-  notes?: string
-  status?: string
-}) => {
-  const planningId = await generateId('PLN', 'planning')
-  
-  return await prisma.planning.create({
-    data: {
-      planningId,
-      projectName: options?.projectName || `Test Project ${Date.now()}`,
-      clientName: options?.clientName || 'Test Client',
-      clientBudget: options?.clientBudget || 10000000,
-      notes: options?.notes || 'Test planning notes',
-      status: options?.status || 'draft'
-    }
-  })
-}
-
 export const createTestExpense = async (options?: {
   projectName?: string
   productionDate?: Date

@@ -6,7 +6,7 @@
 
 ## ✨ Features
 
-- 📊 **Real-time Dashboard** - Overview of quotations, invoices, expenses, and planning
+- 📊 **Real-time Dashboard** - Overview of quotations, invoices, and expenses
 - 💰 **Financial Analytics** - Profit tracking, budget analysis, and trend visualization
 - 📈 **Interactive Charts** - Monthly trends, product expenses, and performance metrics
 - 🔍 **Smart Search** - Quick navigation across all modules

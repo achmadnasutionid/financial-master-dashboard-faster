@@ -42,7 +42,6 @@ async function exportTablesToJson() {
 
   const modelNames = [
     'company', 'billing', 'signature', 'product', 'productDetail',
-    'planning', 'planningItem',
     'quotation', 'quotationItem', 'quotationItemDetail', 'quotationRemark', 'quotationSignature',
     'quotationTemplate', 'quotationTemplateItem', 'quotationTemplateItemDetail',
     'invoice', 'invoiceItem', 'invoiceItemDetail', 'invoiceRemark', 'invoiceSignature',

@@ -60,7 +60,6 @@ export type DocumentStatus = 'draft' | 'pending' | 'accepted' | 'paid' | 'final'
 export interface Invoice {
   id: string
   invoiceId: string
-  planningId: string | null
   companyName: string
   companyAddress: string
   companyCity: string
@@ -157,14 +156,11 @@ export interface Expense {
   id: string
   expenseId: string
   invoiceId: string | null
-  planningId: string | null
   // Snapshot fields (no FK relationships)
   invoiceNumber: string | null
   invoiceProductionDate: Date | null
   invoiceTotalAmount: number | null
   invoicePaidDate: Date | null
-  planningNumber: string | null
-  planningClientName: string | null
   // Expense data
   projectName: string
   productionDate: Date
@@ -178,20 +174,6 @@ export interface Expense {
   createdAt: Date
   updatedAt: Date
   items: ExpenseItem[]
-}
-
-export interface Planning {
-  id: string
-  planningId: string
-  projectName: string
-  clientName: string
-  clientBudget: number
-  notes: string | null
-  status: DocumentStatus
-  generatedQuotationId: string | null
-  deletedAt: Date | null
-  createdAt: Date
-  updatedAt: Date
 }
 
 export interface GearExpense {
@@ -278,7 +260,7 @@ export interface ActionItems {
   }
 }
 
-export type ActivityType = 'invoice' | 'quotation' | 'expense' | 'planning'
+export type ActivityType = 'invoice' | 'quotation' | 'expense'
 export type ActivityIcon = 'receipt' | 'file-check' | 'wallet' | 'calendar'
 export type ActivityColor = 'green' | 'blue' | 'yellow' | 'orange' | 'gray'
 
@@ -324,7 +306,6 @@ export interface DashboardStatsResponse {
   products: Product[]
   gearExpenses: GearExpense[]
   bigExpenses: BigExpense[]
-  planning: Planning[]
   timestamp: string
 }
 

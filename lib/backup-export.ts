@@ -6,8 +6,6 @@ const BACKUP_MODEL_NAMES = [
   "signature",
   "product",
   "productDetail",
-  "planning",
-  "planningItem",
   "quotation",
   "quotationItem",
   "quotationItemDetail",

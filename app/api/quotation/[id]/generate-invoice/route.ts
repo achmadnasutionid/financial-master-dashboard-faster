@@ -53,15 +53,6 @@ export async function POST(
     // Generate Invoice ID using centralized generator (prevents race conditions)
     const invoiceId = await generateId('INV', 'invoice')
 
-    // Get planning ID if quotation came from planning
-    let planningId = null
-    const planning = await prisma.planning.findFirst({
-      where: { generatedQuotationId: id }
-    })
-    if (planning) {
-      planningId = planning.id
-    }
-
     // Calculate paidDate: productionDate + 7 days
     const paidDate = new Date(quotation.productionDate)
     paidDate.setDate(paidDate.getDate() + 7)
@@ -70,7 +61,6 @@ export async function POST(
     const invoice = await prisma.invoice.create({
       data: {
         invoiceId,
-        planningId, // Save reference to original planning
         companyName: quotation.companyName,
         companyAddress: quotation.companyAddress,
         companyCity: quotation.companyCity,

@@ -56,37 +56,13 @@ export async function POST(
     // Generate Expense ID using centralized generator (prevents race conditions)
     const expenseId = await generateId('EXP', 'expense')
 
-    // Get planning data if invoice has planning reference
-    let planningItems: any[] = []
-    let planningData: any = null
-    if (invoice.planningId) {
-      planningData = await prisma.planning.findUnique({
-        where: { id: invoice.planningId },
-        include: {
-          items: true
-        }
-      })
-      if (planningData) {
-        planningItems = planningData.items
-      }
-    }
-
-    // Create expense items from invoice items
-    // If planning exists, use planning expense values; otherwise use 0 for actual
-    const expenseItems = invoice.items.map((invoiceItem) => {
-      const planningItem = planningItems.find(
-        (pi) => pi.productName === invoiceItem.productName
-      )
-
-      return {
-        productName: invoiceItem.productName,
-        budgeted: invoiceItem.total,
-        actual: planningItem ? planningItem.expense : 0, // Pre-fill from planning if available, otherwise 0
-        difference: planningItem
-          ? invoiceItem.total - planningItem.expense
-          : invoiceItem.total
-      }
-    })
+    // Create expense items from invoice items (actual = 0 for new expense)
+    const expenseItems = invoice.items.map((invoiceItem) => ({
+      productName: invoiceItem.productName,
+      budgeted: invoiceItem.total,
+      actual: 0,
+      difference: invoiceItem.total
+    }))
 
     // Use transaction with row-level locking to prevent race conditions
     const expense = await prisma.$transaction(async (tx) => {
@@ -113,21 +89,14 @@ export async function POST(
       const newExpense = await tx.expense.create({
         data: {
           expenseId,
-          // Keep old IDs for backward compatibility / queries
           invoiceId,
-          planningId: invoice.planningId,
-          // NEW: Snapshot fields for invoice
           invoiceNumber: invoice.invoiceId,
           invoiceProductionDate: invoice.productionDate,
           invoiceTotalAmount: invoice.totalAmount,
           invoicePaidDate: invoice.paidDate,
-          // NEW: Snapshot fields for planning
-          planningNumber: planningData?.planningId || null,
-          planningClientName: planningData?.clientName || null,
-          // Expense data
           projectName: invoice.billTo,
           productionDate: invoice.productionDate,
-          clientBudget: planningData?.clientBudget || 0,
+          clientBudget: invoice.totalAmount,
           paidAmount: invoice.totalAmount,
           notes: invoice.notes,
           status: "draft",

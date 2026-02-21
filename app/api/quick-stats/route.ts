@@ -6,7 +6,7 @@ import { cache, cacheKeys } from "@/lib/redis"
  * Quick Stats API - Lightweight endpoint for dashboard cards
  * 
  * Returns only essential counts/sums without fetching full records
- * Lightweight counts for dashboard (planning, quotation, invoice, expense).
+ * Lightweight counts for dashboard (quotation, invoice, expense).
  * Performance: ~50-100ms.
  */
 

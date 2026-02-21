@@ -77,44 +77,6 @@ model ProductDetail {
   @@index([deletedAt])
 }
 
-model Planning {
-  id                   String         @id @default(cuid())
-  planningId           String         @unique
-  projectName          String
-  clientName           String
-  clientBudget         Float
-  notes                String?
-  status               String         @default("draft")
-  generatedQuotationId String?        @unique
-  generatedQuotation   Quotation?     @relation("GeneratedFromPlanning")
-  deletedAt            DateTime?
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
-  items                PlanningItem[]
-
-  @@index([status, deletedAt])
-  @@index([planningId])
-  @@index([updatedAt])
-  @@index([status, updatedAt, deletedAt])
-  @@index([planningId, status, deletedAt])
-  @@index([generatedQuotationId])
-}
-
-model PlanningItem {
-  id          String   @id @default(cuid())
-  planningId  String
-  productName String
-  budget      Float
-  expense     Float
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  planning    Planning @relation(fields: [planningId], references: [id], onDelete: Cascade)
-
-  @@index([planningId])
-  @@index([planningId, order])
-}
-
 model Quotation {
   id                     String               @id @default(cuid())
   quotationId            String               @unique
@@ -147,8 +109,6 @@ model Quotation {
   status                 String               @default("draft")
   generatedInvoiceId     String?              @unique
   generatedInvoice       Invoice?             @relation("GeneratedFromQuotation")
-  sourcePlanningId       String?              @unique
-  sourcePlanning         Planning?            @relation("GeneratedFromPlanning", fields: [sourcePlanningId], references: [id], onDelete: SetNull)
   deletedAt              DateTime?
   createdAt              DateTime             @default(now())
   updatedAt              DateTime             @updatedAt
@@ -164,7 +124,6 @@ model Quotation {
   @@index([status, updatedAt, deletedAt])
   @@index([companyName])
   @@index([generatedInvoiceId])
-  @@index([sourcePlanningId])
   // NEW: Optimized indexes for dashboard queries
   @@index([status, productionDate, deletedAt]) // Pending/accepted quotations by year
   @@index([deletedAt, updatedAt])              // Recent activity queries
@@ -232,7 +191,6 @@ model QuotationSignature {
 model Invoice {
   id                     String             @id @default(cuid())
   invoiceId              String             @unique
-  planningId             String?
   companyName            String
   companyAddress         String
   companyCity            String
@@ -279,7 +237,6 @@ model Invoice {
   @@index([productionDate, status, deletedAt])
   @@index([status, updatedAt, deletedAt])
   @@index([companyName])
-  @@index([planningId])
   @@index([paidDate, status, deletedAt])
   @@index([generatedExpenseId])
   @@index([sourceQuotationId])
@@ -351,15 +308,11 @@ model Expense {
   id                    String        @id @default(cuid())
   expenseId             String        @unique
   invoiceId             String?
-  planningId            String?
   // Snapshot fields for invoice reference (no FK cascade)
   invoiceNumber         String?
   invoiceProductionDate DateTime?
   invoiceTotalAmount    Float?
   invoicePaidDate       DateTime?
-  // Snapshot fields for planning reference
-  planningNumber        String?
-  planningClientName    String?
   // Expense data
   projectName           String
   productionDate        DateTime
@@ -383,9 +336,7 @@ model Expense {
   @@index([productionDate, status, deletedAt])
   @@index([status, updatedAt, deletedAt])
   @@index([invoiceId])
-  @@index([planningId])
   @@index([invoiceNumber])
-  @@index([planningNumber])
   @@index([sourceInvoiceId])
   // NEW: Optimized indexes for dashboard and financial calculations
   @@index([deletedAt, productionDate])          // Year-based expense queries

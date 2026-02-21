@@ -70,7 +70,6 @@ export async function GET(request: Request) {
           // Snapshot fields
           invoiceNumber: true,
           invoiceProductionDate: true,
-          planningNumber: true,
           // Include items for calculation in list view
           items: {
             select: {
@@ -145,7 +144,6 @@ export async function POST(request: Request) {
       data: {
         expenseId,
         invoiceId: body.invoiceId || null,
-        planningId: body.planningId || null,
         projectName: uniqueProjectName,
         productionDate: new Date(body.productionDate),
         clientBudget: parseFloat(body.clientBudget) || 0,

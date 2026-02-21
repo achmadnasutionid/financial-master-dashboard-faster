@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma"
  * Entity types that support unique name validation
  */
 export type EntityType = 
-  | 'planning' 
   | 'quotation' 
   | 'invoice' 
   | 'expense' 
@@ -16,7 +15,6 @@ export type EntityType =
  * Field names for each entity type
  */
 type FieldNameMap = {
-  planning: 'projectName'
   quotation: 'billTo'
   invoice: 'billTo'
   expense: 'projectName'
@@ -29,13 +27,13 @@ type FieldNameMap = {
  * Generate a unique name by appending incremental suffix (" 02", " 03", etc.) if duplicates exist
  * 
  * @param baseName - The base name to check for uniqueness
- * @param entityType - The type of entity (planning, quotation, invoice, etc.)
+ * @param entityType - The type of entity (quotation, invoice, expense, etc.)
  * @param excludeId - Optional ID to exclude from duplicate check (for updates)
  * @returns Promise<string> - The unique name (original or with suffix)
  * 
  * @example
  * // If "Project ABC" exists, returns "Project ABC 02"
- * const uniqueName = await generateUniqueName("Project ABC", "planning")
+ * const uniqueName = await generateUniqueName("Project ABC", "expense")
  * 
  * @example
  * // When updating, exclude current record
@@ -53,7 +51,6 @@ export async function generateUniqueName(
 
   // Map entity types to Prisma model names
   const modelNameMap: Record<EntityType, string> = {
-    planning: 'planning',
     quotation: 'quotation',
     invoice: 'invoice',
     expense: 'expense',
@@ -64,7 +61,6 @@ export async function generateUniqueName(
 
   // Get the field name for this entity type
   const fieldNameMap: FieldNameMap = {
-    planning: 'projectName',
     quotation: 'billTo',
     invoice: 'billTo',
     expense: 'projectName',
@@ -132,7 +128,6 @@ export async function checkNameConflicts(
 ): Promise<Record<string, boolean>> {
   // Map entity types to Prisma model names
   const modelNameMap: Record<EntityType, string> = {
-    planning: 'planning',
     quotation: 'quotation',
     invoice: 'invoice',
     expense: 'expense',
@@ -142,7 +137,6 @@ export async function checkNameConflicts(
   }
 
   const fieldNameMap: FieldNameMap = {
-    planning: 'projectName',
     quotation: 'billTo',
     invoice: 'billTo',
     expense: 'projectName',

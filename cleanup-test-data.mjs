@@ -47,14 +47,6 @@ async function cleanupTestData() {
       console.log('    Sample:', expenses.slice(0, 5).map(e => e.expenseId + ': ' + e.projectName).join('\n           '))
     }
     
-    const plannings = await prisma.planning.findMany({
-      where: {
-        OR: testPatterns.map(p => ({ projectName: { contains: p } }))
-      },
-      select: { id: true, projectName: true }
-    })
-    console.log(`  Plannings: ${plannings.length}`)
-    
     const trackers = await prisma.productionTracker.findMany({
       where: {
         OR: testPatterns.map(p => ({ projectName: { contains: p } }))
@@ -96,7 +88,7 @@ async function cleanupTestData() {
     console.log(`  Erha Tickets: ${erhaTickets.length}`)
     
     const total = quotations.length + invoices.length + expenses.length + 
-                  plannings.length + trackers.length + products.length + companies.length +
+                  trackers.length + products.length + companies.length +
                   paragonTickets.length + erhaTickets.length
     
     console.log(`\n  Total test records: ${total}\n`)
@@ -145,19 +137,7 @@ async function cleanupTestData() {
     }
     console.log('  ✓ Cleaned quotations')
     
-    // 5. Delete planning items and plannings
-    for (const planning of plannings) {
-      const items = await prisma.planningItem.findMany({ where: { planningId: planning.id } })
-      for (const item of items) {
-        await prisma.planningItemDetail.deleteMany({ where: { planningItemId: item.id } })
-      }
-      await prisma.planningItem.deleteMany({ where: { planningId: planning.id } })
-      await prisma.planningRemark.deleteMany({ where: { planningId: planning.id } })
-      await prisma.planning.delete({ where: { id: planning.id } }).catch(() => {})
-    }
-    console.log('  ✓ Cleaned plannings')
-    
-    // 6. Delete product details and products
+    // 5. Delete product details and products
     for (const product of products) {
       await prisma.productDetail.deleteMany({ where: { productId: product.id } })
       await prisma.product.delete({ where: { id: product.id } }).catch(() => {})
