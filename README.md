@@ -82,7 +82,27 @@ DATABASE_URL="postgresql://postgres:PASSWORD@HOST:PORT/railway"
 
 # Direct connection (for migrations)
 DIRECT_URL="postgresql://postgres:PASSWORD@HOST:PORT/railway"
+
+# Optional: Google Drive PDF sync (runs in background when backup runs, ~24h)
+# GOOGLE_DRIVE_ROOT_FOLDER_ID="your-drive-folder-id"
+# GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account.json"
+# or: GOOGLE_SERVICE_ACCOUNT_JSON='{"type":"service_account",...}'
 ```
+
+#### Google Drive PDF sync (optional)
+
+The app can sync generated PDFs (quotations, invoices, Paragon, Erha) to a Google Drive folder when the 24h backup runs (on first landing after cache expiry). Same document ID = file is replaced.
+
+- **Where to put credentials**
+  - **Option A:** Put the path to your service account JSON file in `GOOGLE_APPLICATION_CREDENTIALS` (e.g. in `.env`: `GOOGLE_APPLICATION_CREDENTIALS=./secrets/google-service-account.json`). Keep the file outside the repo (add to `.gitignore`).
+  - **Option B:** Paste the full JSON key as a single line in `GOOGLE_SERVICE_ACCOUNT_JSON` (e.g. in Railway env vars). No file needed.
+
+- **Main folder**
+  - Create a folder in Google Drive that will hold all synced PDFs (e.g. "Master Dashboard PDFs").
+  - Open that folder in the browser; the URL looks like `https://drive.google.com/drive/folders/FOLDER_ID`. Copy `FOLDER_ID` and set it as `GOOGLE_DRIVE_ROOT_FOLDER_ID` in your env.
+  - Under that root the app creates: `Quotations/`, `Invoices/`, `Paragon/{billTo}/`, `Erha/{billTo}/`.
+
+If these env vars are not set, the sync is skipped (no errors). No draft documents are synced; only non-draft records are uploaded.
 
 ### 5. Initialize Database
 
