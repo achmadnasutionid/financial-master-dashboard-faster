@@ -350,7 +350,7 @@ const parseHTMLToTextBlocks = (html: string) => {
           <Text style={styles.companyName}>{data.companyName}</Text>
           <Text style={styles.companyDetail}>{data.companyAddress}</Text>
           <Text style={styles.companyDetail}>
-            Kec. Pd. Aren, Kota {data.companyCity}, {data.companyProvince} {data.companyPostalCode}
+            {data.companyCity}, {data.companyProvince} {data.companyPostalCode}
           </Text>
           <Text style={styles.companyDetail}>
             {data.companyTelp} / {data.companyEmail}
