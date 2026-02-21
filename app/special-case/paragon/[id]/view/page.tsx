@@ -43,6 +43,8 @@ interface ParagonTicket {
   billTo: string
   contactPerson: string
   contactPosition: string
+  bastContactPerson?: string | null
+  bastContactPosition?: string | null
   signatureName: string
   signatureRole?: string
   signatureImageData: string

@@ -74,6 +74,8 @@ export async function POST(
         billToAddress: originalErha.billToAddress,
         contactPerson: originalErha.contactPerson,
         contactPosition: originalErha.contactPosition,
+        bastContactPerson: originalErha.bastContactPerson,
+        bastContactPosition: originalErha.bastContactPosition,
         billingName: originalErha.billingName,
         billingBankName: originalErha.billingBankName,
         billingBankAccount: originalErha.billingBankAccount,

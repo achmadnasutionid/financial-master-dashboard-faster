@@ -431,6 +431,8 @@ model ParagonTicket {
   billTo             String
   contactPerson      String
   contactPosition    String
+  bastContactPerson   String?   // BAST/Invoice contact (optional; falls back to contactPerson)
+  bastContactPosition String?   // BAST/Invoice position (optional; falls back to contactPosition)
   signatureName      String
   signatureRole      String?
   signatureImageData String
@@ -521,6 +523,8 @@ model ErhaTicket {
   billToAddress          String             @default("")
   contactPerson          String
   contactPosition        String
+  bastContactPerson      String?   // BAST/Invoice contact (optional; falls back to contactPerson)
+  bastContactPosition    String?   // BAST/Invoice position (optional; falls back to contactPosition)
   billingName            String
   billingBankName        String
   billingBankAccount     String

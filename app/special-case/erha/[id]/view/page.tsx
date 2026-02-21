@@ -44,6 +44,8 @@ interface ErhaTicket {
   billToAddress: string
   contactPerson: string
   contactPosition: string
+  bastContactPerson?: string | null
+  bastContactPosition?: string | null
   billingName: string
   billingBankName: string
   billingBankAccount: string

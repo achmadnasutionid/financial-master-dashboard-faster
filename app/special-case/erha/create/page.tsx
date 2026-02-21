@@ -94,6 +94,8 @@ export default function CreateErhaTicketPage() {
   const [billToAddress, setBillToAddress] = useState("")
   const [contactPerson, setContactPerson] = useState("")
   const [contactPosition, setContactPosition] = useState("")
+  const [bastContactPerson, setBastContactPerson] = useState("")
+  const [bastContactPosition, setBastContactPosition] = useState("")
   const [remarks, setRemarks] = useState<Remark[]>([
     { id: "1", text: "Terms & Conditions :", isCompleted: false },
     { id: "2", text: "* Overtime Production Shooting Day 10 % dari Fee invoice", isCompleted: false },
@@ -522,20 +524,22 @@ export default function CreateErhaTicketPage() {
 
     setErrors(newErrors)
     
-    // Scroll to first error
+    // Scroll to first error after React paints the error state
     if (Object.keys(newErrors).length > 0) {
-      scrollToFirstError(newErrors, {
-        company: companyRef,
-        productionDate: productionDateRef,
-        quotationDate: quotationDateRef,
-        invoiceBastDate: invoiceBastDateRef,
-        billTo: billToRef,
-        billToAddress: billToAddressRef,
-        contactPerson: contactPersonRef,
-        contactPosition: contactPositionRef,
-        billing: billingRef,
-        signature: signatureRef,
-      })
+      setTimeout(() => {
+        scrollToFirstError(newErrors, {
+          company: companyRef,
+          productionDate: productionDateRef,
+          quotationDate: quotationDateRef,
+          invoiceBastDate: invoiceBastDateRef,
+          billTo: billToRef,
+          billToAddress: billToAddressRef,
+          contactPerson: contactPersonRef,
+          contactPosition: contactPositionRef,
+          billing: billingRef,
+          signature: signatureRef,
+        })
+      }, 0)
     }
     
     return Object.keys(newErrors).length === 0
@@ -598,6 +602,8 @@ export default function CreateErhaTicketPage() {
         billToAddress: billToAddress.trim(),
         contactPerson: contactPerson.trim(),
         contactPosition: contactPosition.trim(),
+        bastContactPerson: bastContactPerson.trim() || null,
+        bastContactPosition: bastContactPosition.trim() || null,
         billingName: billing?.name || "",
         billingBankName: billing?.bankName || "",
         billingBankAccount: billing?.bankAccount || "",
@@ -654,10 +660,14 @@ export default function CreateErhaTicketPage() {
           router.push(`/special-case/erha/${data.id}/view`)
         }
       } else {
-        const errorData = await response.json()
-        toast.error("Failed to save erha ticket", {
-          description: errorData.error || "An error occurred while saving."
-        })
+        let description = "An error occurred while saving."
+        try {
+          const errorData = await response.json()
+          description = errorData.error || description
+        } catch {
+          if (response.status === 413) description = "Request too large. Try using smaller images for signature and screenshot."
+        }
+        toast.error("Failed to save erha ticket", { description })
       }
     } catch (error) {
       console.error("Error saving erha ticket:", error)
@@ -689,7 +699,7 @@ export default function CreateErhaTicketPage() {
                 <h3 className="text-lg font-semibold">Basic Information</h3>
                 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={companyRef}>
                     <Label>Company <span className="text-destructive">*</span></Label>
                     <Select value={selectedCompanyId} onValueChange={(value) => {
                       markInteracted()
@@ -712,7 +722,7 @@ export default function CreateErhaTicketPage() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={productionDateRef}>
                     <Label>Production Date <span className="text-destructive">*</span></Label>
                     <DatePicker date={productionDate} onDateChange={(date) => {
                       markInteracted()
@@ -726,7 +736,7 @@ export default function CreateErhaTicketPage() {
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={quotationDateRef}>
                     <Label>Quotation Date <span className="text-destructive">*</span></Label>
                     <DatePicker date={quotationDate} onDateChange={(date) => {
                       markInteracted()
@@ -738,7 +748,7 @@ export default function CreateErhaTicketPage() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={invoiceBastDateRef}>
                     <Label>Invoice / BAST Date <span className="text-destructive">*</span></Label>
                     <DatePicker date={invoiceBastDate} onDateChange={(date) => {
                       markInteracted()
@@ -751,7 +761,7 @@ export default function CreateErhaTicketPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2" ref={billToRef}>
                   <Label>Bill To <span className="text-destructive">*</span></Label>
                   <Input
                     value={billTo}
@@ -769,7 +779,7 @@ export default function CreateErhaTicketPage() {
                   )}
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2" ref={billToAddressRef}>
                   <Label>Bill To Address <span className="text-destructive">*</span></Label>
                   <Textarea
                     value={billToAddress}
@@ -788,8 +798,8 @@ export default function CreateErhaTicketPage() {
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Contact Person <span className="text-destructive">*</span></Label>
+                  <div className="space-y-2" ref={contactPersonRef}>
+                    <Label>Contact Person (Quotation) <span className="text-destructive">*</span></Label>
                     <Input
                       value={contactPerson}
                       onChange={(e) => {
@@ -798,7 +808,7 @@ export default function CreateErhaTicketPage() {
                         if (errors.contactPerson) validateField("contactPerson", e.target.value)
                       }}
                       onBlur={(e) => validateField("contactPerson", e.target.value)}
-                      placeholder="Enter contact person name"
+                      placeholder="Enter contact person for quotation"
                       error={!!errors.contactPerson}
                     />
                     {errors.contactPerson && (
@@ -806,8 +816,8 @@ export default function CreateErhaTicketPage() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Position <span className="text-destructive">*</span></Label>
+                  <div className="space-y-2" ref={contactPositionRef}>
+                    <Label>Position (Quotation) <span className="text-destructive">*</span></Label>
                     <Input
                       value={contactPosition}
                       onChange={(e) => {
@@ -816,12 +826,31 @@ export default function CreateErhaTicketPage() {
                         if (errors.contactPosition) validateField("contactPosition", e.target.value)
                       }}
                       onBlur={(e) => validateField("contactPosition", e.target.value)}
-                      placeholder="Enter position/title"
+                      placeholder="Enter position for quotation"
                       error={!!errors.contactPosition}
                     />
                     {errors.contactPosition && (
                       <p className="text-sm text-destructive">{errors.contactPosition}</p>
                     )}
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Contact Person (BAST / Invoice)</Label>
+                    <Input
+                      value={bastContactPerson}
+                      onChange={(e) => { markInteracted(); setBastContactPerson(e.target.value) }}
+                      placeholder="Leave blank to use same as quotation"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Position (BAST / Invoice)</Label>
+                    <Input
+                      value={bastContactPosition}
+                      onChange={(e) => { markInteracted(); setBastContactPosition(e.target.value) }}
+                      placeholder="Leave blank to use same as quotation"
+                    />
                   </div>
                 </div>
 
@@ -893,7 +922,7 @@ export default function CreateErhaTicketPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Billing Information</h3>
                 
-                <div className="space-y-2">
+                <div className="space-y-2" ref={billingRef}>
                   <Label>Billing <span className="text-destructive">*</span></Label>
                   <Select value={selectedBillingId} onValueChange={(value) => {
                     markInteracted()
@@ -940,7 +969,7 @@ export default function CreateErhaTicketPage() {
                 <h3 className="text-lg font-semibold">Signature Information</h3>
                 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={signatureRef}>
                     <Label>Signature <span className="text-destructive">*</span></Label>
                     <Select value={selectedSignatureId} onValueChange={(value) => {
                       markInteracted()
@@ -970,13 +999,11 @@ export default function CreateErhaTicketPage() {
                       setPph(value)
                     }}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select PPh" />
+                        <span className="truncate text-left">{PPH_OPTIONS.find((o) => o.value === pph)?.label ?? "Select PPh"}</span>
                       </SelectTrigger>
                       <SelectContent>
                         {PPH_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
+                          <SelectItem key={option.value} value={option.value}>{option.label.trim()}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

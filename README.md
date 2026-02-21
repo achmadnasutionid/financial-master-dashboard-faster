@@ -112,6 +112,20 @@ npm run build    # Build for production
 npm run start    # Start production server
 ```
 
+### Database sync (production + local)
+
+The app uses **two** databases when `DATABASE_URL_LOCAL` is set: production (`DATABASE_URL`) and a second DB for local dev (`DATABASE_URL_LOCAL`). Both must have the same schema.
+
+**When to run:** After creating a new migration (`npm run db:migrate`) or when you see errors like *"column X does not exist"* (one DB is behind).
+
+**One command to sync both:**
+
+```bash
+npm run db:migrate:deploy:both
+```
+
+This runs `prisma migrate deploy` against `DATABASE_URL` (production) and then `DATABASE_URL_LOCAL` (second DB). You don’t need to run manual SQL for new columns—migrations keep both in sync.
+
 ## 🌐 Deployment (Railway)
 
 ### 1. Push to GitHub

@@ -83,6 +83,8 @@ export default function CreateParagonTicketPage() {
   const [billTo, setBillTo] = useState("")
   const [contactPerson, setContactPerson] = useState("")
   const [contactPosition, setContactPosition] = useState("")
+  const [bastContactPerson, setBastContactPerson] = useState("")
+  const [bastContactPosition, setBastContactPosition] = useState("")
   const [remarks, setRemarks] = useState<Remark[]>([
     {
       id: "default-1",
@@ -494,18 +496,20 @@ export default function CreateParagonTicketPage() {
 
     setErrors(newErrors)
     
-    // Scroll to first error
+    // Scroll to first error after React paints the error state
     if (Object.keys(newErrors).length > 0) {
-      scrollToFirstError(newErrors, {
-        company: companyRef,
-        productionDate: productionDateRef,
-        quotationDate: quotationDateRef,
-        invoiceBastDate: invoiceBastDateRef,
-        billTo: billToRef,
-        contactPerson: contactPersonRef,
-        contactPosition: contactPositionRef,
-        signature: signatureRef,
-      })
+      setTimeout(() => {
+        scrollToFirstError(newErrors, {
+          company: companyRef,
+          productionDate: productionDateRef,
+          quotationDate: quotationDateRef,
+          invoiceBastDate: invoiceBastDateRef,
+          billTo: billToRef,
+          contactPerson: contactPersonRef,
+          contactPosition: contactPositionRef,
+          signature: signatureRef,
+        })
+      }, 0)
     }
     
     return Object.keys(newErrors).length === 0
@@ -566,6 +570,8 @@ export default function CreateParagonTicketPage() {
         billTo: billTo.trim(),
         contactPerson: contactPerson.trim(),
         contactPosition: contactPosition.trim(),
+        bastContactPerson: bastContactPerson.trim() || null,
+        bastContactPosition: bastContactPosition.trim() || null,
         signatureName: signature?.name || "",
         signatureRole: signature?.role || null,
         signatureImageData: signature?.imageData || "",
@@ -616,10 +622,14 @@ export default function CreateParagonTicketPage() {
           router.push(`/special-case/paragon/${data.id}/view`)
         }
       } else {
-        const errorData = await response.json()
-        toast.error("Failed to save paragon ticket", {
-          description: errorData.error || "An error occurred while saving."
-        })
+        let description = "An error occurred while saving."
+        try {
+          const errorData = await response.json()
+          description = errorData.error || description
+        } catch {
+          if (response.status === 413) description = "Request too large. Try using smaller images for signature and screenshot."
+        }
+        toast.error("Failed to save paragon ticket", { description })
       }
     } catch (error) {
       console.error("Error saving paragon ticket:", error)
@@ -651,7 +661,7 @@ export default function CreateParagonTicketPage() {
                 <h3 className="text-lg font-semibold">Basic Information</h3>
                 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={companyRef}>
                     <Label>Company <span className="text-destructive">*</span></Label>
                     <Select value={selectedCompanyId} onValueChange={(value) => {
                       markInteracted()
@@ -674,7 +684,7 @@ export default function CreateParagonTicketPage() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={productionDateRef}>
                     <Label>Production Date <span className="text-destructive">*</span></Label>
                     <DatePicker date={productionDate} onDateChange={(date) => {
                       markInteracted()
@@ -688,7 +698,7 @@ export default function CreateParagonTicketPage() {
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={quotationDateRef}>
                     <Label>Quotation Date <span className="text-destructive">*</span></Label>
                     <DatePicker date={quotationDate} onDateChange={(date) => {
                       markInteracted()
@@ -700,7 +710,7 @@ export default function CreateParagonTicketPage() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={invoiceBastDateRef}>
                     <Label>Invoice / BAST Date <span className="text-destructive">*</span></Label>
                     <DatePicker date={invoiceBastDate} onDateChange={(date) => {
                       markInteracted()
@@ -713,7 +723,7 @@ export default function CreateParagonTicketPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2" ref={billToRef}>
                   <Label>Bill To <span className="text-destructive">*</span></Label>
                   <Input
                     value={billTo}
@@ -732,8 +742,8 @@ export default function CreateParagonTicketPage() {
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Contact Person <span className="text-destructive">*</span></Label>
+                  <div className="space-y-2" ref={contactPersonRef}>
+                    <Label>Contact Person (Quotation) <span className="text-destructive">*</span></Label>
                     <Input
                       value={contactPerson}
                       onChange={(e) => {
@@ -742,7 +752,7 @@ export default function CreateParagonTicketPage() {
                         if (errors.contactPerson) validateField("contactPerson", e.target.value)
                       }}
                       onBlur={(e) => validateField("contactPerson", e.target.value)}
-                      placeholder="Enter contact person name"
+                      placeholder="Enter contact person for quotation"
                       error={!!errors.contactPerson}
                     />
                     {errors.contactPerson && (
@@ -750,8 +760,8 @@ export default function CreateParagonTicketPage() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Position <span className="text-destructive">*</span></Label>
+                  <div className="space-y-2" ref={contactPositionRef}>
+                    <Label>Position (Quotation) <span className="text-destructive">*</span></Label>
                     <Input
                       value={contactPosition}
                       onChange={(e) => {
@@ -760,12 +770,31 @@ export default function CreateParagonTicketPage() {
                         if (errors.contactPosition) validateField("contactPosition", e.target.value)
                       }}
                       onBlur={(e) => validateField("contactPosition", e.target.value)}
-                      placeholder="Enter position/title"
+                      placeholder="Enter position for quotation"
                       error={!!errors.contactPosition}
                     />
                     {errors.contactPosition && (
                       <p className="text-sm text-destructive">{errors.contactPosition}</p>
                     )}
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Contact Person (BAST / Invoice)</Label>
+                    <Input
+                      value={bastContactPerson}
+                      onChange={(e) => { markInteracted(); setBastContactPerson(e.target.value) }}
+                      placeholder="Leave blank to use same as quotation"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Position (BAST / Invoice)</Label>
+                    <Input
+                      value={bastContactPosition}
+                      onChange={(e) => { markInteracted(); setBastContactPosition(e.target.value) }}
+                      placeholder="Leave blank to use same as quotation"
+                    />
                   </div>
                 </div>
 
@@ -838,7 +867,7 @@ export default function CreateParagonTicketPage() {
                 <h3 className="text-lg font-semibold">Signature Information</h3>
                 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={signatureRef}>
                     <Label>Signature <span className="text-destructive">*</span></Label>
                     <Select value={selectedSignatureId} onValueChange={(value) => {
                       markInteracted()
@@ -868,13 +897,11 @@ export default function CreateParagonTicketPage() {
                       setPph(value)
                     }}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select PPh" />
+                        <span className="truncate text-left">{PPH_OPTIONS.find((o) => o.value === pph)?.label ?? "Select PPh"}</span>
                       </SelectTrigger>
                       <SelectContent>
                         {PPH_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
+                          <SelectItem key={option.value} value={option.value}>{option.label.trim()}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

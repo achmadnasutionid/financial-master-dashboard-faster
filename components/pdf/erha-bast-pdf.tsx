@@ -136,12 +136,22 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textDecoration: "underline",
   },
-  // Bukti Pekerjaan page
+  // Bukti Pekerjaan - under signatures on same page
+  buktiSection: {
+    marginTop: 24,
+    paddingTop: 12,
+    borderTop: "1px solid #ccc",
+  },
   buktiTitle: {
     fontSize: 12,
     fontWeight: "bold",
-    marginBottom: 15,
+    marginBottom: 10,
     textDecoration: "underline",
+  },
+  buktiImageSingle: {
+    maxWidth: 400,
+    maxHeight: 220,
+    objectFit: "contain",
   },
   buktiGrid: {
     flexDirection: "row",
@@ -174,6 +184,8 @@ interface ErhaBASTPDFProps {
     billToAddress?: string
     contactPerson: string
     contactPosition: string
+    bastContactPerson?: string | null
+    bastContactPosition?: string | null
     productionDate: string
     signatureName: string
     signatureRole?: string
@@ -201,6 +213,9 @@ interface ErhaBASTPDFProps {
 }
 
 export const ErhaBASTPDF: React.FC<ErhaBASTPDFProps> = ({ data }) => {
+  const contactPerson = data.bastContactPerson ?? data.contactPerson
+  const contactPosition = data.bastContactPosition ?? data.contactPosition
+
   const formatCurrency = (amount: number) => {
     return `Rp${new Intl.NumberFormat("id-ID", {
       minimumFractionDigits: 0,
@@ -310,12 +325,12 @@ export const ErhaBASTPDF: React.FC<ErhaBASTPDFProps> = ({ data }) => {
           <View style={styles.row}>
             <Text style={styles.label}>Nama</Text>
             <Text style={styles.colon}>:</Text>
-            <Text style={styles.value}>{data.contactPerson}</Text>
+            <Text style={styles.value}>{contactPerson}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Jabatan</Text>
             <Text style={styles.colon}>:</Text>
-            <Text style={styles.value}>{data.contactPosition}</Text>
+            <Text style={styles.value}>{contactPosition}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Alamat</Text>
@@ -364,7 +379,7 @@ export const ErhaBASTPDF: React.FC<ErhaBASTPDFProps> = ({ data }) => {
             <Text style={styles.footerLabel}>Pihak Kedua</Text>
             <View style={styles.signaturePlaceholder} />
             <Text style={styles.footerCompany}>{data.billTo}</Text>
-            <Text style={styles.footerName}>{data.contactPerson}</Text>
+            <Text style={styles.footerName}>{contactPerson}</Text>
           </View>
 
           {/* Right: Pihak Pertama (Service Provider) */}
@@ -378,23 +393,16 @@ export const ErhaBASTPDF: React.FC<ErhaBASTPDFProps> = ({ data }) => {
             <Text style={styles.footerName}>{data.signatureName}</Text>
           </View>
         </View>
-      </Page>
 
-      {/* Second Page - Bukti Pekerjaan (Always on separate page) */}
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.buktiTitle}>Bukti Pekerjaan</Text>
-        {data.finalWorkImageData ? (
-          <Image
-            src={data.finalWorkImageData}
-            style={{
-              maxWidth: 500,
-              maxHeight: 700,
-              objectFit: "contain",
-            }}
-          />
-        ) : (
-          <Text style={{ fontSize: 10, color: "#666" }}>No work evidence uploaded yet.</Text>
-        )}
+        {/* Bukti Pekerjaan - under signatures, same page so proof is part of signed document */}
+        <View style={styles.buktiSection} wrap={false}>
+          <Text style={styles.buktiTitle}>Bukti Pekerjaan</Text>
+          {data.finalWorkImageData ? (
+            <Image src={data.finalWorkImageData} style={styles.buktiImageSingle} />
+          ) : (
+            <Text style={{ fontSize: 10, color: "#666" }}>No work evidence uploaded yet.</Text>
+          )}
+        </View>
       </Page>
     </Document>
   )

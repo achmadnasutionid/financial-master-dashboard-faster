@@ -84,6 +84,21 @@ const styles = StyleSheet.create({
     marginTop: 30,
     fontSize: 10,
   },
+  buktiSection: {
+    marginTop: 24,
+    paddingTop: 12,
+    borderTop: "1px solid #ccc",
+  },
+  buktiTitle: {
+    fontSize: 10,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  buktiImage: {
+    maxWidth: 400,
+    maxHeight: 220,
+    objectFit: "contain",
+  },
 })
 
 interface ParagonBASTPDFProps {
@@ -102,6 +117,8 @@ interface ParagonBASTPDFProps {
     billTo: string
     contactPerson: string
     contactPosition: string
+    bastContactPerson?: string | null
+    bastContactPosition?: string | null
     productionDate: string
     signatureName: string
     signatureRole?: string
@@ -128,6 +145,9 @@ interface ParagonBASTPDFProps {
 }
 
 export const ParagonBASTPDF: React.FC<ParagonBASTPDFProps> = ({ data }) => {
+  const contactPerson = data.bastContactPerson ?? data.contactPerson
+  const contactPosition = data.bastContactPosition ?? data.contactPosition
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("id-ID", {
       day: "numeric",
@@ -202,12 +222,12 @@ export const ParagonBASTPDF: React.FC<ParagonBASTPDFProps> = ({ data }) => {
           <View style={styles.row}>
             <Text style={styles.label}>Nama</Text>
             <Text style={styles.colon}>:</Text>
-            <Text style={styles.value}>{data.contactPerson}</Text>
+            <Text style={styles.value}>{contactPerson}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Jabatan</Text>
             <Text style={styles.colon}>:</Text>
-            <Text style={styles.value}>{data.contactPosition}</Text>
+            <Text style={styles.value}>{contactPosition}</Text>
           </View>
         </View>
 
@@ -241,24 +261,18 @@ export const ParagonBASTPDF: React.FC<ParagonBASTPDFProps> = ({ data }) => {
             <Text style={styles.footerLabel}>Perwakilan</Text>
             <Text style={styles.footerCompany}>{data.billTo}</Text>
             <View style={{ height: 40, marginTop: 5, marginBottom: 5 }} />
-            <Text style={styles.footerName}>{data.contactPerson}</Text>
-            <Text style={styles.footerRole}>{data.contactPosition}</Text>
+            <Text style={styles.footerName}>{contactPerson}</Text>
+            <Text style={styles.footerRole}>{contactPosition}</Text>
           </View>
         </View>
-      </Page>
 
-      {/* Second Page - Bukti Pekerjaan */}
-      <Page size="A4" style={styles.page}>
-        <View style={styles.stamp}>
-          <Text style={{ fontSize: 10, marginBottom: 10 }}>Bukti Pekerjaan</Text>
+        {/* Bukti Pekerjaan - under signatures, same page so proof is part of signed document */}
+        <View style={styles.buktiSection} wrap={false}>
+          <Text style={styles.buktiTitle}>Bukti Pekerjaan</Text>
           {data.finalWorkImageData && (
             <Image
               src={data.finalWorkImageData}
-              style={{
-                maxWidth: 400,
-                maxHeight: 300,
-                objectFit: "contain",
-              }}
+              style={styles.buktiImage}
             />
           )}
         </View>

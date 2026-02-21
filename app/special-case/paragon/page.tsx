@@ -449,7 +449,7 @@ function ParagonTicketPageContent() {
                             {ticket.items.map((item, itemIdx) => (
                               item.details && item.details.length > 0 ? (
                                 item.details.map((detail, detailIdx) => (
-                                  <tr key={`${item.id}-${detail.id}`} className={itemIdx % 2 === 0 ? "bg-background" : "bg-muted/30"}>
+                                  <tr key={`${ticket.id}-${item.id ?? itemIdx}-${detail.id ?? detailIdx}`} className={itemIdx % 2 === 0 ? "bg-background" : "bg-muted/30"}>
                                     <td className="px-3 py-2 font-medium">
                                       {detailIdx === 0 ? item.productName : ""}
                                     </td>
@@ -460,7 +460,7 @@ function ParagonTicketPageContent() {
                                   </tr>
                                 ))
                               ) : (
-                                <tr key={item.id} className={itemIdx % 2 === 0 ? "bg-background" : "bg-muted/30"}>
+                                <tr key={`${ticket.id}-item-${item.id ?? itemIdx}`} className={itemIdx % 2 === 0 ? "bg-background" : "bg-muted/30"}>
                                   <td className="px-3 py-2 font-medium">{item.productName}</td>
                                   <td className="px-3 py-2 text-muted-foreground italic">No details</td>
                                   <td className="px-3 py-2 text-right">-</td>

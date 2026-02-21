@@ -73,6 +73,8 @@ export async function POST(
         billTo: `${originalParagon.billTo} - Copy`,
         contactPerson: originalParagon.contactPerson,
         contactPosition: originalParagon.contactPosition,
+        bastContactPerson: originalParagon.bastContactPerson,
+        bastContactPosition: originalParagon.bastContactPosition,
         signatureName: originalParagon.signatureName,
         signatureRole: originalParagon.signatureRole,
         signatureImageData: originalParagon.signatureImageData,

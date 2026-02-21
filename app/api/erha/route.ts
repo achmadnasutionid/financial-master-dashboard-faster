@@ -188,6 +188,8 @@ export async function POST(request: Request) {
           billToAddress: body.billToAddress || "",
           contactPerson: body.contactPerson || (isDraft ? "" : body.contactPerson),
           contactPosition: body.contactPosition || (isDraft ? "" : body.contactPosition),
+          bastContactPerson: body.bastContactPerson || null,
+          bastContactPosition: body.bastContactPosition || null,
           billingName: body.billingName || (isDraft ? "" : body.billingName),
           billingBankName: body.billingBankName || (isDraft ? "" : body.billingBankName),
           billingBankAccount: body.billingBankAccount || (isDraft ? "" : body.billingBankAccount),
@@ -258,8 +260,18 @@ export async function POST(request: Request) {
     return NextResponse.json(ticket, { status: 201 })
   } catch (error) {
     console.error("Error creating erha ticket:", error)
+    const message = error instanceof Error ? error.message : String(error)
+    const isPayloadTooLarge =
+      message.includes("body") ||
+      message.includes("payload") ||
+      message.includes("size") ||
+      message.includes("413") ||
+      message.includes("limit")
+    const userMessage = isPayloadTooLarge
+      ? "Request too large. Try using smaller images for signature and screenshot."
+      : message || "Failed to create erha ticket"
     return NextResponse.json(
-      { error: "Failed to create erha ticket" },
+      { error: userMessage },
       { status: 500 }
     )
   }

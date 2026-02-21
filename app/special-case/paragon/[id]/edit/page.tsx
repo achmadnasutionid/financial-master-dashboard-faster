@@ -98,6 +98,8 @@ export default function EditParagonTicketPage() {
   const [billTo, setBillTo] = useState("")
   const [contactPerson, setContactPerson] = useState("")
   const [contactPosition, setContactPosition] = useState("")
+  const [bastContactPerson, setBastContactPerson] = useState("")
+  const [bastContactPosition, setBastContactPosition] = useState("")
   const [remarks, setRemarks] = useState<Remark[]>([])
   const [termsAndConditions, setTermsAndConditions] = useState("")
   const [showTerms, setShowTerms] = useState(false)
@@ -228,6 +230,8 @@ export default function EditParagonTicketPage() {
       setBillTo(ticketData.billTo)
       setContactPerson(ticketData.contactPerson)
       setContactPosition(ticketData.contactPosition)
+      setBastContactPerson(ticketData.bastContactPerson ?? "")
+      setBastContactPosition(ticketData.bastContactPosition ?? "")
       setPph(ticketData.pph)
       setAdjustmentPercentage(ticketData.adjustmentPercentage ?? null)
       setAdjustmentNotes(ticketData.adjustmentNotes ?? "")
@@ -294,6 +298,8 @@ export default function EditParagonTicketPage() {
         billTo,
         contactPerson,
         contactPosition,
+        bastContactPerson: ticketData.bastContactPerson ?? "",
+        bastContactPosition: ticketData.bastContactPosition ?? "",
         selectedSignatureId,
         pph,
         items: loadedItems,
@@ -319,6 +325,8 @@ export default function EditParagonTicketPage() {
       billTo,
       contactPerson,
       contactPosition,
+      bastContactPerson,
+      bastContactPosition,
       selectedSignatureId,
       pph,
       items,
@@ -327,7 +335,7 @@ export default function EditParagonTicketPage() {
     })
     
     setHasUnsavedChanges(currentData !== initialDataRef.current)
-  }, [selectedCompanyId, productionDate, quotationDate, invoiceBastDate, billTo, contactPerson, contactPosition, selectedSignatureId, pph, items, remarks, finalWorkImage, loading])
+  }, [selectedCompanyId, productionDate, quotationDate, invoiceBastDate, billTo, contactPerson, contactPosition, bastContactPerson, bastContactPosition, selectedSignatureId, pph, items, remarks, finalWorkImage, loading])
 
   // Auto-save trigger when data changes (only if mandatory fields filled)
   useEffect(() => {
@@ -341,7 +349,7 @@ export default function EditParagonTicketPage() {
     if (mandatoryFilled) {
       triggerAutoSave()
     }
-  }, [selectedCompanyId, productionDate, quotationDate, invoiceBastDate, billTo, contactPerson, contactPosition, selectedSignatureId, pph, items, remarks, finalWorkImage, loading, isSavingManually, triggerAutoSave])
+  }, [selectedCompanyId, productionDate, quotationDate, invoiceBastDate, billTo, contactPerson, contactPosition, bastContactPerson, bastContactPosition, selectedSignatureId, pph, items, remarks, finalWorkImage, loading, isSavingManually, triggerAutoSave])
 
   // Check for stale data when user returns to tab
   useEffect(() => {
@@ -692,18 +700,20 @@ export default function EditParagonTicketPage() {
 
     setErrors(newErrors)
     
-    // Scroll to first error
+    // Scroll to first error after React paints the error state
     if (Object.keys(newErrors).length > 0) {
-      scrollToFirstError(newErrors, {
-        company: companyRef,
-        productionDate: productionDateRef,
-        quotationDate: quotationDateRef,
-        invoiceBastDate: invoiceBastDateRef,
-        billTo: billToRef,
-        contactPerson: contactPersonRef,
-        contactPosition: contactPositionRef,
-        signature: signatureRef,
-      })
+      setTimeout(() => {
+        scrollToFirstError(newErrors, {
+          company: companyRef,
+          productionDate: productionDateRef,
+          quotationDate: quotationDateRef,
+          invoiceBastDate: invoiceBastDateRef,
+          billTo: billToRef,
+          contactPerson: contactPersonRef,
+          contactPosition: contactPositionRef,
+          signature: signatureRef,
+        })
+      }, 0)
     }
     
     return Object.keys(newErrors).length === 0
@@ -768,6 +778,8 @@ export default function EditParagonTicketPage() {
         billTo: billTo.trim(),
         contactPerson: contactPerson.trim(),
         contactPosition: contactPosition.trim(),
+        bastContactPerson: bastContactPerson.trim() || null,
+        bastContactPosition: bastContactPosition.trim() || null,
         signatureName: signature.name,
         signatureRole: signature.role || null,
         signatureImageData: signature.imageData,
@@ -810,10 +822,14 @@ export default function EditParagonTicketPage() {
         setHasUnsavedChanges(false)
         router.push("/special-case/paragon")
       } else {
-        const errorData = await response.json()
-        toast.error("Failed to update ticket", {
-          description: errorData.error || "An error occurred"
-        })
+        let description = "An error occurred"
+        try {
+          const errorData = await response.json()
+          description = errorData.error || description
+        } catch {
+          if (response.status === 413) description = "Request too large. Try using smaller images for signature and screenshot."
+        }
+        toast.error("Failed to update ticket", { description })
       }
     } catch (error) {
       console.error("Error updating ticket:", error)
@@ -901,7 +917,7 @@ export default function EditParagonTicketPage() {
                 <h3 className="text-lg font-semibold">Basic Information</h3>
                 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={companyRef}>
                     <Label>Company <span className="text-destructive">*</span></Label>
                     <Select value={selectedCompanyId} onValueChange={(value) => {
                       setSelectedCompanyId(value)
@@ -923,7 +939,7 @@ export default function EditParagonTicketPage() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={productionDateRef}>
                     <Label>Production Date <span className="text-destructive">*</span></Label>
                     <DatePicker date={productionDate} onDateChange={(date) => {
                       setProductionDate(date)
@@ -936,7 +952,7 @@ export default function EditParagonTicketPage() {
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={quotationDateRef}>
                     <Label>Quotation Date <span className="text-destructive">*</span></Label>
                     <DatePicker date={quotationDate} onDateChange={(date) => {
                       setQuotationDate(date)
@@ -947,7 +963,7 @@ export default function EditParagonTicketPage() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={invoiceBastDateRef}>
                     <Label>Invoice / BAST Date <span className="text-destructive">*</span></Label>
                     <DatePicker date={invoiceBastDate} onDateChange={(date) => {
                       setInvoiceBastDate(date)
@@ -959,7 +975,7 @@ export default function EditParagonTicketPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2" ref={billToRef}>
                   <Label>Bill To <span className="text-destructive">*</span></Label>
                   <Input
                     value={billTo}
@@ -977,8 +993,8 @@ export default function EditParagonTicketPage() {
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Contact Person <span className="text-destructive">*</span></Label>
+                  <div className="space-y-2" ref={contactPersonRef}>
+                    <Label>Contact Person (Quotation) <span className="text-destructive">*</span></Label>
                     <Input
                       value={contactPerson}
                       onChange={(e) => {
@@ -986,7 +1002,7 @@ export default function EditParagonTicketPage() {
                         if (errors.contactPerson) validateField("contactPerson", e.target.value)
                       }}
                       onBlur={(e) => validateField("contactPerson", e.target.value)}
-                      placeholder="Enter contact person name"
+                      placeholder="Enter contact person for quotation"
                       error={!!errors.contactPerson}
                     />
                     {errors.contactPerson && (
@@ -994,8 +1010,8 @@ export default function EditParagonTicketPage() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Position <span className="text-destructive">*</span></Label>
+                  <div className="space-y-2" ref={contactPositionRef}>
+                    <Label>Position (Quotation) <span className="text-destructive">*</span></Label>
                     <Input
                       value={contactPosition}
                       onChange={(e) => {
@@ -1003,12 +1019,31 @@ export default function EditParagonTicketPage() {
                         if (errors.contactPosition) validateField("contactPosition", e.target.value)
                       }}
                       onBlur={(e) => validateField("contactPosition", e.target.value)}
-                      placeholder="Enter position/title"
+                      placeholder="Enter position for quotation"
                       error={!!errors.contactPosition}
                     />
                     {errors.contactPosition && (
                       <p className="text-sm text-destructive">{errors.contactPosition}</p>
                     )}
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Contact Person (BAST / Invoice)</Label>
+                    <Input
+                      value={bastContactPerson}
+                      onChange={(e) => setBastContactPerson(e.target.value)}
+                      placeholder="Leave blank to use same as quotation"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Position (BAST / Invoice)</Label>
+                    <Input
+                      value={bastContactPosition}
+                      onChange={(e) => setBastContactPosition(e.target.value)}
+                      placeholder="Leave blank to use same as quotation"
+                    />
                   </div>
                 </div>
 
@@ -1081,7 +1116,7 @@ export default function EditParagonTicketPage() {
                 <h3 className="text-lg font-semibold">Signature Information</h3>
                 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="space-y-2" ref={signatureRef}>
                     <Label>Signature <span className="text-destructive">*</span></Label>
                     <Select value={selectedSignatureId} onValueChange={(value) => {
                       setSelectedSignatureId(value)
@@ -1109,13 +1144,11 @@ export default function EditParagonTicketPage() {
                       setPph(value)
                     }}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select PPh" />
+                        <span className="truncate text-left">{PPH_OPTIONS.find((o) => o.value === pph)?.label ?? "Select PPh"}</span>
                       </SelectTrigger>
                       <SelectContent>
                         {PPH_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
+                          <SelectItem key={option.value} value={option.value}>{option.label.trim()}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

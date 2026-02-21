@@ -187,6 +187,8 @@ export async function POST(request: Request) {
           billTo: uniqueBillTo,
           contactPerson: body.contactPerson || (isDraft ? "" : body.contactPerson),
           contactPosition: body.contactPosition || (isDraft ? "" : body.contactPosition),
+          bastContactPerson: body.bastContactPerson || null,
+          bastContactPosition: body.bastContactPosition || null,
           signatureName: body.signatureName || (isDraft ? "" : body.signatureName),
           signatureRole: body.signatureRole || null,
           signatureImageData: body.signatureImageData || (isDraft ? "" : body.signatureImageData),
@@ -251,8 +253,18 @@ export async function POST(request: Request) {
     return NextResponse.json(ticket, { status: 201 })
   } catch (error) {
     console.error("Error creating paragon ticket:", error)
+    const message = error instanceof Error ? error.message : String(error)
+    const isPayloadTooLarge =
+      message.includes("body") ||
+      message.includes("payload") ||
+      message.includes("size") ||
+      message.includes("413") ||
+      message.includes("limit")
+    const userMessage = isPayloadTooLarge
+      ? "Request too large. Try using smaller images for signature and screenshot."
+      : message || "Failed to create paragon ticket"
     return NextResponse.json(
-      { error: "Failed to create paragon ticket" },
+      { error: userMessage },
       { status: 500 }
     )
   }

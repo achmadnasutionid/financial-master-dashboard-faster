@@ -118,6 +118,8 @@ export async function PUT(
           billTo: uniqueBillTo,
           contactPerson: body.contactPerson,
           contactPosition: body.contactPosition,
+          bastContactPerson: body.bastContactPerson ?? null,
+          bastContactPosition: body.bastContactPosition ?? null,
           signatureName: body.signatureName,
           signatureRole: body.signatureRole || null,
           signatureImageData: body.signatureImageData,
@@ -355,8 +357,18 @@ export async function PUT(
     return NextResponse.json(ticket)
   } catch (error) {
     console.error("Error updating paragon ticket:", error)
+    const message = error instanceof Error ? error.message : String(error)
+    const isPayloadTooLarge =
+      message.includes("body") ||
+      message.includes("payload") ||
+      message.includes("size") ||
+      message.includes("413") ||
+      message.includes("limit")
+    const userMessage = isPayloadTooLarge
+      ? "Request too large. Try using smaller images for signature and screenshot."
+      : message || "Failed to update paragon ticket"
     return NextResponse.json(
-      { error: "Failed to update paragon ticket" },
+      { error: userMessage },
       { status: 500 }
     )
   }

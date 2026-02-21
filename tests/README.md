@@ -1,81 +1,29 @@
 # Testing Guide
 
-## ✅ Complete Test Coverage - 55 Tests
+## ✅ Critical Integration Tests
 
-All critical features for Quotation, Invoice, Auto-Save, and PDF Generation are now tested!
+Critical features for Quotation, PDFs, Paragon/Erha, and data safety are covered.
 
 ```bash
 npm run test:critical  # Run before every deployment!
 ```
 
-## Test Results
+## Test Files (critical)
 
-```
-✓ tests/critical/transaction-safety.test.ts (2 tests) 1.3s
-✓ tests/critical/optimistic-locking.test.ts (5 tests) 0.8s  
-✓ tests/critical/performance.test.ts (3 tests) 2.0s
-✓ tests/critical/all-endpoints.test.ts (3 tests) 2.0s
-✓ tests/critical/quotation-flow.test.ts (12 tests) 3.4s
-✓ tests/critical/invoice-flow.test.ts (11 tests) 2.9s
-✓ tests/critical/auto-save.test.ts (10 tests) 3.0s         ← Updated!
-✓ tests/critical/pdf-generation.test.ts (9 tests) 4.5s
-
-Test Files  8 passed (8)
-Tests  55 passed (55) ✅
-Duration  ~20 seconds
-```
+- `tests/critical/adjustment-persistence.test.ts` – Quotation adjustmentPercentage / adjustmentNotes persist and update
+- `tests/critical/optimistic-locking.test.ts` – Concurrent edit detection (Quotation)
+- `tests/critical/pdf-generation.test.tsx` – Quotation/Invoice PDFs + **BAST PDF (Paragon/Erha)** contact fallback
+- `tests/critical/paragon-erha-persistence.test.ts` – **Paragon & Erha**: bastContactPerson, bastContactPosition, adjustmentPercentage, adjustmentNotes (create + update, allow null)
 
 ## Test Categories
 
-### 🔴 CRITICAL: Data Safety (10 tests)
-- Transaction rollback (2 tests)
-- Optimistic locking (5 tests)
-- Safe patterns all endpoints (3 tests)
+### 🔴 CRITICAL: Data safety
+- **Optimistic locking** – concurrent edit detection (optimistic-locking.test.ts)
 
-### 🟡 HIGH: Performance (3 tests)
-- Large updates < 2 seconds
-- Bulk operations efficiency
+### 🔴 CRITICAL: Adjustment persistence
+- **Quotation** – adjustmentPercentage, adjustmentNotes (adjustment-persistence.test.ts)
 
-### 🔴 CRITICAL: Quotation Complete Flow (12 tests)
-1. ✅ Create with all basic fields
-2. ✅ Create with items + nested details
-3. ✅ Create with remarks (ordered)
-4. ✅ Create with custom signatures (multiple)
-5. ✅ Update basic fields
-6. ✅ UPSERT items (add/update/delete)
-7. ✅ Reorder items and remarks
-8. ✅ Status changes (draft→pending→accepted)
-9. ✅ Delete with cascade
-10. ✅ PPH calculations (0%, 2%)
-11. ✅ Custom summary order
-12. ✅ Handle optional/null fields
-
-### 🔴 CRITICAL: Invoice Complete Flow (11 tests)
-1. ✅ Create with all basic fields
-2. ✅ Create with items + nested details
-3. ✅ Create with remarks (ordered)
-4. ✅ Create with custom signatures
-5. ✅ Update status and paid date
-6. ✅ UPSERT items (add/update/delete)
-7. ✅ Link to planning
-8. ✅ Delete with cascade
-9. ✅ Link to expense
-10. ✅ Status flow (draft→pending→paid)
-11. ✅ Handle optional/null fields
-
-### 🔴 CRITICAL: Smart Auto-Save (10 tests)
-1. ✅ Mandatory field validation (skips when missing)
-2. ✅ Successful save with all fields filled
-3. ✅ Rate limiting (min 10s between saves)
-4. ✅ Optimistic locking (concurrent edit detection)
-5. ✅ Always saves as "draft" status
-6. ✅ Complex save with items + remarks (UPSERT)
-7. ✅ Performance test (< 2s for 10 items)
-8. ✅ Planning auto-save (3 mandatory fields)
-9. ✅ Expense auto-save (2 mandatory fields)
-10. ✅ Validation for all page types
-
-### 🔴 CRITICAL: PDF Generation (9 tests)
+### 🔴 CRITICAL: PDF Generation (Quotation + BAST)
 1. ✅ Generate valid PDF bytes (quotation)
 2. ✅ PDF structure validation (has required sections)
 3. ✅ Render items with nested details
@@ -85,32 +33,20 @@ Duration  ~20 seconds
 7. ✅ Performance (< 3s for 20 items)
 8. ✅ Handle optional fields gracefully
 9. ✅ PDF file format validation (%PDF header)
+10. ✅ **Paragon BAST PDF** – contact fallback (quotation contact when bastContact null; BAST contact when set)
+11. ✅ **Erha BAST PDF** – same contact fallback behaviour
 
-## Hidden Features Tested
+### 🔴 CRITICAL: Paragon & Erha persistence
+1. ✅ **Paragon** – bastContactPerson, bastContactPosition, adjustmentPercentage, adjustmentNotes (create + update, clear to null)
+2. ✅ **Erha** – same fields and behaviour
 
-These are features you might forget to test manually:
+## Hidden features covered
 
-- ✅ Cascade deletion (delete parent → children auto-deleted)
-- ✅ Order preservation (items, remarks, signatures stay in order)
-- ✅ Nested relations (items have details)
-- ✅ Optional fields (null values handled correctly)
-- ✅ Status transitions (can't skip steps)
-- ✅ PPH calculations (different rates)
-- ✅ Custom summary order (reorderable)
-- ✅ Multiple signatures (not just one)
-- ✅ Remarks with completion status
-- ✅ Foreign key relationships (planning → invoice → expense)
-- ✅ Batch operations work correctly
-- ✅ Transactions are atomic
-- ✅ **Auto-save validation (mandatory fields)** ⭐
-- ✅ **Auto-save rate limiting (prevents spam)** ⭐
-- ✅ **Auto-save optimistic locking (detects conflicts)** ⭐
-- ✅ **Auto-save UPSERT (updates existing data safely)** ⭐
-- ✅ **PDF generation (creates valid PDFs)** ⭐
-- ✅ **PDF structure (all sections rendered)** ⭐
-- ✅ **PDF calculations (PPH, totals accurate)** ⭐
-- ✅ **PDF nested data (items, details, remarks)** ⭐
-- ✅ **PDF performance (fast generation)** ⭐
+- ✅ **Optimistic locking** – concurrent edit detection
+- ✅ **Adjustment fields** – Quotation (and Paragon/Erha) percentage + notes
+- ✅ **PDF generation** – valid bytes, structure, items/remarks/signatures, PPH, optional fields
+- ✅ **BAST PDF contact fallback** – Paragon/Erha use quotation contact when BAST contact not set
+- ✅ **Paragon & Erha** – bastContactPerson, bastContactPosition, adjustmentPercentage, adjustmentNotes (create, update, clear to null)
 
 ## Available Commands
 
@@ -149,15 +85,15 @@ npm test invoice-flow
 4. **Re-run tests** - Verify fix works
 5. **DO NOT deploy** until all pass ✅
 
-## Example: If "FEATURE 6: UPSERT items" fails
+## Example: If a test fails
 
 ```
-❌ FAIL  tests/critical/quotation-flow.test.ts > FEATURE 6
-Expected: 2 items (1 updated + 1 new)
-Received: 1 item
+❌ FAIL  tests/critical/paragon-erha-persistence.test.ts > Paragon ticket > should persist...
+Expected: 'BAST Contact'
+Received: null
 
-→ Issue: Items not being created correctly
-→ Fix: Check createMany logic in API route
+→ Issue: bastContactPerson not saved on create
+→ Fix: Check Paragon create API / Prisma schema
 → Rerun: npm run test:critical
 → ✅ Pass → Safe to deploy
 ```
@@ -176,7 +112,7 @@ Received: 1 item
 ## Confidence Level
 
 **Before:** 20% confidence (manual testing only)
-**After:** 95% confidence (36 automated tests)
+**After:** High confidence (critical paths covered by integration tests)
 
 ## Adding New Tests
 
@@ -208,24 +144,19 @@ it('FEATURE 13: Should handle discount field', async () => {
 ## Troubleshooting
 
 ### Tests are slow
-- Normal for integration tests (they use real DB)
-- 12 seconds for 36 tests is actually fast!
+- Normal for integration tests (they use real DB and migrations)
 
 ### Tests fail randomly
 - Check database connection
 - Ensure proper cleanup (afterAll hooks)
 
 ### Connection errors
-- Verify DATABASE_URL in .env
+- Tests use `.env.test` (see `npm run test:critical`). Verify DATABASE_URL points to a **test** DB (setup truncates tables).
 - Check if PostgreSQL is running
 
 ## Files
 
-- `tests/critical/transaction-safety.test.ts` - Data loss prevention
+- `tests/critical/adjustment-persistence.test.ts` - Quotation adjustment fields
 - `tests/critical/optimistic-locking.test.ts` - Concurrent edits
-- `tests/critical/performance.test.ts` - Speed tests
-- `tests/critical/all-endpoints.test.ts` - Pattern verification
-- `tests/critical/quotation-flow.test.ts` - **All quotation features** ⭐
-- `tests/critical/invoice-flow.test.ts` - **All invoice features** ⭐
-- `tests/critical/auto-save.test.ts` - **Smart auto-save features** ⭐
-- `tests/critical/pdf-generation.test.ts` - **PDF generation features** ⭐
+- `tests/critical/pdf-generation.test.tsx` - **Quotation/Invoice + BAST PDF (Paragon/Erha)** ⭐
+- `tests/critical/paragon-erha-persistence.test.ts` - **Paragon & Erha BAST contact + adjustment** ⭐

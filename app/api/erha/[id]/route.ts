@@ -119,6 +119,8 @@ export async function PUT(
           billToAddress: body.billToAddress || "",
           contactPerson: body.contactPerson,
           contactPosition: body.contactPosition,
+          bastContactPerson: body.bastContactPerson ?? null,
+          bastContactPosition: body.bastContactPosition ?? null,
           billingName: body.billingName,
           billingBankName: body.billingBankName,
           billingBankAccount: body.billingBankAccount,
@@ -362,8 +364,18 @@ export async function PUT(
     return NextResponse.json(ticket)
   } catch (error) {
     console.error("Error updating erha ticket:", error)
+    const message = error instanceof Error ? error.message : String(error)
+    const isPayloadTooLarge =
+      message.includes("body") ||
+      message.includes("payload") ||
+      message.includes("size") ||
+      message.includes("413") ||
+      message.includes("limit")
+    const userMessage = isPayloadTooLarge
+      ? "Request too large. Try using smaller images for signature and screenshot."
+      : message || "Failed to update erha ticket"
     return NextResponse.json(
-      { error: "Failed to update erha ticket" },
+      { error: userMessage },
       { status: 500 }
     )
   }

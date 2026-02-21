@@ -16,6 +16,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { QuotationPDF } from '@/components/pdf/quotation-pdf'
 import { InvoicePDF } from '@/components/pdf/invoice-pdf'
+import { ParagonBASTPDF } from '@/components/pdf/paragon-bast-pdf'
+import { ErhaBASTPDF } from '@/components/pdf/erha-bast-pdf'
 import { prisma } from '@/lib/prisma'
 import { 
   createTestCompany, 
@@ -629,6 +631,85 @@ describe('PDF Generation Integration Tests', () => {
 
       // Cleanup
       await prisma.quotation.delete({ where: { id: quotation.id } })
+    })
+  })
+
+  describe('6. BAST PDF (Paragon / Erha) – contact fallback', () => {
+    const baseBastData = {
+      ticketId: 'PRG-TEST-001',
+      quotationId: 'QTN-TEST-001',
+      invoiceId: 'INV-TEST-001',
+      companyName: 'Test Co',
+      companyAddress: 'Jl. Test',
+      companyCity: 'Jakarta',
+      companyProvince: 'DKI Jakarta',
+      invoiceBastDate: new Date().toISOString(),
+      billTo: 'Client',
+      productionDate: new Date().toISOString(),
+      signatureName: 'Director',
+      signatureImageData: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      pph: '2',
+      totalAmount: 10_000_000,
+      items: [] as Array<{ productName: string; total: number; details: Array<{ detail: string; unitPrice: number; qty: number; amount: number }> }>,
+      updatedAt: new Date().toISOString(),
+    }
+
+    it('Paragon BAST PDF should use quotation contact when bastContact is not set', async () => {
+      const data = {
+        ...baseBastData,
+        contactPerson: 'Quotation Contact Name',
+        contactPosition: 'Quotation Position',
+        bastContactPerson: null as string | null,
+        bastContactPosition: null as string | null,
+      }
+      const pdfBuffer = await renderToBuffer(<ParagonBASTPDF data={data} />)
+      const pdfText = pdfBuffer.toString('utf8')
+      expect(pdfBuffer.length).toBeGreaterThan(0)
+      expect(pdfText).toContain('Quotation Contact Name')
+    })
+
+    it('Paragon BAST PDF should use BAST contact when set', async () => {
+      const data = {
+        ...baseBastData,
+        contactPerson: 'Quotation Contact',
+        contactPosition: 'Quotation Position',
+        bastContactPerson: 'BAST Contact Name',
+        bastContactPosition: 'BAST Position',
+      }
+      const pdfBuffer = await renderToBuffer(<ParagonBASTPDF data={data} />)
+      const pdfText = pdfBuffer.toString('utf8')
+      expect(pdfBuffer.length).toBeGreaterThan(0)
+      expect(pdfText).toContain('BAST Contact Name')
+    })
+
+    it('Erha BAST PDF should use quotation contact when bastContact is not set', async () => {
+      const data = {
+        ...baseBastData,
+        ticketId: 'ERH-TEST-001',
+        contactPerson: 'Erha Quotation Contact',
+        contactPosition: 'Quotation Position',
+        bastContactPerson: null as string | null,
+        bastContactPosition: null as string | null,
+      }
+      const pdfBuffer = await renderToBuffer(<ErhaBASTPDF data={data} />)
+      const pdfText = pdfBuffer.toString('utf8')
+      expect(pdfBuffer.length).toBeGreaterThan(0)
+      expect(pdfText).toContain('Erha Quotation Contact')
+    })
+
+    it('Erha BAST PDF should use BAST contact when set', async () => {
+      const data = {
+        ...baseBastData,
+        ticketId: 'ERH-TEST-002',
+        contactPerson: 'Erha Quotation',
+        contactPosition: 'Quotation',
+        bastContactPerson: 'Erha BAST Contact Name',
+        bastContactPosition: 'BAST Role',
+      }
+      const pdfBuffer = await renderToBuffer(<ErhaBASTPDF data={data} />)
+      const pdfText = pdfBuffer.toString('utf8')
+      expect(pdfBuffer.length).toBeGreaterThan(0)
+      expect(pdfText).toContain('Erha BAST Contact Name')
     })
   })
 })

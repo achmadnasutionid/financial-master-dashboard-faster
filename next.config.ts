@@ -33,9 +33,9 @@ const nextConfig: NextConfig = {
       '@tiptap/starter-kit',
     ],
     
-    // Enable Server Actions (if you plan to use them)
+    // Enable Server Actions and larger body for API routes (e.g. Paragon/Erha with signature + screenshot images)
     serverActions: {
-      bodySizeLimit: '2mb',
+      bodySizeLimit: '20mb',
     },
     
     // Optimize CSS - reduces CSS bundle size
