@@ -1,0 +1,173 @@
+import { NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
+
+/**
+ * GET quotation list including Paragon and Erha tickets (same list, source badge + link to ticket view).
+ * Query: status, sortBy, page, limit, search, includeTickets (default true).
+ */
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const status = searchParams.get("status") || "all"
+    const sortBy = searchParams.get("sortBy") || "newest"
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"))
+    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "20")))
+    const search = (searchParams.get("search") || "").trim()
+
+    const orderBy = sortBy === "oldest" ? "asc" as const : "desc" as const
+    const takePerSource = page * limit
+
+    // Quotation where
+    const qWhere: any = { deletedAt: null }
+    if (status !== "all") qWhere.status = status
+    if (search) {
+      qWhere.OR = [
+        { quotationId: { contains: search, mode: "insensitive" } },
+        { companyName: { contains: search, mode: "insensitive" } },
+        { billTo: { contains: search, mode: "insensitive" } }
+      ]
+    }
+
+    // Paragon/Erha: map "accepted" -> "final"
+    const ticketStatus = status === "accepted" ? "final" : status
+    const ticketWhere: any = { deletedAt: null }
+    if (ticketStatus !== "all") ticketWhere.status = ticketStatus
+    if (search) {
+      ticketWhere.OR = [
+        { quotationId: { contains: search, mode: "insensitive" } },
+        { invoiceId: { contains: search, mode: "insensitive" } },
+        { companyName: { contains: search, mode: "insensitive" } },
+        { billTo: { contains: search, mode: "insensitive" } }
+      ]
+    }
+
+    const [quotations, paragonTickets, erhaTickets, totalQ, totalP, totalE] = await Promise.all([
+      prisma.quotation.findMany({
+        where: qWhere,
+        select: {
+          id: true,
+          quotationId: true,
+          billTo: true,
+          productionDate: true,
+          totalAmount: true,
+          status: true,
+          generatedInvoiceId: true,
+          updatedAt: true
+        },
+        orderBy: { updatedAt: orderBy },
+        take: takePerSource
+      }),
+      prisma.paragonTicket.findMany({
+        where: ticketWhere,
+        select: {
+          id: true,
+          quotationId: true,
+          billTo: true,
+          productionDate: true,
+          totalAmount: true,
+          status: true,
+          generatedInvoiceId: true,
+          updatedAt: true
+        },
+        orderBy: { updatedAt: orderBy },
+        take: takePerSource
+      }),
+      prisma.erhaTicket.findMany({
+        where: ticketWhere,
+        select: {
+          id: true,
+          quotationId: true,
+          billTo: true,
+          productionDate: true,
+          totalAmount: true,
+          status: true,
+          generatedInvoiceId: true,
+          updatedAt: true
+        },
+        orderBy: { updatedAt: orderBy },
+        take: takePerSource
+      }),
+      prisma.quotation.count({ where: qWhere }),
+      prisma.paragonTicket.count({ where: ticketWhere }),
+      prisma.erhaTicket.count({ where: ticketWhere })
+    ])
+
+    type Row = {
+      source: "quotation" | "paragon" | "erha"
+      id: string
+      documentId: string
+      billTo: string
+      productionDate: Date
+      totalAmount: number
+      status: string
+      updatedAt: Date
+      viewHref: string
+      generatedInvoiceId?: string | null
+    }
+
+    const rows: Row[] = [
+      ...quotations.map((q) => ({
+        source: "quotation" as const,
+        id: q.id,
+        documentId: q.quotationId,
+        billTo: q.billTo,
+        productionDate: q.productionDate,
+        totalAmount: q.totalAmount,
+        status: q.status,
+        updatedAt: q.updatedAt,
+        viewHref: `/quotation/${q.id}/view`,
+        generatedInvoiceId: q.generatedInvoiceId
+      })),
+      ...paragonTickets.map((t) => ({
+        source: "paragon" as const,
+        id: t.id,
+        documentId: t.quotationId || t.id,
+        billTo: t.billTo,
+        productionDate: t.productionDate,
+        totalAmount: t.totalAmount,
+        status: t.status,
+        updatedAt: t.updatedAt,
+        viewHref: `/special-case/paragon/${t.id}/view`,
+        generatedInvoiceId: t.generatedInvoiceId
+      })),
+      ...erhaTickets.map((t) => ({
+        source: "erha" as const,
+        id: t.id,
+        documentId: t.quotationId || t.id,
+        billTo: t.billTo,
+        productionDate: t.productionDate,
+        totalAmount: t.totalAmount,
+        status: t.status,
+        updatedAt: t.updatedAt,
+        viewHref: `/special-case/erha/${t.id}/view`,
+        generatedInvoiceId: t.generatedInvoiceId
+      }))
+    ]
+
+    rows.sort((a, b) =>
+      orderBy === "desc"
+        ? b.updatedAt.getTime() - a.updatedAt.getTime()
+        : a.updatedAt.getTime() - b.updatedAt.getTime()
+    )
+
+    const total = totalQ + totalP + totalE
+    const start = (page - 1) * limit
+    const data = rows.slice(start, start + limit)
+
+    return NextResponse.json({
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
+  } catch (error) {
+    console.error("Error fetching quotation list with tickets:", error)
+    return NextResponse.json(
+      { error: "Failed to fetch list" },
+      { status: 500 }
+    )
+  }
+}

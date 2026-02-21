@@ -32,22 +32,31 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-interface Quotation {
-  id: string
-  quotationId: string
-  companyName: string
-  billTo: string
-  productionDate: string
-  totalAmount: number
-  status: string
-  generatedInvoiceId?: string
-  createdAt: string
-  updatedAt: string
-  items: {
-    productName: string
-    total: number
-  }[]
-}
+type QuotationListItem =
+  | {
+      source: "quotation"
+      id: string
+      documentId: string
+      billTo: string
+      productionDate: string
+      totalAmount: number
+      status: string
+      updatedAt: string
+      viewHref: string
+      generatedInvoiceId?: string | null
+    }
+  | {
+      source: "paragon" | "erha"
+      id: string
+      documentId: string
+      billTo: string
+      productionDate: string
+      totalAmount: number
+      status: string
+      updatedAt: string
+      viewHref: string
+      generatedInvoiceId?: string | null
+    }
 
 function QuotationPageContent() {
   const router = useRouter()
@@ -62,7 +71,7 @@ function QuotationPageContent() {
     return "all"
   })()
   
-  const [quotations, setQuotations] = useState<Quotation[]>([])
+  const [quotations, setQuotations] = useState<QuotationListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus)
@@ -100,19 +109,13 @@ function QuotationPageContent() {
       params.append("limit", ITEMS_PER_PAGE.toString())
       if (debouncedSearchQuery.trim()) params.append("search", debouncedSearchQuery.trim())
 
-      const response = await fetch(`/api/quotation?${params}`, { cache: 'no-store' })
+      const response = await fetch(`/api/quotation/list-with-tickets?${params}`, { cache: "no-store" })
       if (response.ok) {
         const result = await response.json()
-        // Handle both old format (array) and new format (object with data)
-        if (Array.isArray(result)) {
-          setQuotations(result)
-          setTotalPages(1)
-          setTotalItems(result.length)
-        } else {
-          setQuotations(result.data || [])
-          setTotalPages(result.pagination?.totalPages || 1)
-          setTotalItems(result.pagination?.total || 0)
-        }
+        const data = result.data || []
+        setQuotations(data)
+        setTotalPages(result.pagination?.totalPages || 1)
+        setTotalItems(result.pagination?.total || 0)
       }
     } catch (error) {
       console.error("Error fetching quotations:", error)
@@ -427,97 +430,113 @@ function QuotationPageContent() {
               </div>
 
               {/* Data Rows */}
-              {quotations.map((quotation) => {
+              {quotations.map((row) => {
+                const isQuotation = row.source === "quotation"
+                const productionDateStr = typeof row.productionDate === "string" ? row.productionDate : (row.productionDate as Date)?.toISOString?.() ?? ""
                 return (
-                  <Card key={quotation.id} className="transition-all hover:shadow-md">
+                  <Card key={`${row.source}-${row.id}`} className="transition-all hover:shadow-md">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between gap-4">
-                        {/* Left: ID - Bill To */}
+                        {/* Left: Source badge (Paragon/Erha) + ID - Bill To */}
                         <div className="flex items-center gap-2 min-w-0 flex-1">
+                          {row.source !== "quotation" && (
+                            <span
+                              className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+                                row.source === "paragon"
+                                  ? "bg-sky-100 text-sky-700 dark:bg-sky-900 dark:text-sky-100"
+                                  : "bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-100"
+                              }`}
+                            >
+                              {row.source}
+                            </span>
+                          )}
                           <span className="font-semibold text-sm whitespace-nowrap">
-                            {quotation.quotationId}
+                            {row.documentId}
                           </span>
                           <span className="text-muted-foreground">-</span>
                           <span className="font-medium text-sm truncate">
-                            {quotation.billTo}
+                            {row.billTo}
                           </span>
                         </div>
 
                         {/* Middle: Status, Production Date, Total Amount */}
                         <div className="hidden lg:flex items-center gap-4">
-                          <div style={{ width: '100px' }}>
+                          <div style={{ width: "100px" }}>
                             <span
                               className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap ${
-                                quotation.status === "accepted"
+                                row.status === "accepted" || row.status === "final"
                                   ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100"
-                                  : quotation.status === "pending"
+                                  : row.status === "pending"
                                   ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100"
                                   : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-100"
                               }`}
                             >
-                              {quotation.status.toUpperCase()}
+                              {row.status.toUpperCase()}
                             </span>
                           </div>
-                          <div className="text-sm font-medium" style={{ width: '90px' }}>
-                            {new Date(quotation.productionDate).toLocaleDateString('en-GB')}
+                          <div className="text-sm font-medium" style={{ width: "90px" }}>
+                            {productionDateStr ? new Date(productionDateStr).toLocaleDateString("en-GB") : "—"}
                           </div>
-                          <div className="text-sm font-semibold text-right" style={{ width: '125px' }}>
-                            {formatCurrency(quotation.totalAmount)}
+                          <div className="text-sm font-semibold text-right" style={{ width: "125px" }}>
+                            {formatCurrency(row.totalAmount)}
                           </div>
                         </div>
 
                         {/* Right: Action Buttons */}
-                        <div className="flex items-center gap-1 justify-end" style={{ width: '220px' }}>
-                          {quotation.status === "pending" && (
+                        <div className="flex items-center gap-1 justify-end" style={{ width: "220px" }}>
+                          {isQuotation && row.status === "pending" && (
                             <Button
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                              onClick={() => setAcceptDialogId(quotation.id)}
-                              disabled={accepting === quotation.id}
+                              onClick={() => setAcceptDialogId(row.id)}
+                              disabled={accepting === row.id}
                             >
                               <CheckCircle className="h-4 w-4" />
                             </Button>
                           )}
-                          {quotation.status === "accepted" && (
+                          {isQuotation && row.status === "accepted" && (
                             <Button
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                               onClick={() => {
-                                if (quotation.generatedInvoiceId) {
-                                  handleViewInvoice(quotation.id, quotation.generatedInvoiceId)
+                                if (row.generatedInvoiceId) {
+                                  handleViewInvoice(row.id, row.generatedInvoiceId)
                                 } else {
-                                  setGenerateInvoiceDialogId(quotation.id)
+                                  setGenerateInvoiceDialogId(row.id)
                                 }
                               }}
-                              disabled={generatingInvoice === quotation.id}
+                              disabled={generatingInvoice === row.id}
                             >
                               <FileText className="h-4 w-4" />
                             </Button>
                           )}
-                          <Link href={`/quotation/${quotation.id}/view`}>
+                          <Link href={row.viewHref}>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
                               <Eye className="h-4 w-4" />
                             </Button>
                           </Link>
-                          {quotation.status !== "accepted" && (
-                            <Link href={`/quotation/${quotation.id}/edit`}>
+                          {isQuotation && row.status !== "accepted" && (
+                            <Link href={`/quotation/${row.id}/edit`}>
                               <Button variant="ghost" size="icon" className="h-8 w-8">
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             </Link>
                           )}
-                          {/* Separator */}
-                          <div className="h-8 w-px bg-border mx-1" />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteId(quotation.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {isQuotation && (
+                            <>
+                              <div className="h-8 w-px bg-border mx-1" />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                                onClick={() => setDeleteId(row.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </CardContent>

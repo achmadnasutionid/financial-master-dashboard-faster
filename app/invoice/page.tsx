@@ -32,22 +32,31 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-interface Invoice {
-  id: string
-  invoiceId: string
-  companyName: string
-  billTo: string
-  productionDate: string
-  totalAmount: number
-  status: string
-  generatedExpenseId?: string
-  createdAt: string
-  updatedAt: string
-  items: {
-    productName: string
-    total: number
-  }[]
-}
+type InvoiceListItem =
+  | {
+      source: "invoice"
+      id: string
+      documentId: string
+      billTo: string
+      productionDate: string
+      totalAmount: number
+      status: string
+      updatedAt: string
+      viewHref: string
+      generatedExpenseId?: string | null
+    }
+  | {
+      source: "paragon" | "erha"
+      id: string
+      documentId: string
+      billTo: string
+      productionDate: string
+      totalAmount: number
+      status: string
+      updatedAt: string
+      viewHref: string
+      generatedExpenseId?: string | null
+    }
 
 function InvoicePageContent() {
   const router = useRouter()
@@ -62,7 +71,7 @@ function InvoicePageContent() {
     return "all"
   })()
   
-  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [invoices, setInvoices] = useState<InvoiceListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus)
@@ -98,18 +107,13 @@ function InvoicePageContent() {
       params.append("limit", ITEMS_PER_PAGE.toString())
       if (debouncedSearchQuery.trim()) params.append("search", debouncedSearchQuery.trim())
 
-      const response = await fetch(`/api/invoice?${params}`, { cache: 'no-store' })
+      const response = await fetch(`/api/invoice/list-with-tickets?${params}`, { cache: "no-store" })
       if (response.ok) {
         const result = await response.json()
-        if (Array.isArray(result)) {
-          setInvoices(result)
-          setTotalPages(1)
-          setTotalItems(result.length)
-        } else {
-          setInvoices(result.data || [])
-          setTotalPages(result.pagination?.totalPages || 1)
-          setTotalItems(result.pagination?.total || 0)
-        }
+        const data = result.data || []
+        setInvoices(data)
+        setTotalPages(result.pagination?.totalPages || 1)
+        setTotalItems(result.pagination?.total || 0)
       }
     } catch (error) {
       console.error("Error fetching invoices:", error)
@@ -417,90 +421,106 @@ function InvoicePageContent() {
               </div>
 
               {/* Data Rows */}
-              {invoices.map((Invoice) => {
+              {invoices.map((row) => {
+                const isInvoice = row.source === "invoice"
+                const productionDateStr = typeof row.productionDate === "string" ? row.productionDate : (row.productionDate as Date)?.toISOString?.() ?? ""
                 return (
-                  <Card key={Invoice.id} className="transition-all hover:shadow-md">
+                  <Card key={`${row.source}-${row.id}`} className="transition-all hover:shadow-md">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between gap-4">
-                        {/* Left: ID - Bill To */}
+                        {/* Left: Source badge (Paragon/Erha) + ID - Bill To */}
                         <div className="flex items-center gap-2 min-w-0 flex-1">
+                          {row.source !== "invoice" && (
+                            <span
+                              className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+                                row.source === "paragon"
+                                  ? "bg-sky-100 text-sky-700 dark:bg-sky-900 dark:text-sky-100"
+                                  : "bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-100"
+                              }`}
+                            >
+                              {row.source}
+                            </span>
+                          )}
                           <span className="font-semibold text-sm whitespace-nowrap">
-                            {Invoice.invoiceId}
+                            {row.documentId}
                           </span>
                           <span className="text-muted-foreground">-</span>
                           <span className="font-medium text-sm truncate">
-                            {Invoice.billTo}
+                            {row.billTo}
                           </span>
                         </div>
 
                         {/* Middle: Status, Production Date, Total Amount */}
                         <div className="hidden lg:flex items-center gap-4">
-                          <div style={{ width: '100px' }}>
+                          <div style={{ width: "100px" }}>
                             <span
                               className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap ${
-                                Invoice.status === "paid"
+                                row.status === "paid" || row.status === "final"
                                   ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100"
-                                  : Invoice.status === "pending"
+                                  : row.status === "pending"
                                   ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100"
                                   : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-100"
                               }`}
                             >
-                              {Invoice.status.toUpperCase()}
+                              {row.status.toUpperCase()}
                             </span>
                           </div>
-                          <div className="text-sm font-medium" style={{ width: '90px' }}>
-                            {new Date(Invoice.productionDate).toLocaleDateString('en-GB')}
+                          <div className="text-sm font-medium" style={{ width: "90px" }}>
+                            {productionDateStr ? new Date(productionDateStr).toLocaleDateString("en-GB") : "—"}
                           </div>
-                          <div className="text-sm font-semibold text-right" style={{ width: '125px' }}>
-                            {formatCurrency(Invoice.totalAmount)}
+                          <div className="text-sm font-semibold text-right" style={{ width: "125px" }}>
+                            {formatCurrency(row.totalAmount)}
                           </div>
                         </div>
 
                         {/* Right: Action Buttons */}
-                        <div className="flex items-center gap-1 justify-end" style={{ width: '220px' }}>
-                          {Invoice.status === "pending" && (
+                        <div className="flex items-center gap-1 justify-end" style={{ width: "220px" }}>
+                          {isInvoice && row.status === "pending" && (
                             <Button
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                              onClick={() => setMarkPaidDialogId(Invoice.id)}
-                              disabled={markingPaid === Invoice.id}
+                              onClick={() => setMarkPaidDialogId(row.id)}
+                              disabled={markingPaid === row.id}
                             >
                               <CheckCircle className="h-4 w-4" />
                             </Button>
                           )}
-                          {Invoice.status === "paid" && Invoice.generatedExpenseId && (
+                          {isInvoice && row.status === "paid" && row.generatedExpenseId && (
                             <Button
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                              onClick={() => handleViewExpense(Invoice.id, Invoice.generatedExpenseId!)}
+                              onClick={() => handleViewExpense(row.id, row.generatedExpenseId!)}
                             >
                               <FileText className="h-4 w-4" />
                             </Button>
                           )}
-                          <Link href={`/invoice/${Invoice.id}/view`}>
+                          <Link href={row.viewHref}>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
                               <Eye className="h-4 w-4" />
                             </Button>
                           </Link>
-                          {Invoice.status !== "paid" && (
-                            <Link href={`/invoice/${Invoice.id}/edit`}>
+                          {isInvoice && row.status !== "paid" && (
+                            <Link href={`/invoice/${row.id}/edit`}>
                               <Button variant="ghost" size="icon" className="h-8 w-8">
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             </Link>
                           )}
-                          {/* Separator */}
-                          <div className="h-8 w-px bg-border mx-1" />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteId(Invoice.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {isInvoice && (
+                            <>
+                              <div className="h-8 w-px bg-border mx-1" />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                                onClick={() => setDeleteId(row.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </CardContent>
