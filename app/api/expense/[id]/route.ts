@@ -63,12 +63,16 @@ export async function PUT(
       return NextResponse.json(expense)
     }
 
+    // Validate mandatory fields before starting transaction
+    if (!body.productionDate) {
+      return NextResponse.json(
+        { error: 'Production date is required' },
+        { status: 400 }
+      )
+    }
+
     // Use transaction for atomic updates with UPSERT pattern
     const expense = await prisma.$transaction(async (tx) => {
-      // Validate mandatory fields
-      if (!body.productionDate) {
-        throw new Error('Production date is required')
-      }
 
       // Generate unique project name if there's a conflict
       const uniqueProjectName = body.projectName ? await generateUniqueName(body.projectName, 'expense', id) : body.projectName

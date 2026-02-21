@@ -88,19 +88,22 @@ export default function EditExpensePage() {
     cancelAutoSave
   } = useSmartAutoSave({
     recordId: expenseId,
-    type: 'quotation', // Use quotation type
+    type: 'expense',
     getData: () => {
       if (!projectName.trim() || !productionDate) {
         return null
       }
-      
+      const totalItemBudgeted = items.reduce((sum, item) => sum + (parseFloat(item.budgeted) || 0), 0)
+      const totalItemDifferences = items.reduce((sum, item) => sum + item.difference, 0)
       return {
         projectName: projectName.trim(),
-        productionDate: productionDate.toISOString(),
+        productionDate: productionDate,
         clientBudget: parseFloat(clientBudget) || 0,
         paidAmount: parseFloat(paidAmount) || 0,
         notes: notes.trim() || null,
         status: 'draft', // Always draft for auto-save
+        totalItemBudgeted,
+        totalItemDifferences,
         items: items.map(item => ({
           id: item.id,
           productName: item.productName,
@@ -520,10 +523,15 @@ export default function EditExpensePage() {
   }
 
   const saveExpense = async (status: "draft" | "final") => {
+    if (!productionDate) {
+      toast.error("Production date is required", { description: "Please set a production date before saving." })
+      return
+    }
     setSaving(true)
     try {
       const payload = {
         projectName: projectName.trim(),
+        productionDate: productionDate.toISOString(),
         clientBudget: parseFloat(clientBudget) || 0,
         paidAmount: parseFloat(paidAmount) || 0,
         notes: notes.trim() || null,
