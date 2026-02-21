@@ -245,7 +245,7 @@ export default function ViewErhaTicketPage() {
           <div className="space-y-4">
             <div>
               <h2 className="text-xl font-bold tracking-tight">
-                {ticket.ticketId} - {ticket.billTo}
+                {ticket.ticketId} - {ticket.items?.[0]?.productName?.trim() || ticket.billTo}
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
                 Status: <span className="font-semibold">{ticket.status.toUpperCase()}</span>
@@ -347,7 +347,7 @@ export default function ViewErhaTicketPage() {
               {viewType === 'quotation' && (
                 <PDFDownloadLink
                   document={<ErhaQuotationPDF data={ticket} />}
-                  fileName={`${ticket.quotationId}_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
+                  fileName={`${ticket.quotationId}_${(ticket.items?.[0]?.productName ?? ticket.billTo).replace(/\s+/g, "_")}.pdf`}
                 >
                   {({ loading: pdfLoading }) => (
                     <Button 
@@ -365,7 +365,7 @@ export default function ViewErhaTicketPage() {
               {viewType === 'invoice' && (
                 <PDFDownloadLink
                   document={<ErhaInvoicePDF data={ticket} />}
-                  fileName={`${ticket.invoiceId}_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
+                  fileName={`${ticket.invoiceId}_${(ticket.items?.[0]?.productName ?? ticket.billTo).replace(/\s+/g, "_")}.pdf`}
                 >
                   {({ loading: pdfLoading }) => (
                     <Button 
@@ -383,7 +383,7 @@ export default function ViewErhaTicketPage() {
               {viewType === 'bast' && (
                 <PDFDownloadLink
                   document={<ErhaBASTPDF data={ticket} />}
-                  fileName={`${ticket.ticketId}_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
+                  fileName={`${ticket.ticketId}_${(ticket.items?.[0]?.productName ?? ticket.billTo).replace(/\s+/g, "_")}.pdf`}
                 >
                   {({ loading: pdfLoading }) => (
                     <Button 

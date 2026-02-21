@@ -382,7 +382,7 @@ function ErhaTicketPageContent() {
                     <div className="flex items-start justify-between">
                       <div className="space-y-1">
                         <CardTitle className="text-lg">
-                          {ticket.ticketId} - {ticket.billTo}
+                          {ticket.ticketId} - {ticket.items?.[0]?.productName?.trim() || ticket.billTo}
                         </CardTitle>
                         <div className="flex items-center gap-2">
                           <span

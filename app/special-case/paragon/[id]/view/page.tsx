@@ -113,7 +113,8 @@ export default function ViewParagonTicketPage() {
       const link = document.createElement("a")
       link.href = url
       const docId = viewType === "quotation" ? ticket.quotationId : viewType === "invoice" ? ticket.invoiceId : ticket.ticketId
-      link.download = `${docId}_${ticket.billTo.replace(/\s+/g, "_")}.pdf`
+      const fileLabel = (ticket.items?.[0]?.productName ?? ticket.billTo).replace(/\s+/g, "_")
+      link.download = `${docId}_${fileLabel}.pdf`
       link.click()
       URL.revokeObjectURL(url)
 
@@ -286,7 +287,7 @@ export default function ViewParagonTicketPage() {
           <div className="space-y-4">
             <div>
               <h2 className="text-xl font-bold tracking-tight">
-                {ticket.ticketId} - {ticket.billTo}
+                {ticket.ticketId} - {ticket.items?.[0]?.productName?.trim() || ticket.billTo}
               </h2>
             </div>
             
@@ -393,7 +394,7 @@ export default function ViewParagonTicketPage() {
               {viewType === 'quotation' && (
                 <PDFDownloadLink
                   document={<ParagonQuotationPDF data={ticket} />}
-                  fileName={`${ticket.quotationId}_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
+                  fileName={`${ticket.quotationId}_${(ticket.items?.[0]?.productName ?? ticket.billTo).replace(/\s+/g, "_")}.pdf`}
                 >
                   {({ loading: pdfLoading }) => (
                     <Button 
@@ -410,7 +411,7 @@ export default function ViewParagonTicketPage() {
               {viewType === 'invoice' && (
                 <PDFDownloadLink
                   document={<ParagonInvoicePDF data={ticket} />}
-                  fileName={`${ticket.invoiceId}_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
+                  fileName={`${ticket.invoiceId}_${(ticket.items?.[0]?.productName ?? ticket.billTo).replace(/\s+/g, "_")}.pdf`}
                 >
                   {({ loading: pdfLoading }) => (
                     <Button 
@@ -427,7 +428,7 @@ export default function ViewParagonTicketPage() {
               {viewType === 'bast' && (
                 <PDFDownloadLink
                   document={<ParagonBASTPDF data={ticket} />}
-                  fileName={`${ticket.ticketId}_${ticket.billTo.replace(/\s+/g, "_")}.pdf`}
+                  fileName={`${ticket.ticketId}_${(ticket.items?.[0]?.productName ?? ticket.billTo).replace(/\s+/g, "_")}.pdf`}
                 >
                   {({ loading: pdfLoading }) => (
                     <Button 
