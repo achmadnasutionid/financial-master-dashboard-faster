@@ -64,7 +64,12 @@ export async function GET(request: Request) {
           totalAmount: true,
           status: true,
           generatedInvoiceId: true,
-          updatedAt: true
+          updatedAt: true,
+          items: {
+            take: 1,
+            orderBy: { order: "asc" as const },
+            select: { productName: true }
+          }
         },
         orderBy: { updatedAt: orderBy },
         take: takePerSource
@@ -79,7 +84,12 @@ export async function GET(request: Request) {
           totalAmount: true,
           status: true,
           generatedInvoiceId: true,
-          updatedAt: true
+          updatedAt: true,
+          items: {
+            take: 1,
+            orderBy: { order: "asc" as const },
+            select: { productName: true }
+          }
         },
         orderBy: { updatedAt: orderBy },
         take: takePerSource
@@ -115,30 +125,40 @@ export async function GET(request: Request) {
         viewHref: `/invoice/${inv.id}/view`,
         generatedExpenseId: inv.generatedExpenseId
       })),
-      ...paragonTickets.map((t) => ({
-        source: "paragon" as const,
-        id: t.id,
-        documentId: t.invoiceId || t.id,
-        billTo: t.billTo,
-        productionDate: t.productionDate,
-        totalAmount: t.totalAmount,
-        status: t.status,
-        updatedAt: t.updatedAt,
-        viewHref: `/special-case/paragon/${t.id}/view`,
-        generatedExpenseId: null as string | null
-      })),
-      ...erhaTickets.map((t) => ({
-        source: "erha" as const,
-        id: t.id,
-        documentId: t.invoiceId || t.id,
-        billTo: t.billTo,
-        productionDate: t.productionDate,
-        totalAmount: t.totalAmount,
-        status: t.status,
-        updatedAt: t.updatedAt,
-        viewHref: `/special-case/erha/${t.id}/view`,
-        generatedExpenseId: null as string | null
-      }))
+      ...paragonTickets.map((t) => {
+        const firstProduct = t.items?.[0]?.productName
+        const displayName = firstProduct?.trim() || t.billTo
+        const docId = (t.invoiceId && t.invoiceId.trim()) ? t.invoiceId : "—"
+        return {
+          source: "paragon" as const,
+          id: t.id,
+          documentId: docId,
+          billTo: displayName,
+          productionDate: t.productionDate,
+          totalAmount: t.totalAmount,
+          status: t.status,
+          updatedAt: t.updatedAt,
+          viewHref: `/special-case/paragon/${t.id}/view`,
+          generatedExpenseId: null as string | null
+        }
+      }),
+      ...erhaTickets.map((t) => {
+        const firstProduct = t.items?.[0]?.productName
+        const displayName = firstProduct?.trim() || t.billTo
+        const docId = (t.invoiceId && t.invoiceId.trim()) ? t.invoiceId : "—"
+        return {
+          source: "erha" as const,
+          id: t.id,
+          documentId: docId,
+          billTo: displayName,
+          productionDate: t.productionDate,
+          totalAmount: t.totalAmount,
+          status: t.status,
+          updatedAt: t.updatedAt,
+          viewHref: `/special-case/erha/${t.id}/view`,
+          generatedExpenseId: null as string | null
+        }
+      })
     ]
 
     rows.sort((a, b) =>

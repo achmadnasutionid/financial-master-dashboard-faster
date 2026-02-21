@@ -1,40 +1,21 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
-// Helper function to generate Erha ID in format ERH-YYYY-NNNN
-async function generateErhaId() {
-  const year = new Date().getFullYear()
-  const prefix = `ERH-${year}-`
-  
-  const lastErha = await prisma.erhaTicket.findFirst({
-    where: {
-      ticketId: {
-        startsWith: prefix
-      }
-    },
-    orderBy: {
-      ticketId: "desc"
-    }
-  })
-
-  let nextNumber = 1
-  if (lastErha) {
-    const lastNumber = parseInt(lastErha.ticketId.split("-")[2])
-    nextNumber = lastNumber + 1
-  }
-
-  return `${prefix}${nextNumber.toString().padStart(4, "0")}`
+function extractIdNumber(id: string | null | undefined): number {
+  if (!id) return 0
+  const parts = id.split("-")
+  const num = parseInt(parts[2])
+  return isNaN(num) ? 0 : num
 }
 
-// POST copy erha ticket
+// POST copy erha ticket (generates new ticketId, quotationId, invoiceId)
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params
-    
-    // Get the original erha ticket with all related data
+
     const originalErha = await prisma.erhaTicket.findUnique({
       where: { id },
       include: {
@@ -54,70 +35,134 @@ export async function POST(
       )
     }
 
-    // Generate new erha ID
-    const newErhaId = await generateErhaId()
+    const year = new Date().getFullYear()
 
-    // Create a copy with "- Copy" appended to billTo
-    const copiedErha = await prisma.erhaTicket.create({
-      data: {
-        ticketId: newErhaId,
-        companyName: originalErha.companyName,
-        companyAddress: originalErha.companyAddress,
-        companyCity: originalErha.companyCity,
-        companyProvince: originalErha.companyProvince,
-        companyTelp: originalErha.companyTelp,
-        companyEmail: originalErha.companyEmail,
-        productionDate: originalErha.productionDate,
-        quotationDate: originalErha.quotationDate,
-        invoiceBastDate: originalErha.invoiceBastDate,
-        billTo: `${originalErha.billTo} - Copy`,
-        billToAddress: originalErha.billToAddress,
-        contactPerson: originalErha.contactPerson,
-        contactPosition: originalErha.contactPosition,
-        bastContactPerson: originalErha.bastContactPerson,
-        bastContactPosition: originalErha.bastContactPosition,
-        billingName: originalErha.billingName,
-        billingBankName: originalErha.billingBankName,
-        billingBankAccount: originalErha.billingBankAccount,
-        billingBankAccountName: originalErha.billingBankAccountName,
-        billingKtp: originalErha.billingKtp,
-        billingNpwp: originalErha.billingNpwp,
-        signatureName: originalErha.signatureName,
-        signatureRole: originalErha.signatureRole,
-        signatureImageData: originalErha.signatureImageData,
-        finalWorkImageData: originalErha.finalWorkImageData,
-        pph: originalErha.pph,
-        totalAmount: originalErha.totalAmount,
-        status: "draft", // Always create copy as draft
-        items: {
-          create: originalErha.items.map(item => ({
-            productName: item.productName,
-            total: item.total,
-            details: {
-              create: item.details.map(detail => ({
-                detail: detail.detail,
-                unitPrice: detail.unitPrice,
-                qty: detail.qty,
-                amount: detail.amount
-              }))
-            }
-          }))
-        },
-        remarks: {
-          create: originalErha.remarks.map(remark => ({
-            text: remark.text,
-            isCompleted: remark.isCompleted
-          }))
-        }
-      },
-      include: {
-        items: {
-          include: {
-            details: true
+    const copiedErha = await prisma.$transaction(async (tx) => {
+      const [
+        latestTicket,
+        latestQuotation,
+        latestParagonQuotation,
+        latestErhaQuotation,
+        latestInvoice,
+        latestParagonInvoice,
+        latestErhaInvoice
+      ] = await Promise.all([
+        tx.erhaTicket.findFirst({
+          where: { ticketId: { startsWith: `ERH-${year}-` } },
+          orderBy: { ticketId: "desc" },
+          select: { ticketId: true }
+        }),
+        tx.quotation.findFirst({
+          where: { quotationId: { startsWith: `QTN-${year}-` } },
+          orderBy: { quotationId: "desc" },
+          select: { quotationId: true }
+        }),
+        tx.paragonTicket.findFirst({
+          where: { quotationId: { startsWith: `QTN-${year}-`, not: "" } },
+          orderBy: { quotationId: "desc" },
+          select: { quotationId: true }
+        }),
+        tx.erhaTicket.findFirst({
+          where: { quotationId: { startsWith: `QTN-${year}-`, not: "" } },
+          orderBy: { quotationId: "desc" },
+          select: { quotationId: true }
+        }),
+        tx.invoice.findFirst({
+          where: { invoiceId: { startsWith: `INV-${year}-` } },
+          orderBy: { invoiceId: "desc" },
+          select: { invoiceId: true }
+        }),
+        tx.paragonTicket.findFirst({
+          where: { invoiceId: { startsWith: `INV-${year}-`, not: "" } },
+          orderBy: { invoiceId: "desc" },
+          select: { invoiceId: true }
+        }),
+        tx.erhaTicket.findFirst({
+          where: { invoiceId: { startsWith: `INV-${year}-`, not: "" } },
+          orderBy: { invoiceId: "desc" },
+          select: { invoiceId: true }
+        })
+      ])
+
+      const nextTicketNum = extractIdNumber(latestTicket?.ticketId) + 1
+      const nextQuotationNum = Math.max(
+        extractIdNumber(latestQuotation?.quotationId),
+        extractIdNumber(latestParagonQuotation?.quotationId),
+        extractIdNumber(latestErhaQuotation?.quotationId)
+      ) + 1
+      const nextInvoiceNum = Math.max(
+        extractIdNumber(latestInvoice?.invoiceId),
+        extractIdNumber(latestParagonInvoice?.invoiceId),
+        extractIdNumber(latestErhaInvoice?.invoiceId)
+      ) + 1
+
+      const ticketId = `ERH-${year}-${nextTicketNum.toString().padStart(4, "0")}`
+      const quotationId = `QTN-${year}-${nextQuotationNum.toString().padStart(4, "0")}`
+      const invoiceId = `INV-${year}-${nextInvoiceNum.toString().padStart(4, "0")}`
+
+      return tx.erhaTicket.create({
+        data: {
+          ticketId,
+          quotationId,
+          invoiceId,
+          companyName: originalErha.companyName,
+          companyAddress: originalErha.companyAddress,
+          companyCity: originalErha.companyCity,
+          companyProvince: originalErha.companyProvince,
+          companyTelp: originalErha.companyTelp,
+          companyEmail: originalErha.companyEmail,
+          productionDate: originalErha.productionDate,
+          quotationDate: originalErha.quotationDate,
+          invoiceBastDate: originalErha.invoiceBastDate,
+          billTo: `${originalErha.billTo} - Copy`,
+          billToAddress: originalErha.billToAddress,
+          contactPerson: originalErha.contactPerson,
+          contactPosition: originalErha.contactPosition,
+          bastContactPerson: originalErha.bastContactPerson,
+          bastContactPosition: originalErha.bastContactPosition,
+          billingName: originalErha.billingName,
+          billingBankName: originalErha.billingBankName,
+          billingBankAccount: originalErha.billingBankAccount,
+          billingBankAccountName: originalErha.billingBankAccountName,
+          billingKtp: originalErha.billingKtp,
+          billingNpwp: originalErha.billingNpwp,
+          signatureName: originalErha.signatureName,
+          signatureRole: originalErha.signatureRole,
+          signatureImageData: originalErha.signatureImageData,
+          finalWorkImageData: originalErha.finalWorkImageData,
+          pph: originalErha.pph,
+          totalAmount: originalErha.totalAmount,
+          status: "draft",
+          items: {
+            create: originalErha.items.map(item => ({
+              productName: item.productName,
+              total: item.total,
+              details: {
+                create: item.details.map(detail => ({
+                  detail: detail.detail,
+                  unitPrice: detail.unitPrice,
+                  qty: detail.qty,
+                  amount: detail.amount
+                }))
+              }
+            }))
+          },
+          remarks: {
+            create: originalErha.remarks.map(remark => ({
+              text: remark.text,
+              isCompleted: remark.isCompleted
+            }))
           }
         },
-        remarks: true
-      }
+        include: {
+          items: {
+            include: {
+              details: true
+            }
+          },
+          remarks: true
+        }
+      })
     })
 
     return NextResponse.json(copiedErha, { status: 201 })
