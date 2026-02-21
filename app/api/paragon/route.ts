@@ -50,11 +50,22 @@ export async function GET(request: Request) {
           status: true,
           createdAt: true,
           updatedAt: true,
-          // Only fetch item summaries, not full details
+          // Include full item details for list view (show all details without opening PDF)
           items: {
             select: {
+              id: true,
               productName: true,
-              total: true
+              total: true,
+              order: true,
+              details: {
+                select: {
+                  id: true,
+                  detail: true,
+                  unitPrice: true,
+                  qty: true,
+                  amount: true
+                }
+              }
             }
           }
         },

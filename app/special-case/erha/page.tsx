@@ -32,6 +32,21 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
+interface ErhaTicketItemDetail {
+  id: string
+  detail: string
+  unitPrice: number
+  qty: number
+  amount: number
+}
+
+interface ErhaTicketItem {
+  id: string
+  productName: string
+  total: number
+  details: ErhaTicketItemDetail[]
+}
+
 interface ErhaTicket {
   id: string
   ticketId: string
@@ -43,6 +58,7 @@ interface ErhaTicket {
   generatedInvoiceId?: string
   createdAt: string
   updatedAt: string
+  items?: ErhaTicketItem[]
 }
 
 function ErhaTicketPageContent() {
@@ -430,6 +446,68 @@ function ErhaTicketPageContent() {
                         </p>
                       </div>
                     </div>
+
+                    {/* Product Items Table - full details without opening PDF */}
+                    {ticket.items && ticket.items.length > 0 && (
+                      <div className="overflow-x-auto rounded-md border">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted/50">
+                            <tr>
+                              <th className="px-3 py-2 text-left font-medium">Product Name</th>
+                              <th className="px-3 py-2 text-left font-medium">Details</th>
+                              <th className="px-3 py-2 text-right font-medium">Qty</th>
+                              <th className="px-3 py-2 text-right font-medium">Unit Price</th>
+                              <th className="px-3 py-2 text-right font-medium">Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {ticket.items.map((item, itemIdx) =>
+                              item.details && item.details.length > 0 ? (
+                                item.details.map((detail, detailIdx) => (
+                                  <tr
+                                    key={`${ticket.id}-${item.id ?? itemIdx}-${detail.id ?? detailIdx}`}
+                                    className={itemIdx % 2 === 0 ? "bg-background" : "bg-muted/30"}
+                                  >
+                                    <td className="px-3 py-2 font-medium">
+                                      {detailIdx === 0 ? item.productName : ""}
+                                    </td>
+                                    <td className="px-3 py-2">{detail.detail}</td>
+                                    <td className="px-3 py-2 text-right">{detail.qty}</td>
+                                    <td className="px-3 py-2 text-right">{formatCurrency(detail.unitPrice)}</td>
+                                    <td className="px-3 py-2 text-right">{formatCurrency(detail.amount)}</td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr
+                                  key={`${ticket.id}-item-${item.id ?? itemIdx}`}
+                                  className={itemIdx % 2 === 0 ? "bg-background" : "bg-muted/30"}
+                                >
+                                  <td className="px-3 py-2 font-medium">{item.productName}</td>
+                                  <td className="px-3 py-2 text-muted-foreground italic">No details</td>
+                                  <td className="px-3 py-2 text-right">-</td>
+                                  <td className="px-3 py-2 text-right">-</td>
+                                  <td className="px-3 py-2 text-right">{formatCurrency(item.total)}</td>
+                                </tr>
+                              )
+                            )}
+                          </tbody>
+                          <tfoot className="border-t bg-muted/50">
+                            <tr>
+                              <td colSpan={4} className="px-3 py-2 text-right font-semibold">Total Amount:</td>
+                              <td className="px-3 py-2 text-right font-bold">{formatCurrency(ticket.totalAmount)}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    )}
+
+                    {(!ticket.items || ticket.items.length === 0) && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">No product items</span>
+                        <span className="font-semibold">Total: {formatCurrency(ticket.totalAmount)}</span>
+                      </div>
+                    )}
+
                     {ticket.status === "pending" && (
                       <div className="flex justify-end pt-2">
                         <Button
